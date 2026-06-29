@@ -14,7 +14,7 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
   return (
     <header className="header">
       <div className="header-left">
-        <button className="menu-toggle" onClick={onMenuToggle} aria-label="Toggle menu" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <button className="menu-toggle" onClick={onMenuToggle} aria-label="Toggle menu">
           <Menu size={20} />
         </button>
         <div className="header-search">
@@ -25,6 +25,18 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
             type="text"
             placeholder="Tìm kiếm lỗ hổng, bài lab, tài liệu..."
             aria-label="Search"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              boxShadow: 'none',
+              padding: 0,
+              margin: '0 0 0 8px',
+              width: '100%',
+              color: 'var(--text-heading)',
+              fontFamily: 'inherit',
+              fontSize: '14px',
+            }}
           />
           <kbd style={{
             background: 'var(--bg-neutral-tertiary)',

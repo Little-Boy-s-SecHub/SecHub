@@ -47,7 +47,7 @@ export default function LabGameView({
   onSimulatedSuccess
 }: LabGameViewProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  
+
   // Game engine refs (for 60fps lag-free rendering and zero stale closures)
   const playerRef = useRef({ x: 400, y: 240, speed: 4.5, width: 24, height: 24 });
   const keysPressedRef = useRef<Record<string, boolean>>({});
@@ -482,31 +482,68 @@ export default function LabGameView({
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      // 1. Draw Background Grid & Floor Tiles
-      ctx.fillStyle = '#080d1a';
+      // 1. Draw Cyberpunk/Matrix Dark Grid & Radar Sweep
+      ctx.fillStyle = '#060a13'; // Deep rich cyber navy
       ctx.fillRect(0, 0, 800, 480);
 
-      // Cyber Tiling Floor Grid
-      const gridSize = 40;
-      for (let i = 0; i < 800; i += gridSize) {
-        for (let j = 0; j < 480; j += gridSize) {
-          // Grid Plate Border
-          ctx.strokeStyle = '#111927';
-          ctx.lineWidth = 1;
-          ctx.strokeRect(i, j, gridSize, gridSize);
+      // Radar Pulse in center
+      const radarPulse = 220 + Math.sin(Date.now() * 0.0035) * 35;
+      const radarGlow = ctx.createRadialGradient(400, 240, 10, 400, 240, radarPulse);
+      radarGlow.addColorStop(0, 'rgba(8, 47, 73, 0.18)');
+      radarGlow.addColorStop(1, 'rgba(6, 10, 19, 0)');
+      ctx.fillStyle = radarGlow;
+      ctx.beginPath();
+      ctx.arc(400, 240, radarPulse, 0, Math.PI * 2);
+      ctx.fill();
 
-          // Floor Plate Rivets in corners
-          ctx.fillStyle = '#1e293b';
-          ctx.fillRect(i + 2, j + 2, 2, 2);
-          ctx.fillRect(i + gridSize - 4, j + 2, 2, 2);
-          ctx.fillRect(i + 2, j + gridSize - 4, 2, 2);
-          ctx.fillRect(i + gridSize - 4, j + gridSize - 4, 2, 2);
+      // Blueprint style grid and crosses
+      const gridSize = 40;
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.04)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let x = 0; x <= 800; x += gridSize) {
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, 480);
+      }
+      for (let y = 0; y <= 480; y += gridSize) {
+        ctx.moveTo(0, y);
+        ctx.lineTo(800, y);
+      }
+      ctx.stroke();
+
+      // Draw subtle intersection crosses (+)
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.12)';
+      ctx.lineWidth = 1.2;
+      for (let x = gridSize; x < 800; x += gridSize) {
+        for (let y = gridSize; y < 480; y += gridSize) {
+          ctx.beginPath();
+          ctx.moveTo(x - 3, y);
+          ctx.lineTo(x + 3, y);
+          ctx.moveTo(x, y - 3);
+          ctx.lineTo(x, y + 3);
+          ctx.stroke();
         }
       }
 
-      ctx.strokeStyle = '#1e293b';
-      ctx.lineWidth = 8;
-      ctx.strokeRect(4, 4, 800 - 8, 480 - 8);
+      // Scanner Scanline sweep
+      const scanY = (Date.now() * 0.065) % 480;
+      const scanGrad = ctx.createLinearGradient(0, scanY - 18, 0, scanY);
+      scanGrad.addColorStop(0, 'rgba(56, 189, 248, 0)');
+      scanGrad.addColorStop(1, 'rgba(56, 189, 248, 0.07)');
+      ctx.fillStyle = scanGrad;
+      ctx.fillRect(0, scanY - 18, 800, 18);
+
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.2)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, scanY);
+      ctx.lineTo(800, scanY);
+      ctx.stroke();
+
+      // Cyber room outer border
+      ctx.strokeStyle = 'rgba(30, 41, 59, 0.8)';
+      ctx.lineWidth = 6;
+      ctx.strokeRect(3, 3, 800 - 6, 480 - 6);
 
       // 2. Draw animated flowing arrow paths connecting objects
       const pathPoints = [
@@ -518,227 +555,270 @@ export default function LabGameView({
       pathPoints.push({ x: 400 + 12, y: 85 + 12 }); // 3. Thực hành
       pathPoints.push({ x: 560 + 12, y: 85 + 12 }); // 4. Nộp FLAG
 
-      // Draw path lines
       for (let i = 0; i < pathPoints.length - 1; i++) {
-        drawArrow(ctx, pathPoints[i].x, pathPoints[i].y, pathPoints[i + 1].x, pathPoints[i + 1].y, 'rgba(56, 189, 248, 0.45)');
+        drawArrow(ctx, pathPoints[i].x, pathPoints[i].y, pathPoints[i + 1].x, pathPoints[i + 1].y, 'rgba(56, 189, 248, 0.5)');
       }
 
-      // 3. Draw Ambient Light glows (Ambient Illumination under consoles and NPCs)
-      npcs.forEach((npc) => {
-        const glowRad = 32;
-        const radialGlow = ctx.createRadialGradient(
-          npc.x + npc.width / 2, npc.y + npc.height / 2 + 10, 2,
-          npc.x + npc.width / 2, npc.y + npc.height / 2 + 10, glowRad
-        );
-        radialGlow.addColorStop(0, npc.color + '44'); // 27% opacity
-        radialGlow.addColorStop(1, npc.color + '00');
-        ctx.fillStyle = radialGlow;
-        ctx.beginPath();
-        ctx.arc(npc.x + npc.width / 2, npc.y + npc.height / 2 + 10, glowRad, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      // Ambient light under player
-      const p = playerRef.current;
-      const playerGlow = ctx.createRadialGradient(p.x + 12, p.y + 12, 2, p.x + 12, p.y + 12, 26);
-      playerGlow.addColorStop(0, 'rgba(34, 197, 94, 0.3)');
-      playerGlow.addColorStop(1, 'rgba(34, 197, 94, 0)');
-      ctx.fillStyle = playerGlow;
-      ctx.beginPath();
-      ctx.arc(p.x + 12, p.y + 12, 26, 0, Math.PI * 2);
-      ctx.fill();
-
-      // 4. Draw Obstacles (with metallic / gloss gradient details)
-      obstacles.forEach((obs) => {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
-        ctx.fillRect(obs.x + 5, obs.y + 5, obs.width, obs.height);
-
-        // Desk gradient
-        const deskGrad = ctx.createLinearGradient(obs.x, obs.y, obs.x, obs.y + obs.height);
-        deskGrad.addColorStop(0, '#1f2937');
-        deskGrad.addColorStop(0.5, '#111827');
-        deskGrad.addColorStop(1, '#030712');
-        ctx.fillStyle = deskGrad;
-        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-        
-        ctx.strokeStyle = '#374151';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(obs.x, obs.y, obs.width, obs.height);
-
-        if (obs.label.startsWith('Tủ Rack')) {
-          ctx.fillStyle = '#05070c';
-          ctx.fillRect(obs.x + 4, obs.y + 6, obs.width - 8, obs.height - 12);
-          
-          ctx.strokeStyle = '#1f2937';
-          ctx.lineWidth = 1;
-          for (let ly = obs.y + 12; ly < obs.y + obs.height - 8; ly += 10) {
-            ctx.beginPath();
-            ctx.moveTo(obs.x + 8, ly);
-            ctx.lineTo(obs.x + obs.width - 8, ly);
-            ctx.stroke();
-
-            const seed = Math.sin(Date.now() * 0.006 + ly) * 10;
-            ctx.fillStyle = seed > 4 ? '#00f2fe' : seed < -4 ? '#ff2d55' : '#10b981';
-            ctx.fillRect(obs.x + 10, ly - 3, 3, 3);
-            ctx.fillStyle = seed > 0 ? '#22c55e' : '#475569';
-            ctx.fillRect(obs.x + 16, ly - 3, 3, 3);
-          }
-          // Server cabinet glass door glow lines
-          ctx.strokeStyle = 'rgba(56, 189, 248, 0.15)';
-          ctx.beginPath();
-          ctx.moveTo(obs.x + 6, obs.y + 4);
-          ctx.lineTo(obs.x + 6, obs.y + obs.height - 4);
-          ctx.stroke();
-        } else {
-          // Console neon reflection lines
-          ctx.fillStyle = '#38bdf8';
-          ctx.fillRect(obs.x + 8, obs.y + 4, obs.width - 16, 2);
-          
-          ctx.fillStyle = 'rgba(56, 189, 248, 0.75)';
-          ctx.font = 'bold 8px monospace';
-          ctx.textAlign = 'center';
-          ctx.fillText('CONSOLE SYSTEM', obs.x + obs.width / 2, obs.y + 20);
-        }
-      });
-
-      // 5. Draw NPCs & Interactive points (stationary canvas representation with 2D RPG Character Art)
+      // 3. Draw pulsing glowing auras under entities
       npcs.forEach((npc) => {
         const isSpecial = npc.hintIndex >= 98;
         const isUnlockable = !isSpecial && npc.hintIndex === revealedHints;
         
+        const glowPulse = Math.sin(Date.now() * 0.005 + npc.hintIndex * 1.7) * 4 + 18;
+        const radialGlow = ctx.createRadialGradient(
+          npc.x + npc.width / 2, npc.y + npc.height / 2 + 10, 2,
+          npc.x + npc.width / 2, npc.y + npc.height / 2 + 10, glowPulse
+        );
+        radialGlow.addColorStop(0, npc.color + '44');
+        radialGlow.addColorStop(1, npc.color + '00');
+        ctx.fillStyle = radialGlow;
         ctx.beginPath();
-        ctx.arc(npc.x + npc.width / 2, npc.y + npc.height / 2 + 10, 14, 0, Math.PI * 2);
-        ctx.fillStyle = isUnlockable 
-          ? 'rgba(234,204,21,0.2)' 
-          : 'rgba(56,189,248,0.1)';
+        ctx.arc(npc.x + npc.width / 2, npc.y + npc.height / 2 + 10, glowPulse, 0, Math.PI * 2);
         ctx.fill();
+        
+        // Extra pulsing outer ring for unlocked mentor hints
+        if (isUnlockable) {
+          ctx.strokeStyle = 'rgba(234, 179, 8, 0.5)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(npc.x + npc.width / 2, npc.y + npc.height / 2 + 10, glowPulse + 4, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      });
 
-        // Procedural Retro Sprite Drawing
-        if (npc.hintIndex === 99) {
-          // 1. Bảng Nhiệm Vụ Kiosk
-          // Legs
-          ctx.fillStyle = '#4b5563';
-          ctx.fillRect(npc.x + 6, npc.y + 12, 2, 10);
-          ctx.fillRect(npc.x + 16, npc.y + 12, 2, 10);
-          // Board wood frame
-          ctx.fillStyle = '#b45309';
-          ctx.fillRect(npc.x + 2, npc.y, 20, 13);
-          // Inner yellow corkboard
-          ctx.fillStyle = '#fef08a';
-          ctx.fillRect(npc.x + 4, npc.y + 2, 16, 9);
-          // Paper sheet
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(npc.x + 6, npc.y + 3, 5, 6);
-          ctx.fillStyle = '#d97706';
-          ctx.fillRect(npc.x + 12, npc.y + 5, 3, 4);
-        } else if (npc.hintIndex === 98) {
-          // 3. Máy Chủ Thực Hành CRT
-          ctx.fillStyle = '#374151';
-          ctx.fillRect(npc.x + 2, npc.y + 2, 20, 20);
-          ctx.strokeStyle = '#4b5563';
-          ctx.strokeRect(npc.x + 2, npc.y + 2, 20, 20);
-          // CRT glow monitor
-          ctx.fillStyle = '#030712';
-          ctx.fillRect(npc.x + 4, npc.y + 4, 16, 10);
-          ctx.strokeStyle = '#0284c7';
-          ctx.strokeRect(npc.x + 4, npc.y + 4, 16, 10);
-          // Blinking green screen lines
-          const pulse = Math.sin(Date.now() * 0.01) * 3;
-          ctx.fillStyle = '#22c55e';
-          ctx.fillRect(npc.x + 6 + (pulse > 0 ? 1 : 0), npc.y + 6, 8, 1);
-          ctx.fillStyle = '#10b981';
-          ctx.fillRect(npc.x + 6, npc.y + 9, 10, 1);
-          // Console keyboard shelf
-          ctx.fillStyle = '#4b5563';
-          ctx.fillRect(npc.x, npc.y + 15, 24, 3);
-          ctx.fillStyle = '#111827';
-          ctx.fillRect(npc.x + 4, npc.y + 15, 16, 1);
-        } else if (npc.hintIndex === 100) {
-          // 4. Thiết Bị Nộp FLAG Floppy kiosk
-          ctx.fillStyle = '#1f2937';
-          ctx.fillRect(npc.x + 3, npc.y + 2, 18, 20);
-          ctx.strokeStyle = '#10b981';
-          ctx.strokeRect(npc.x + 3, npc.y + 2, 18, 20);
-          // Disk slot
-          ctx.fillStyle = '#030712';
-          ctx.fillRect(npc.x + 6, npc.y + 13, 12, 2);
-          // Glowing status monitor
-          const pulseDisk = Math.sin(Date.now() * 0.008) * 10;
-          ctx.fillStyle = pulseDisk > 0 ? '#10b981' : '#047857';
-          ctx.fillRect(npc.x + 6, npc.y + 5, 12, 5);
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(npc.x + 8, npc.y + 6, 2, 2);
+      // Ambient pulsing light under player
+      const p = playerRef.current;
+      const playerGlowRad = Math.sin(Date.now() * 0.007) * 3 + 24;
+      const playerGlow = ctx.createRadialGradient(p.x + 12, p.y + 12, 2, p.x + 12, p.y + 12, playerGlowRad);
+      playerGlow.addColorStop(0, 'rgba(74, 222, 128, 0.4)');
+      playerGlow.addColorStop(1, 'rgba(74, 222, 128, 0)');
+      ctx.fillStyle = playerGlow;
+      ctx.beginPath();
+      ctx.arc(p.x + 12, p.y + 12, playerGlowRad, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 4. Draw Obstacles (with premium Glassmorphic + Neon details)
+      obstacles.forEach((obs) => {
+        // Shadow
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+        ctx.fillRect(obs.x + 4, obs.y + 4, obs.width, obs.height);
+
+        // Glassmorphic Body
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.75)'; // Transparent slate-900
+        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+        
+        // Neon borders
+        ctx.strokeStyle = obs.label.startsWith('Tủ Rack') ? 'rgba(71, 85, 105, 0.6)' : 'rgba(56, 189, 248, 0.55)';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(obs.x, obs.y, obs.width, obs.height);
+
+        if (obs.label.startsWith('Tủ Rack')) {
+          // Tech lines / Server cabinet slots
+          ctx.strokeStyle = 'rgba(30, 41, 59, 0.9)';
+          ctx.lineWidth = 1.5;
+          for (let ly = obs.y + 10; ly < obs.y + obs.height - 6; ly += 9) {
+            ctx.beginPath();
+            ctx.moveTo(obs.x + 6, ly);
+            ctx.lineTo(obs.x + obs.width - 6, ly);
+            ctx.stroke();
+
+            // Blinking server LEDs
+            const flashVal = Math.sin(Date.now() * 0.006 + ly) * 10;
+            ctx.fillStyle = flashVal > 5 ? '#22c55e' : flashVal < -5 ? '#ef4444' : '#3b82f6';
+            ctx.fillRect(obs.x + 10, ly - 2, 2.5, 2.5);
+            ctx.fillStyle = flashVal > 0 ? '#10b981' : '#475569';
+            ctx.fillRect(obs.x + 16, ly - 2, 2.5, 2.5);
+          }
+          // Server glass gleam
+          const gleamGrad = ctx.createLinearGradient(obs.x, obs.y, obs.x + obs.width, obs.y);
+          gleamGrad.addColorStop(0.1, 'rgba(255, 255, 255, 0)');
+          gleamGrad.addColorStop(0.2, 'rgba(255, 255, 255, 0.06)');
+          gleamGrad.addColorStop(0.3, 'rgba(255, 255, 255, 0)');
+          ctx.fillStyle = gleamGrad;
+          ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
         } else {
-          // Mentors (Hacker hooded wizard sprites with glowing eyes)
-          // Shadow body
+          // Dynamic status screen wave charts on Console Desks
+          ctx.fillStyle = 'rgba(9, 13, 22, 0.85)';
+          ctx.fillRect(obs.x + 10, obs.y + 6, obs.width - 20, obs.height - 12);
+          ctx.strokeStyle = 'rgba(56, 189, 248, 0.2)';
+          ctx.strokeRect(obs.x + 10, obs.y + 6, obs.width - 20, obs.height - 12);
+
+          // Moving grid/graph lines
+          ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          for (let gx = 0; gx < obs.width - 24; gx += 3) {
+            const gy = Math.sin(Date.now() * 0.007 + (gx + obs.x) * 0.15) * 5 + obs.y + obs.height / 2;
+            if (gx === 0) ctx.moveTo(obs.x + 12 + gx, gy);
+            else ctx.lineTo(obs.x + 12 + gx, gy);
+          }
+          ctx.stroke();
+
+          // Console header outline
+          ctx.fillStyle = 'rgba(56, 189, 248, 0.85)';
+          ctx.font = 'bold 7px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(obs.label.toUpperCase(), obs.x + obs.width / 2, obs.y + obs.height - 10);
+        }
+      });
+
+      // 5. Draw NPCs & Kiosks (Procedural holographic tech sprites)
+      npcs.forEach((npc) => {
+        if (npc.hintIndex === 99) {
+          // 1. Mission Kiosk Board
+          // Stand
+          ctx.fillStyle = '#475569';
+          ctx.fillRect(npc.x + 9, npc.y + 14, 6, 8);
+          ctx.fillStyle = '#1e293b';
+          ctx.fillRect(npc.x + 4, npc.y + 22, 16, 2);
+
+          // Hologram frame
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
+          ctx.fillRect(npc.x + 2, npc.y, 20, 14);
+          ctx.strokeStyle = '#eab308';
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(npc.x + 2, npc.y, 20, 14);
+
+          // Glowing holographic lines
+          const hLine = (Date.now() * 0.02) % 10;
+          ctx.strokeStyle = 'rgba(234, 179, 8, 0.4)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(npc.x + 4, npc.y + 2 + hLine);
+          ctx.lineTo(npc.x + 20, npc.y + 2 + hLine);
+          ctx.stroke();
+
+          ctx.fillStyle = '#fef08a';
+          ctx.fillRect(npc.x + 6, npc.y + 4, 3, 3);
+          ctx.fillStyle = 'rgba(234,179,8,0.7)';
+          ctx.fillRect(npc.x + 11, npc.y + 6, 7, 2);
+        } else if (npc.hintIndex === 98) {
+          // 3. CRT Practice Server Terminal
+          ctx.fillStyle = '#334155';
+          ctx.fillRect(npc.x + 2, npc.y + 2, 20, 20);
+          ctx.strokeStyle = 'rgba(56, 189, 248, 0.8)';
+          ctx.strokeRect(npc.x + 2, npc.y + 2, 20, 20);
+
+          // CRT Terminal screen glowing neon blue
+          ctx.fillStyle = '#020617';
+          ctx.fillRect(npc.x + 4, npc.y + 4, 16, 10);
+          ctx.strokeStyle = '#38bdf8';
+          ctx.strokeRect(npc.x + 4, npc.y + 4, 16, 10);
+
+          // Interactive terminal scan lines
+          const pulse = Math.sin(Date.now() * 0.015) * 3;
+          ctx.fillStyle = 'rgba(56, 189, 248, 0.85)';
+          ctx.fillRect(npc.x + 6 + (pulse > 0 ? 1 : 0), npc.y + 6, 8, 1);
+          ctx.fillStyle = 'rgba(16, 185, 129, 0.7)';
+          ctx.fillRect(npc.x + 6, npc.y + 9, 10, 1);
+
+          // Keyboardshelf
+          ctx.fillStyle = '#1e293b';
+          ctx.fillRect(npc.x, npc.y + 15, 24, 3);
+          ctx.fillStyle = '#38bdf8';
+          ctx.fillRect(npc.x + 5, npc.y + 16, 14, 1);
+        } else if (npc.hintIndex === 100) {
+          // 4. Flag Validator Terminal Kiosk
+          ctx.fillStyle = '#1e293b';
+          ctx.fillRect(npc.x + 3, npc.y + 2, 18, 20);
+          ctx.strokeStyle = 'rgba(16, 185, 129, 0.8)';
+          ctx.strokeRect(npc.x + 3, npc.y + 2, 18, 20);
+
+          // Bio slot
+          ctx.fillStyle = '#020617';
+          ctx.fillRect(npc.x + 6, npc.y + 13, 12, 2.5);
+
+          // Glowing status monitor
+          const pulseDisk = Math.sin(Date.now() * 0.01) * 10;
+          ctx.fillStyle = pulseDisk > 0 ? '#10b981' : '#059669';
+          ctx.fillRect(npc.x + 6, npc.y + 4, 12, 6);
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(npc.x + 8, npc.y + 5, 2, 2);
+        } else {
+          // Mentors (Hooded Hacker Wizard with neon trims & glowing eyes)
+          // Hoodie Body
           ctx.fillStyle = '#0f172a';
           ctx.fillRect(npc.x + 4, npc.y + 8, 16, 13);
-          // Cloak trims
-          ctx.fillStyle = npc.color;
-          ctx.fillRect(npc.x + 4, npc.y + 8, 2, 13);
-          ctx.fillRect(npc.x + 18, npc.y + 8, 2, 13);
-          // Hands
-          ctx.fillStyle = '#f1f5f9';
-          ctx.fillRect(npc.x + 2, npc.y + 13, 2, 3);
-          ctx.fillRect(npc.x + 20, npc.y + 13, 2, 3);
-          // Hood
-          ctx.fillStyle = npc.color;
+          
+          ctx.strokeStyle = npc.color;
+          ctx.lineWidth = 1.2;
+          ctx.strokeRect(npc.x + 4, npc.y + 8, 16, 13);
+
+          // Neon wizard hood
+          ctx.fillStyle = '#1e293b';
           ctx.beginPath();
           ctx.arc(npc.x + 12, npc.y + 6, 8, 0, Math.PI * 2);
           ctx.fill();
-          // Shaded face cavity
-          ctx.fillStyle = '#030712';
+          ctx.strokeStyle = npc.color;
+          ctx.stroke();
+
+          // Dark face cavity
+          ctx.fillStyle = '#020617';
           ctx.beginPath();
           ctx.arc(npc.x + 12, npc.y + 7, 5, 0, Math.PI * 2);
           ctx.fill();
-          // Glowing pixel eyes
-          ctx.fillStyle = npc.color;
+
+          // Glowing neon eyes
+          const eyePulse = Math.sin(Date.now() * 0.01) > 0 ? npc.color : 'rgba(255,255,255,0.2)';
+          ctx.fillStyle = eyePulse;
           ctx.fillRect(npc.x + 9, npc.y + 6, 2, 2);
           ctx.fillRect(npc.x + 13, npc.y + 6, 2, 2);
         }
       });
 
-      // 6. Draw Player (Cyber Astronaut Sprite with helmet & visor)
-      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      // 6. Draw Player (Cyber Astronaut Sprite with Hovering Animation)
+      const hoverOffset = Math.sin(Date.now() * 0.0055) * 2.5;
+      const py = p.y + hoverOffset;
+
+      // Drop shadow on floor under the astronaut (shrinks/grows with hovering)
+      const shadowScale = 1 - (hoverOffset / 12);
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
       ctx.beginPath();
-      ctx.ellipse(p.x + 12, p.y + 22, 10, 4, 0, 0, Math.PI * 2);
+      ctx.ellipse(p.x + 12, p.y + 21, 9 * shadowScale, 3 * shadowScale, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Green backpack
-      ctx.fillStyle = '#16a34a';
-      ctx.fillRect(p.x + 2, p.y + 8, 4, 12);
-      ctx.fillStyle = '#4ade80';
-      ctx.fillRect(p.x + 2, p.y + 9, 3, 10);
+      // Backpack
+      ctx.fillStyle = '#047857';
+      ctx.fillRect(p.x + 2, py + 8, 4, 11);
+      ctx.fillStyle = '#10b981';
+      ctx.fillRect(p.x + 2, py + 9, 3, 9);
 
-      // Suit body
-      ctx.fillStyle = '#1e293b';
-      ctx.fillRect(p.x + 6, p.y + 8, 12, 12);
-      ctx.fillStyle = '#475569';
-      ctx.fillRect(p.x + 6, p.y + 14, 12, 2);
-      ctx.fillStyle = '#4ade80';
-      ctx.fillRect(p.x + 11, p.y + 14, 2, 2);
-
-      // Boots
+      // Cyber suit body
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(p.x + 6, p.y + 20, 4, 3);
-      ctx.fillRect(p.x + 14, p.y + 20, 4, 3);
+      ctx.fillRect(p.x + 6, py + 8, 12, 11);
+      
+      // Neon green lining
+      ctx.strokeStyle = '#22c55e';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(p.x + 6, py + 8, 12, 11);
 
-      // Space helmet
-      ctx.fillStyle = '#475569';
+      // Cybernetic core light
+      ctx.fillStyle = '#4ade80';
+      ctx.fillRect(p.x + 11, py + 13, 2, 2);
+
+      // Space boots
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(p.x + 6, py + 19, 4, 3);
+      ctx.fillRect(p.x + 14, py + 19, 4, 3);
+
+      // Matte dark helmet
+      ctx.fillStyle = '#1e293b';
       ctx.beginPath();
-      ctx.arc(p.x + 12, p.y + 6, 8, 0, Math.PI * 2);
+      ctx.arc(p.x + 12, py + 6, 8, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = '#64748b';
+      ctx.strokeStyle = '#475569';
       ctx.stroke();
 
-      // Glowing green visor
-      ctx.fillStyle = '#4ade80';
-      ctx.fillRect(p.x + 8, p.y + 4, 9, 4);
+      // Visor glowing bright neon green
+      ctx.fillStyle = 'rgba(34, 197, 94, 0.95)';
+      ctx.fillRect(p.x + 8, py + 4, 9, 4);
+
+      // Visor light reflection gleam
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(p.x + 14, p.y + 4, 2, 1);
+      ctx.fillRect(p.x + 14, py + 4, 2, 1);
 
       // Simple Sharp "YOU" label drawn on canvas directly above head
-      drawTextWithOutline(ctx, 'BẠN', p.x + p.width / 2, p.y - 6, '#4ade80');
+      drawTextWithOutline(ctx, 'BẠN', p.x + p.width / 2, py - 6, '#4ade80');
     };
 
     const renderLoop = () => {
