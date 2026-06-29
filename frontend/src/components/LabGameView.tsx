@@ -69,6 +69,9 @@ export default function LabGameView({
   // In-game Vulnerable Server Console Modal state
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
 
+  // Redraw state triggers to sync active label states in React
+  const [activeNpcNameState, setActiveNpcNameState] = useState<string | null>(null);
+
   // Reset overlay when flagResult changes
   useEffect(() => {
     if (flagResult === 'correct') {
@@ -434,15 +437,17 @@ export default function LabGameView({
       }
 
       activeNpcRef.current = closeNpc;
-      setUiActiveNpcName(closeNpc ? closeNpc.name : null);
+      const name = closeNpc ? closeNpc.name : null;
+      setUiActiveNpcName(name);
+      setActiveNpcNameState(name);
     };
 
-    // Helper to draw text with a solid dark outline for maximum clarity
+    // Helper to draw text with a solid dark outline inside canvas
     const drawTextWithOutline = (ctx: CanvasRenderingContext2D, text: string, x: number, y: number, textColor: string) => {
-      ctx.font = 'bold 11px sans-serif';
+      ctx.font = 'bold 10px sans-serif';
       ctx.textAlign = 'center';
       ctx.strokeStyle = '#020617';
-      ctx.lineWidth = 4;
+      ctx.lineWidth = 3;
       ctx.strokeText(text, x, y);
       ctx.fillStyle = textColor;
       ctx.fillText(text, x, y);
@@ -451,9 +456,9 @@ export default function LabGameView({
     // Helper to draw a dashed flowing arrow showing step direction
     const drawArrow = (ctx: CanvasRenderingContext2D, fromX: number, fromY: number, toX: number, toY: number, color: string) => {
       ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
-      ctx.setLineDash([6, 6]);
-      ctx.lineDashOffset = -Math.floor(Date.now() * 0.015) % 12;
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([8, 8]);
+      ctx.lineDashOffset = -Math.floor(Date.now() * 0.018) % 16;
       ctx.beginPath();
       ctx.moveTo(fromX, fromY);
       ctx.lineTo(toX, toY);
@@ -466,8 +471,8 @@ export default function LabGameView({
       ctx.fillStyle = color;
       ctx.beginPath();
       ctx.moveTo(midX, midY);
-      ctx.lineTo(midX - 8 * Math.cos(angle - Math.PI / 6), midY - 8 * Math.sin(angle - Math.PI / 6));
-      ctx.lineTo(midX - 8 * Math.cos(angle + Math.PI / 6), midY - 8 * Math.sin(angle + Math.PI / 6));
+      ctx.lineTo(midX - 9 * Math.cos(angle - Math.PI / 6), midY - 9 * Math.sin(angle - Math.PI / 6));
+      ctx.lineTo(midX - 9 * Math.cos(angle + Math.PI / 6), midY - 9 * Math.sin(angle + Math.PI / 6));
       ctx.fill();
     };
 
@@ -478,10 +483,11 @@ export default function LabGameView({
       if (!ctx) return;
 
       // 1. Draw Background Grid
-      ctx.fillStyle = '#0b0f19';
+      ctx.fillStyle = '#090d16';
       ctx.fillRect(0, 0, 800, 480);
 
-      ctx.strokeStyle = '#141e33';
+      // Sci-fi grid lines
+      ctx.strokeStyle = '#121b2d';
       ctx.lineWidth = 1;
       const gridSize = 40;
       for (let i = 0; i < 800; i += gridSize) {
@@ -501,36 +507,64 @@ export default function LabGameView({
       ctx.lineWidth = 8;
       ctx.strokeRect(4, 4, 800 - 8, 480 - 8);
 
-      // 2. Draw animated flowing arrow paths connecting objects in chronological order
+      // 2. Draw animated flowing arrow paths connecting objects
       const pathPoints = [
         { x: 240 + 12, y: 85 + 12 }, // 1. Nhiệm vụ
       ];
-      // Mentors
       baseMentors.forEach((m) => {
         pathPoints.push({ x: m.x + 12, y: m.y + 12 });
       });
-      // Practice and Submit
       pathPoints.push({ x: 400 + 12, y: 85 + 12 }); // 3. Thực hành
       pathPoints.push({ x: 560 + 12, y: 85 + 12 }); // 4. Nộp FLAG
 
-      // Draw paths
+      // Draw path lines
       for (let i = 0; i < pathPoints.length - 1; i++) {
-        drawArrow(ctx, pathPoints[i].x, pathPoints[i].y, pathPoints[i + 1].x, pathPoints[i + 1].y, 'rgba(0, 242, 254, 0.45)');
+        drawArrow(ctx, pathPoints[i].x, pathPoints[i].y, pathPoints[i + 1].x, pathPoints[i + 1].y, 'rgba(56, 189, 248, 0.4)');
       }
 
-      // 3. Draw Obstacles
-      obstacles.forEach((obs) => {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-        ctx.fillRect(obs.x + 4, obs.y + 4, obs.width, obs.height);
+      // 3. Draw Ambient Light glows (Ambient Illumination under consoles and NPCs)
+      npcs.forEach((npc) => {
+        const glowRad = 28;
+        const radialGlow = ctx.createRadialGradient(
+          npc.x + npc.width / 2, npc.y + npc.height / 2 + 10, 2,
+          npc.x + npc.width / 2, npc.y + npc.height / 2 + 10, glowRad
+        );
+        radialGlow.addColorStop(0, npc.color + '33'); // 20% opacity
+        radialGlow.addColorStop(1, npc.color + '00'); // 0% opacity
+        ctx.fillStyle = radialGlow;
+        ctx.beginPath();
+        ctx.arc(npc.x + npc.width / 2, npc.y + npc.height / 2 + 10, glowRad, 0, Math.PI * 2);
+        ctx.fill();
+      });
 
-        ctx.fillStyle = '#1e293b';
+      // Ambient light under player
+      const p = playerRef.current;
+      const playerGlow = ctx.createRadialGradient(p.x + 12, p.y + 12, 2, p.x + 12, p.y + 12, 26);
+      playerGlow.addColorStop(0, 'rgba(34, 197, 94, 0.25)');
+      playerGlow.addColorStop(1, 'rgba(34, 197, 94, 0)');
+      ctx.fillStyle = playerGlow;
+      ctx.beginPath();
+      ctx.arc(p.x + 12, p.y + 12, 26, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 4. Draw Obstacles (with metallic / gloss gradient details)
+      obstacles.forEach((obs) => {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+        ctx.fillRect(obs.x + 5, obs.y + 5, obs.width, obs.height);
+
+        // Desk gradient
+        const deskGrad = ctx.createLinearGradient(obs.x, obs.y, obs.x, obs.y + obs.height);
+        deskGrad.addColorStop(0, '#1e293b');
+        deskGrad.addColorStop(1, '#0f172a');
+        ctx.fillStyle = deskGrad;
         ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-        ctx.strokeStyle = '#334155';
-        ctx.lineWidth = 2;
+        
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 1.5;
         ctx.strokeRect(obs.x, obs.y, obs.width, obs.height);
 
         if (obs.label.startsWith('Tủ Rack')) {
-          ctx.fillStyle = '#0f172a';
+          ctx.fillStyle = '#05070c';
           ctx.fillRect(obs.x + 4, obs.y + 6, obs.width - 8, obs.height - 12);
           
           ctx.strokeStyle = '#1e293b';
@@ -544,49 +578,41 @@ export default function LabGameView({
             const seed = Math.sin(Date.now() * 0.006 + ly) * 10;
             ctx.fillStyle = seed > 4 ? '#00f2fe' : seed < -4 ? '#ff2d55' : '#10b981';
             ctx.fillRect(obs.x + 10, ly - 3, 3, 3);
-            ctx.fillStyle = seed > 0 ? '#27c93f' : '#64748b';
+            ctx.fillStyle = seed > 0 ? '#22c55e' : '#475569';
             ctx.fillRect(obs.x + 16, ly - 3, 3, 3);
           }
         } else {
+          // Blue neon reflection line on control consoles
           ctx.fillStyle = '#38bdf8';
-          ctx.fillRect(obs.x + 10, obs.y + 6, obs.width - 20, 3);
-          ctx.fillStyle = '#1e293b';
-          ctx.font = 'bold 9px monospace';
+          ctx.fillRect(obs.x + 8, obs.y + 4, obs.width - 16, 2);
+          
+          ctx.fillStyle = 'rgba(56, 189, 248, 0.8)';
+          ctx.font = 'bold 8px monospace';
           ctx.textAlign = 'center';
-          ctx.fillText('CONSOLE', obs.x + obs.width / 2, obs.y + 22);
+          ctx.fillText('CONSOLE SYSTEM', obs.x + obs.width / 2, obs.y + 20);
         }
       });
 
-      // 4. Draw NPCs & Interactive points (no emojis)
+      // 5. Draw NPCs & Interactive points (stationary canvas representation)
       npcs.forEach((npc) => {
         const isSpecial = npc.hintIndex >= 98;
-        const isLocked = !isSpecial && npc.hintIndex > revealedHints;
         const isUnlockable = !isSpecial && npc.hintIndex === revealedHints;
         
         ctx.beginPath();
-        ctx.arc(npc.x + npc.width / 2, npc.y + npc.height / 2 + 10, 16, 0, Math.PI * 2);
-        ctx.fillStyle = isLocked 
-          ? 'rgba(71,85,105,0.15)' 
-          : isUnlockable 
-            ? 'rgba(250,204,21,0.2)' 
-            : 'rgba(16,185,129,0.15)';
+        ctx.arc(npc.x + npc.width / 2, npc.y + npc.height / 2 + 10, 14, 0, Math.PI * 2);
+        ctx.fillStyle = isUnlockable 
+          ? 'rgba(234,204,21,0.2)' 
+          : 'rgba(56,189,248,0.1)';
         ctx.fill();
 
-        if (isUnlockable) {
-          ctx.strokeStyle = '#eab308';
-          ctx.lineWidth = 1;
-          ctx.stroke();
-
-          ctx.fillStyle = '#eab308';
-          ctx.font = 'bold 9px monospace';
-          ctx.textAlign = 'center';
-          ctx.fillText('HINT UNLOCKED', npc.x + npc.width / 2, npc.y - 25);
-        }
-
-        // Draw representing colors
-        ctx.fillStyle = npc.color;
+        // Draw representing colored cyber cabinet / character
+        const charGrad = ctx.createLinearGradient(npc.x, npc.y, npc.x + npc.width, npc.y + npc.height);
+        charGrad.addColorStop(0, npc.color);
+        charGrad.addColorStop(1, '#090d16');
+        ctx.fillStyle = charGrad;
         ctx.fillRect(npc.x, npc.y, npc.width, npc.height);
 
+        // Core highlights on server boxes
         if (npc.hintIndex === 100) {
           const glow = Math.sin(Date.now() * 0.008) * 5;
           ctx.fillStyle = glow > 0 ? '#10b981' : '#047857';
@@ -600,33 +626,36 @@ export default function LabGameView({
           ctx.fillRect(npc.x + 4, npc.y + 4, 16, 12);
         }
 
-        // Labels using outline drawing logic for 100% clarity
-        const isCurrentActive = activeNpcRef.current?.name === npc.name;
-        if (isCurrentActive) {
-          // Draw Name higher up
-          drawTextWithOutline(ctx, npc.name, npc.x + npc.width / 2, npc.y - 15, '#eab308');
-          // Draw Interact prompt below name
-          drawTextWithOutline(ctx, isMobile ? '[CHẠM]' : '[ẤN PHÍM E]', npc.x + npc.width / 2, npc.y - 3, '#ffffff');
-        } else {
-          // Draw Standard Label
-          drawTextWithOutline(ctx, npc.name, npc.x + npc.width / 2, npc.y - 5, '#cbd5e1');
-        }
+        ctx.strokeStyle = npc.color;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(npc.x, npc.y, npc.width, npc.height);
       });
 
-      // 5. Draw Player
-      const p = playerRef.current;
-      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      // 6. Draw Player
+      ctx.fillStyle = 'rgba(0,0,0,0.45)';
       ctx.fillRect(p.x - 2, p.y + p.height - 4, p.width + 4, 6);
 
-      ctx.fillStyle = '#22c55e'; // Green character
+      // Player metallic gradient
+      const playerGrad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.height);
+      playerGrad.addColorStop(0, '#4ade80');
+      playerGrad.addColorStop(1, '#15803d');
+      ctx.fillStyle = playerGrad;
       ctx.fillRect(p.x, p.y, p.width, p.height);
 
+      ctx.strokeStyle = '#22c55e';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(p.x, p.y, p.width, p.height);
+
+      // Eyes
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(p.x + 4, p.y + 6, 4, 4);
       ctx.fillRect(p.x + p.width - 8, p.y + 6, 4, 4);
 
       ctx.fillStyle = '#1e293b';
       ctx.fillRect(p.x + 6, p.y + 14, 12, 3);
+
+      // Simple Sharp "YOU" label drawn on canvas directly above head
+      drawTextWithOutline(ctx, 'BẠN', p.x + p.width / 2, p.y - 6, '#4ade80');
     };
 
     const renderLoop = () => {
@@ -697,6 +726,99 @@ export default function LabGameView({
           }}
         />
 
+        {/* 100% SHARP HTML OVERLAY LABELS (Renders on native screen resolution, crystal clear!) */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'none', // Lets mouse events pass through to canvas
+        }}>
+          {npcs.map((npc) => {
+            const isCurrentActive = activeNpcNameState === npc.name;
+            const isSpecial = npc.hintIndex >= 98;
+            const isUnlockable = !isSpecial && npc.hintIndex === revealedHints;
+            
+            // Calculate percentage coords mapping to 800x480 canvas aspect ratio
+            const leftPct = ((npc.x + npc.width / 2) / 800) * 100;
+            const topPct = (npc.y / 480) * 100;
+
+            return (
+              <div
+                key={npc.name}
+                style={{
+                  position: 'absolute',
+                  left: `${leftPct}%`,
+                  top: `${topPct}%`,
+                  transform: 'translate(-50%, -105%)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '2px',
+                  zIndex: isCurrentActive ? 30 : 20,
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {isUnlockable && (
+                  <div style={{
+                    fontSize: '8px',
+                    fontFamily: 'var(--font-mono)',
+                    color: '#eab308',
+                    background: 'rgba(234, 179, 8, 0.12)',
+                    border: '1px solid #eab308',
+                    borderRadius: '3px',
+                    padding: '1px 4px',
+                    fontWeight: 'bold',
+                    letterSpacing: '0.5px',
+                    textTransform: 'uppercase',
+                    marginBottom: '1px',
+                    boxShadow: '0 0 8px rgba(234,179,8,0.2)',
+                  }}>
+                    Gợi ý mở
+                  </div>
+                )}
+
+                <div style={{
+                  background: isCurrentActive ? 'rgba(9, 13, 22, 0.95)' : 'rgba(9, 13, 22, 0.75)',
+                  border: isCurrentActive 
+                    ? `1.5px solid ${npc.color}` 
+                    : '1px solid rgba(255, 255, 255, 0.15)',
+                  borderRadius: '5px',
+                  padding: '3px 8px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  fontFamily: 'var(--font-sans)',
+                  color: isCurrentActive ? '#ffffff' : '#cbd5e1',
+                  whiteSpace: 'nowrap',
+                  boxShadow: isCurrentActive 
+                    ? `0 0 12px ${npc.color}55` 
+                    : '0 2px 5px rgba(0, 0, 0, 0.4)',
+                  backdropFilter: 'blur(2px)',
+                }}>
+                  {npc.name}
+                </div>
+
+                {isCurrentActive && (
+                  <div style={{
+                    fontSize: '8px',
+                    fontFamily: 'var(--font-mono)',
+                    color: '#ffffff',
+                    background: npc.color,
+                    borderRadius: '3px',
+                    padding: '1px 5px',
+                    fontWeight: 900,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                    marginTop: '1px',
+                  }}>
+                    {isMobile ? 'CHẠM ĐỂ CHỌN' : 'ẤN PHÍM E'}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
         {/* Scanline CRT overlay filter */}
         <div style={{
           position: 'absolute',
@@ -707,7 +829,7 @@ export default function LabGameView({
           background: 'linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%)',
           backgroundSize: '100% 4px',
           pointerEvents: 'none',
-          opacity: 0.35,
+          opacity: 0.25,
         }}></div>
 
         {/* HUD Info bar */}
@@ -920,7 +1042,7 @@ export default function LabGameView({
             overflow: 'hidden',
           }}>
             {/* Custom browser header */}
-            <div style={{ background: 'var(--bg-neutral-tertiary)', borderBottom: '1px solid var(--border-default)', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+            <div style={{ background: 'var(--bg-neutral-tertiary)', borderBottom: '1px solid var(--border-default)', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', gap: '6px' }}>
                 <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ff5f56', display: 'inline-block' }}></span>
                 <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ffbd2e', display: 'inline-block' }}></span>
@@ -1084,7 +1206,7 @@ export default function LabGameView({
           color: 'var(--text-body-subtle)',
           fontFamily: 'var(--font-mono)',
         }}>
-          Điều khiển: Di chuyển bằng phím <strong style={{ color: 'var(--fg-brand)' }}>WASD</strong> hoặc <strong style={{ color: 'var(--fg-brand)' }}>Mũi tên</strong>. Ấn phím <strong style={{ color: 'var(--fg-brand)' }}>E</strong> khi ở gần NPC/Thiết bị để tương tác.
+          Điều khiển: Di chuyển bằng phím <strong style={{ color: 'var(--fg-brand)' }}>WASD</strong> hoặc <strong style={{ color: 'var(--fg-brand)' }}>Mũi tên</strong>. Ấn phím <strong style={{ color: 'var(--fg-brand)' }}>E</strong> khi ở gần thiết bị để tương tác.
         </div>
       )}
     </div>
