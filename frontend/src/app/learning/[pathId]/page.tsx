@@ -18,6 +18,36 @@ interface Lesson {
   completed?: boolean;
 }
 
+function parseMarkdown(md: string) {
+  if (!md) return '';
+  let html = md
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+    
+  html = html.replace(/^### (.*$)/gim, '<h4 style="font-size: 1.125rem; font-weight: 700; color: var(--text-heading); margin: 18px 0 8px 0;">$1</h4>');
+  html = html.replace(/^## (.*$)/gim, '<h3 style="font-size: 1.35rem; font-weight: 700; color: var(--text-heading); margin: 24px 0 12px 0; border-bottom: 1px solid var(--border-default); padding-bottom: 6px;">$1</h3>');
+  html = html.replace(/^# (.*$)/gim, '<h2 style="font-size: 1.65rem; font-weight: 800; color: var(--text-heading); margin: 0 0 16px 0;">$1</h2>');
+  
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong style="color: var(--text-heading);">$1</strong>');
+  html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+  
+  html = html.replace(/```([\s\S]*?)```/g, '<pre style="background: var(--bg-neutral-secondary); border: 1px solid var(--border-default); padding: 12px; border-radius: 6px; overflow-x: auto; font-family: var(--font-mono); font-size: 13px; color: var(--text-body); line-height: 1.5; margin: 12px 0;"><code>$1</code></pre>');
+  html = html.replace(/`(.*?)`/g, '<code style="background: var(--bg-neutral-secondary); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 13px; color: var(--fg-brand);">$1</code>');
+  html = html.replace(/^\>\s+(.*$)/gim, '<blockquote style="border-left: 4px solid var(--border-brand); padding: 8px 16px; margin: 12px 0; background: var(--bg-neutral-secondary); color: var(--text-body-subtle); font-style: italic;">$1</blockquote>');
+  
+  html = html.replace(/^\s*-\s+(.*$)/gim, '<li style="margin-left: 20px; list-style-type: disc; margin-bottom: 6px;">$1</li>');
+  html = html.replace(/^\s*\*\s+(.*$)/gim, '<li style="margin-left: 20px; list-style-type: disc; margin-bottom: 6px;">$1</li>');
+  html = html.replace(/^\s*(\d+)\.\s+(.*$)/gim, '<li style="margin-left: 20px; list-style-type: decimal; margin-bottom: 6px;">$2</li>');
+  
+  html = html.replace(/\n/g, '<br/>');
+  html = html.replace(/<\/li><br\/>/g, '</li>');
+  html = html.replace(/<pre(.*?)><br\/>/g, '<pre$1>');
+  html = html.replace(/<\/code><br\/>/g, '</code>');
+  
+  return html;
+}
+
 export default function LearningPathDetailPage({ params }: { params: Promise<{ pathId: string }> }) {
   const { pathId } = use(params);
   const { isAuthenticated } = useAuth();
@@ -25,6 +55,7 @@ export default function LearningPathDetailPage({ params }: { params: Promise<{ p
 
   const [path, setPath] = useState<LearningPath | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -203,7 +234,7 @@ export default function LearningPathDetailPage({ params }: { params: Promise<{ p
               cursor: 'pointer',
               opacity: lesson.completed ? 0.75 : 1,
             }}
-            onClick={() => handleToggleComplete(lesson.id, !!lesson.completed)}
+            onClick={() => router.push(`/learning/${pathId}/lessons/${lesson.id}`)}
           >
             {/* Lesson number / check */}
             <div style={{
@@ -242,7 +273,7 @@ export default function LearningPathDetailPage({ params }: { params: Promise<{ p
             {/* Complete status or actions */}
             {!lesson.completed && isAuthenticated && (
               <span style={{ fontSize: '11px', padding: '4px 8px', background: 'var(--bg-brand-softer)', color: 'var(--fg-brand)', borderRadius: 'var(--radius-sm)', fontWeight: 600 }}>
-                Đánh dấu hoàn thành
+                Đọc bài học
               </span>
             )}
 

@@ -24,4 +24,6 @@ public interface UserProgressRepository extends JpaRepository<UserProgress, UUID
 
     @Query("SELECT COUNT(up) FROM UserProgress up WHERE up.user.id = :userId AND up.lesson.learningPath.id = :pathId AND up.completed = true")
     long countCompletedByUserIdAndPathId(@Param("userId") UUID userId, @Param("pathId") UUID pathId);
+
+    void deleteByLessonId(UUID lessonId);
 }

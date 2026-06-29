@@ -71,6 +71,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/learning-paths/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/lessons/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/labs/**").permitAll()
+                .requestMatchers("/api/sync/**").permitAll()
                 // H2 Console
                 .requestMatchers("/h2-console/**").permitAll()
                 // Admin endpoints

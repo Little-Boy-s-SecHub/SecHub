@@ -22,3 +22,6 @@
 *.sw?
 .DS_Store
 Thumbs.db
+
+# Cloned lessons data
+Data/

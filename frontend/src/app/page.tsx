@@ -16,6 +16,7 @@ import {
 import { api, Vulnerability, LearningPath, Lab, LabAttempt } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import VulnIcon from '@/components/VulnIcon';
+import ActivityHeatmap from '@/components/ActivityHeatmap';
 
 function StatCard({ value, label, color }: { value: string; label: string; color: string }) {
   return (
@@ -248,6 +249,13 @@ export default function DashboardPage() {
           <StatCard value={isAuthenticated ? `${stats.totalPoints} pts` : 'Yêu cầu đăng nhập'} label="Tổng điểm" color="purple" />
         </div>
       </section>
+
+      {/* Activity Heatmap (GitHub-style calendar) */}
+      {isAuthenticated && (
+        <section className="animate-fade-in-up" style={{ marginBottom: 'var(--space-6)' }}>
+          <ActivityHeatmap />
+        </section>
+      )}
 
       {/* Vulnerability Categories */}
       <section className="animate-fade-in-up animate-delay-2" style={{ marginBottom: 'var(--space-6)' }}>

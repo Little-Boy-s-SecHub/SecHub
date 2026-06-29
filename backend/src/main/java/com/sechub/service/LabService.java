@@ -27,15 +27,18 @@ public class LabService {
     private final LabAttemptRepository labAttemptRepository;
     private final UserService userService;
     private final DockerService dockerService;
+    private final ActivityService activityService;
 
     public LabService(LabRepository labRepository,
                       LabAttemptRepository labAttemptRepository,
                       UserService userService,
-                      DockerService dockerService) {
+                      DockerService dockerService,
+                      ActivityService activityService) {
         this.labRepository = labRepository;
         this.labAttemptRepository = labAttemptRepository;
         this.userService = userService;
         this.dockerService = dockerService;
+        this.activityService = activityService;
     }
 
     @Transactional(readOnly = true)
@@ -92,6 +95,8 @@ public class LabService {
             attempt.setContainerPort(containerInfo.port());
             attempt.setStatus(LabAttempt.Status.RUNNING);
             attempt = labAttemptRepository.save(attempt);
+
+            activityService.incrementActivity(user.getId());
         } catch (Exception e) {
             log.error("Failed to start docker container for attempt: " + attempt.getId(), e);
             attempt.setStatus(LabAttempt.Status.FAILED);
@@ -151,6 +156,8 @@ public class LabService {
             int basePoints = attempt.getLab().getPoints();
             int hintPenalty = attempt.getHintsUsed() * (basePoints / 10);
             attempt.setScore(Math.max(basePoints - hintPenalty, basePoints / 4));
+
+            activityService.incrementActivity(attempt.getUser().getId());
         } else {
             throw new BadRequestException("Flag không chính xác. Hãy thử lại!");
         }

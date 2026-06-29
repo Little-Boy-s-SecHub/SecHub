@@ -180,8 +180,13 @@ export const api = {
     getLessons: (id: string) => request<any[]>(`/learning-paths/${id}/lessons`),
   },
 
+  lessons: {
+    getById: (id: string) => request<any>(`/lessons/${id}`),
+  },
+
   users: {
     getDashboard: () => request<any>('/users/me/dashboard'),
+    getActivities: () => request<any[]>('/users/me/activities'),
   },
 
   progress: {

@@ -20,13 +20,16 @@ public class ProgressService {
     private final UserProgressRepository progressRepository;
     private final LessonRepository lessonRepository;
     private final UserService userService;
+    private final ActivityService activityService;
 
     public ProgressService(UserProgressRepository progressRepository,
                            LessonRepository lessonRepository,
-                           UserService userService) {
+                           UserService userService,
+                           ActivityService activityService) {
         this.progressRepository = progressRepository;
         this.lessonRepository = lessonRepository;
         this.userService = userService;
+        this.activityService = activityService;
     }
 
     @Transactional(readOnly = true)
@@ -49,11 +52,17 @@ public class ProgressService {
                 .orElseGet(() -> UserProgress.builder()
                         .user(user)
                         .lesson(lesson)
+                        .completed(false)
                         .build());
 
+        boolean alreadyCompleted = Boolean.TRUE.equals(progress.getCompleted());
         progress.setCompleted(true);
         progress.setCompletedAt(LocalDateTime.now());
         progress = progressRepository.save(progress);
+
+        if (!alreadyCompleted) {
+            activityService.incrementActivity(user.getId());
+        }
 
         return UserProgressDto.fromEntity(progress);
     }
