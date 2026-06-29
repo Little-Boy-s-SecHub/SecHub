@@ -62,6 +62,9 @@ public class SecurityConfig {
                 })
             )
             .authorizeHttpRequests(auth -> auth
+                // Lab attempts endpoints requiring authentication
+                .requestMatchers(HttpMethod.GET, "/api/labs/attempts/me").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/labs/*/attempts").authenticated()
                 // Public endpoints
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/vulnerabilities/**").permitAll()

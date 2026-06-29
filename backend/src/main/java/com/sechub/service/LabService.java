@@ -9,6 +9,8 @@ import com.sechub.exception.BadRequestException;
 import com.sechub.exception.ResourceNotFoundException;
 import com.sechub.repository.LabAttemptRepository;
 import com.sechub.repository.LabRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,16 +21,21 @@ import java.util.UUID;
 @Service
 public class LabService {
 
+    private static final Logger log = LoggerFactory.getLogger(LabService.class);
+
     private final LabRepository labRepository;
     private final LabAttemptRepository labAttemptRepository;
     private final UserService userService;
+    private final DockerService dockerService;
 
     public LabService(LabRepository labRepository,
                       LabAttemptRepository labAttemptRepository,
-                      UserService userService) {
+                      UserService userService,
+                      DockerService dockerService) {
         this.labRepository = labRepository;
         this.labAttemptRepository = labAttemptRepository;
         this.userService = userService;
+        this.dockerService = dockerService;
     }
 
     @Transactional(readOnly = true)
@@ -67,14 +74,50 @@ public class LabService {
             return LabAttemptDto.fromEntity(existing.get());
         }
 
+        // Create the attempt record first (status STARTED) to get a database ID
         LabAttempt attempt = LabAttempt.builder()
                 .user(user)
                 .lab(lab)
-                .status(LabAttempt.Status.RUNNING)
+                .status(LabAttempt.Status.STARTED)
                 .startedAt(LocalDateTime.now())
                 .build();
-
         attempt = labAttemptRepository.save(attempt);
+
+        try {
+            // Spin up the Docker container
+            DockerService.ContainerInfo containerInfo = dockerService.startContainer(
+                    lab.getDockerImage(), lab.getDockerPort(), attempt.getId());
+            
+            attempt.setContainerId(containerInfo.containerId());
+            attempt.setContainerPort(containerInfo.port());
+            attempt.setStatus(LabAttempt.Status.RUNNING);
+            attempt = labAttemptRepository.save(attempt);
+        } catch (Exception e) {
+            log.error("Failed to start docker container for attempt: " + attempt.getId(), e);
+            attempt.setStatus(LabAttempt.Status.FAILED);
+            attempt = labAttemptRepository.save(attempt);
+            throw new BadRequestException("Không thể khởi động môi trường lab: " + e.getMessage());
+        }
+
+        return LabAttemptDto.fromEntity(attempt);
+    }
+
+    @Transactional
+    public LabAttemptDto stopLab(UUID attemptId, String username) {
+        LabAttempt attempt = labAttemptRepository.findById(attemptId)
+                .orElseThrow(() -> new ResourceNotFoundException("Lab Attempt", "id", attemptId));
+
+        if (!attempt.getUser().getUsername().equals(username)) {
+            throw new BadRequestException("Bạn không có quyền dừng phiên thực hành này");
+        }
+
+        if (attempt.getStatus() == LabAttempt.Status.RUNNING || attempt.getStatus() == LabAttempt.Status.STARTED) {
+            dockerService.stopContainer(attempt.getContainerId());
+            attempt.setStatus(LabAttempt.Status.FAILED);
+            attempt.setCompletedAt(LocalDateTime.now());
+            attempt = labAttemptRepository.save(attempt);
+        }
+
         return LabAttemptDto.fromEntity(attempt);
     }
 
@@ -96,6 +139,9 @@ public class LabService {
         if (attempt.getLab().getFlag() != null && attempt.getLab().getFlag().equals(flag.trim())) {
             attempt.setStatus(LabAttempt.Status.COMPLETED);
             attempt.setCompletedAt(LocalDateTime.now());
+
+            // Stop the Docker container since it's completed
+            dockerService.stopContainer(attempt.getContainerId());
 
             // Calculate score based on hints used
             int basePoints = attempt.getLab().getPoints();

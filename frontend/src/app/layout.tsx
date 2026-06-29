@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Be_Vietnam_Pro } from 'next/font/google';
 import './globals.css';
 import AppShell from '@/components/AppShell';
+import { AuthProvider } from '@/context/AuthContext';
 
 const beVietnamPro = Be_Vietnam_Pro({
   subsets: ['latin', 'latin-ext', 'vietnamese'],
@@ -21,9 +22,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi" className={beVietnamPro.variable}>
+    <html lang="vi" className={beVietnamPro.variable} suppressHydrationWarning data-scroll-behavior="smooth">
       <body style={{ fontFamily: 'var(--font-sans), sans-serif' }}>
-        <AppShell>{children}</AppShell>
+        <AuthProvider>
+          <AppShell>{children}</AppShell>
+        </AuthProvider>
       </body>
     </html>
   );

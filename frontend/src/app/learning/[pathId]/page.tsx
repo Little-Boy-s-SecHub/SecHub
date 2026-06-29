@@ -1,57 +1,118 @@
+'use client';
+
+import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import { Clock, BookOpen, ChevronRight } from 'lucide-react';
-import { learningPaths } from '@/lib/data';
-import { notFound } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { Clock, BookOpen, ChevronRight, AlertCircle, CheckCircle } from 'lucide-react';
+import { api, LearningPath } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
-// Mock lessons data
-const pathLessons: Record<string, Array<{
+interface Lesson {
   id: string;
+  pathId: string;
   title: string;
-  description: string;
-  duration: string;
-  completed: boolean;
-}>> = {
-  '1': [
-    { id: '1-1', title: 'HTTP Protocol cơ bản', description: 'Tìm hiểu về HTTP methods, headers, status codes và cách trình duyệt giao tiếp với web server.', duration: '45 phút', completed: true },
-    { id: '1-2', title: 'Công cụ Pentest cần thiết', description: 'Cài đặt và sử dụng Burp Suite, OWASP ZAP, và các công cụ command-line phổ biến.', duration: '60 phút', completed: true },
-    { id: '1-3', title: 'OWASP Top 10 Overview', description: 'Tổng quan về 10 lỗ hổng bảo mật web phổ biến nhất theo OWASP.', duration: '45 phút', completed: true },
-    { id: '1-4', title: 'SQL Injection cơ bản', description: 'Hiểu nguyên lý SQL Injection, cách phát hiện và khai thác lỗ hổng SQLi đơn giản.', duration: '90 phút', completed: false },
-    { id: '1-5', title: 'Cross-Site Scripting (XSS)', description: 'Phân biệt Reflected, Stored và DOM-based XSS. Thực hành khai thác XSS cơ bản.', duration: '90 phút', completed: false },
-    { id: '1-6', title: 'Kiểm tra xác thực (Authentication)', description: 'Tìm lỗ hổng trong form đăng nhập, brute force, và session management.', duration: '75 phút', completed: false },
-    { id: '1-7', title: 'Kiểm tra phân quyền (Authorization)', description: 'IDOR, privilege escalation, và kiểm tra phân quyền trên ứng dụng web.', duration: '60 phút', completed: false },
-    { id: '1-8', title: 'Viết báo cáo Pentest', description: 'Cách viết báo cáo pentest chuyên nghiệp với findings, severity, và khuyến nghị.', duration: '45 phút', completed: false },
-  ],
-  '2': [
-    { id: '2-1', title: 'Blind SQL Injection nâng cao', description: 'Boolean-based, Time-based Blind SQLi và kỹ thuật data extraction.', duration: '120 phút', completed: false },
-    { id: '2-2', title: 'Second-Order SQL Injection', description: 'Khai thác SQLi khi payload được lưu và xử lý ở vị trí khác.', duration: '90 phút', completed: false },
-    { id: '2-3', title: 'DOM-based XSS chuyên sâu', description: 'Phân tích JavaScript sources & sinks, khai thác DOM XSS phức tạp.', duration: '90 phút', completed: false },
-    { id: '2-4', title: 'Bypass WAF/Filters', description: 'Kỹ thuật bypass Web Application Firewall và input filters.', duration: '120 phút', completed: false },
-    { id: '2-5', title: 'Server-Side Request Forgery (SSRF)', description: 'Khai thác SSRF để truy cập internal services, cloud metadata.', duration: '90 phút', completed: false },
-    { id: '2-6', title: 'XML External Entity (XXE)', description: 'Tấn công XXE để đọc file, SSRF, và denial of service.', duration: '75 phút', completed: false },
-  ],
-  '3': [
-    { id: '3-1', title: 'Methodology & Reconnaissance', description: 'Xây dựng phương pháp pentest chuyên nghiệp và kỹ thuật thu thập thông tin.', duration: '120 phút', completed: false },
-    { id: '3-2', title: 'Chaining Vulnerabilities', description: 'Kết hợp nhiều lỗ hổng nhỏ thành chain tấn công có impact lớn.', duration: '150 phút', completed: false },
-    { id: '3-3', title: 'API Security Testing', description: 'Pentest REST API, GraphQL, và các API endpoint phổ biến.', duration: '120 phút', completed: false },
-    { id: '3-4', title: 'Bug Bounty Hunting', description: 'Kỹ năng, tư duy và quy trình tham gia chương trình Bug Bounty.', duration: '90 phút', completed: false },
-    { id: '3-5', title: 'Advanced Report Writing', description: 'Viết report chuyên nghiệp, PoC, và executive summary cho lãnh đạo.', duration: '90 phút', completed: false },
-  ],
-};
+  contentMarkdown: string;
+  sortOrder: number;
+  vulnerabilityId?: string;
+  vulnerabilityName?: string;
+  completed?: boolean;
+}
 
-export default async function LearningPathDetailPage({ params }: { params: Promise<{ pathId: string }> }) {
-  const { pathId } = await params;
-  const path = learningPaths.find(p => p.id === pathId);
+export default function LearningPathDetailPage({ params }: { params: Promise<{ pathId: string }> }) {
+  const { pathId } = use(params);
+  const { isAuthenticated } = useAuth();
+  const router = useRouter();
 
-  if (!path) {
-    notFound();
+  const [path, setPath] = useState<LearningPath | null>(null);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadPathData() {
+      try {
+        const [pathRes, lessonsRes] = await Promise.all([
+          api.learningPaths.getById(pathId),
+          api.learningPaths.getLessons(pathId)
+        ]);
+
+        if (pathRes.success && pathRes.data) {
+          setPath(pathRes.data);
+        } else {
+          setError(pathRes.message || 'Không thể tải lộ trình học.');
+          setLoading(false);
+          return;
+        }
+
+        let fetchedLessons = lessonsRes.success ? lessonsRes.data : [];
+
+        if (isAuthenticated) {
+          const progressRes = await api.progress.getPathProgress(pathId);
+          if (progressRes.success && progressRes.data) {
+            const completedMap = new Map(progressRes.data.map(p => [p.lessonId, p.completed]));
+            fetchedLessons = fetchedLessons.map((l: any) => ({
+              ...l,
+              completed: !!completedMap.get(l.id)
+            }));
+          }
+        }
+
+        setLessons(fetchedLessons);
+      } catch (e: any) {
+        setError(e.message || 'Lỗi khi tải dữ liệu lộ trình học.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadPathData();
+  }, [pathId, isAuthenticated]);
+
+  const handleToggleComplete = async (lessonId: string, currentCompleted: boolean) => {
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+
+    // Only allow marking complete (toggle off is not supported in endpoint, but let's call complete endpoint)
+    if (currentCompleted) return;
+
+    try {
+      const res = await api.progress.completeLesson(lessonId);
+      if (res.success) {
+        setLessons(prev => prev.map(l => l.id === lessonId ? { ...l, completed: true } : l));
+      }
+    } catch (e: any) {
+      alert(e.message || 'Lỗi khi cập nhật tiến độ bài học.');
+    }
+  };
+
+  if (loading) {
+    return <div style={{ textAlign: 'center', padding: 'var(--space-6)' }}>Đang tải lộ trình học...</div>;
   }
 
-  const lessons = pathLessons[pathId] || [];
+  if (error || !path) {
+    return (
+      <div className="card" style={{ textAlign: 'center', padding: 'var(--space-6)' }}>
+        <AlertCircle size={48} style={{ color: 'var(--fg-danger)', margin: '0 auto var(--space-2)' }} />
+        <h3>Lỗi dữ liệu</h3>
+        <p style={{ margin: 'var(--space-1) auto' }}>{error || 'Không tìm thấy lộ trình học.'}</p>
+        <Link href="/learning" className="btn btn-secondary" style={{ display: 'inline-flex', marginTop: 'var(--space-2)' }}>
+          Quay lại danh sách lộ trình
+        </Link>
+      </div>
+    );
+  }
+
   const completedCount = lessons.filter(l => l.completed).length;
   const progress = lessons.length > 0 ? (completedCount / lessons.length) * 100 : 0;
+  
   const diffClass = path.difficulty === 'BEGINNER' ? 'badge-easy' : 
                     path.difficulty === 'INTERMEDIATE' ? 'badge-medium-diff' : 
-                    path.difficulty === 'ADVANCED' ? 'badge-hard' : 'badge-expert';
+                    'badge-hard';
+
+  const diffLabel = path.difficulty === 'BEGINNER' ? 'Cơ bản' : 
+                   path.difficulty === 'INTERMEDIATE' ? 'Trung bình' : 'Nâng cao';
 
   return (
     <div>
@@ -67,7 +128,7 @@ export default async function LearningPathDetailPage({ params }: { params: Promi
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
-              <span className={`badge ${diffClass}`}>{path.difficulty}</span>
+              <span className={`badge ${diffClass}`}>{diffLabel}</span>
               <span style={{ fontSize: '0.875rem', color: 'var(--text-body-subtle)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                 <Clock size={14} /> ~{path.estimatedHours} giờ
               </span>
@@ -77,45 +138,50 @@ export default async function LearningPathDetailPage({ params }: { params: Promi
             </h1>
             <p style={{ color: 'var(--text-body-subtle)' }}>{path.description}</p>
           </div>
-          <div style={{ textAlign: 'center', flexShrink: 0, marginLeft: 'var(--space-4)' }}>
-            <div style={{
-              width: '64px',
-              height: '64px',
-              borderRadius: '50%',
-              background: `conic-gradient(var(--bg-brand) ${progress * 3.6}deg, var(--bg-neutral-tertiary) 0deg)`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
+          
+          {isAuthenticated && (
+            <div style={{ textAlign: 'center', flexShrink: 0, marginLeft: 'var(--space-4)' }}>
               <div style={{
-                width: '52px',
-                height: '52px',
+                width: '64px',
+                height: '64px',
                 borderRadius: '50%',
-                background: 'var(--bg-neutral-primary-soft)',
+                background: `conic-gradient(var(--bg-brand) ${progress * 3.6}deg, var(--bg-neutral-tertiary) 0deg)`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontFamily: 'var(--font-mono)',
-                fontWeight: 700,
-                fontSize: '0.875rem',
-                color: 'var(--fg-brand)',
               }}>
-                {Math.round(progress)}%
+                <div style={{
+                  width: '52px',
+                  height: '52px',
+                  borderRadius: '50%',
+                  background: 'var(--bg-neutral-primary-soft)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 700,
+                  fontSize: '0.875rem',
+                  color: 'var(--fg-brand)',
+                }}>
+                  {Math.round(progress)}%
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Progress bar */}
-        <div style={{ marginTop: 'var(--space-3)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.8125rem', color: 'var(--text-body-subtle)' }}>
-            <span>{completedCount}/{lessons.length} bài học đã hoàn thành</span>
-            <span>{Math.round(progress)}%</span>
+        {isAuthenticated && (
+          <div style={{ marginTop: 'var(--space-3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.8125rem', color: 'var(--text-body-subtle)' }}>
+              <span>{completedCount}/{lessons.length} bài học đã hoàn thành</span>
+              <span>{Math.round(progress)}%</span>
+            </div>
+            <div className="progress-bar" style={{ height: '8px' }}>
+              <div className="progress-bar-fill" style={{ width: `${progress}%` }}></div>
+            </div>
           </div>
-          <div className="progress-bar" style={{ height: '8px' }}>
-            <div className="progress-bar-fill" style={{ width: `${progress}%` }}></div>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Lessons list */}
@@ -129,28 +195,29 @@ export default async function LearningPathDetailPage({ params }: { params: Promi
             key={lesson.id}
             className="card animate-fade-in-up"
             style={{
-              animationDelay: `${index * 0.05}s`,
+              animationDelay: `${index * 0.04}s`,
               display: 'flex',
               alignItems: 'center',
               gap: 'var(--space-3)',
               padding: 'var(--space-2) var(--space-3)',
               cursor: 'pointer',
-              opacity: lesson.completed ? 0.7 : 1,
+              opacity: lesson.completed ? 0.75 : 1,
             }}
+            onClick={() => handleToggleComplete(lesson.id, !!lesson.completed)}
           >
             {/* Lesson number / check */}
             <div style={{
               width: '40px',
               height: '40px',
               borderRadius: '50%',
-              background: lesson.completed ? 'color-mix(in srgb, var(--bg-brand) 20%, transparent)' : 'var(--bg-neutral-tertiary)',
-              border: `2px solid ${lesson.completed ? 'var(--fg-brand)' : 'var(--border-default-medium)'}`,
+              background: lesson.completed ? 'rgba(0, 122, 85, 0.1)' : 'var(--bg-neutral-tertiary)',
+              border: `2px solid ${lesson.completed ? 'var(--border-success)' : 'var(--border-default-medium)'}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontWeight: 700,
               fontSize: '0.875rem',
-              color: lesson.completed ? 'var(--fg-brand)' : 'var(--text-body-subtle)',
+              color: lesson.completed ? 'var(--fg-success-strong)' : 'var(--text-body-subtle)',
               flexShrink: 0,
             }}>
               {lesson.completed ? '✓' : index + 1}
@@ -168,14 +235,16 @@ export default async function LearningPathDetailPage({ params }: { params: Promi
                 {lesson.title}
               </div>
               <div style={{ fontSize: '0.8125rem', color: 'var(--text-body-subtle)' }}>
-                {lesson.description}
+                {lesson.vulnerabilityName ? `Liên quan đến: ${lesson.vulnerabilityName}` : 'Bài giảng lý thuyết nhập môn'}
               </div>
             </div>
 
-            {/* Duration */}
-            <div style={{ fontSize: '0.8125rem', color: 'var(--text-body-subtle)', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <Clock size={12} /> {lesson.duration}
-            </div>
+            {/* Complete status or actions */}
+            {!lesson.completed && isAuthenticated && (
+              <span style={{ fontSize: '11px', padding: '4px 8px', background: 'var(--bg-brand-softer)', color: 'var(--fg-brand)', borderRadius: 'var(--radius-sm)', fontWeight: 600 }}>
+                Đánh dấu hoàn thành
+              </span>
+            )}
 
             {/* Arrow */}
             <span style={{ color: 'var(--text-body-subtle)', display: 'flex', alignItems: 'center' }}>

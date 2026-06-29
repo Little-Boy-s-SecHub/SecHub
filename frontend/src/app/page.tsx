@@ -1,3 +1,6 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import NextLink from 'next/link';
 import { 
   Lock, 
@@ -10,7 +13,8 @@ import {
   Trophy, 
   Link as LinkIcon 
 } from 'lucide-react';
-import { vulnerabilities, learningPaths, labs, dashboardStats } from '@/lib/data';
+import { api, Vulnerability, LearningPath, Lab, LabAttempt } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 import VulnIcon from '@/components/VulnIcon';
 
 function StatCard({ value, label, color }: { value: string; label: string; color: string }) {
@@ -58,7 +62,7 @@ function TerminalHero() {
   );
 }
 
-function VulnMiniCard({ vuln }: { vuln: typeof vulnerabilities[0] }) {
+function VulnMiniCard({ vuln }: { vuln: Vulnerability }) {
   const severityClass = vuln.severity === 'CRITICAL' ? 'badge-critical' : 
                         vuln.severity === 'HIGH' ? 'badge-high' : 
                         vuln.severity === 'MEDIUM' ? 'badge-medium' : 'badge-low';
@@ -72,15 +76,17 @@ function VulnMiniCard({ vuln }: { vuln: typeof vulnerabilities[0] }) {
         <div className="vuln-card-desc">{vuln.description}</div>
         <div className="vuln-card-footer">
           <span className={`badge ${severityClass}`}>{vuln.severity}</span>
-          <span className="vuln-card-labs">{vuln.labCount} labs</span>
+          <span className="vuln-card-labs">{vuln.labCount || 0} labs</span>
         </div>
       </div>
     </NextLink>
   );
 }
 
-function PathMiniCard({ path }: { path: typeof learningPaths[0] }) {
-  const progress = path.lessonCount > 0 ? (path.completedLessons / path.lessonCount) * 100 : 0;
+function PathMiniCard({ path }: { path: LearningPath }) {
+  const lessonCount = path.lessonCount || 0;
+  const completedLessons = path.completedLessons || 0;
+  const progress = lessonCount > 0 ? (completedLessons / lessonCount) * 100 : 0;
   const diffClass = path.difficulty === 'BEGINNER' ? 'badge-easy' : 
                     path.difficulty === 'INTERMEDIATE' ? 'badge-medium-diff' : 
                     path.difficulty === 'ADVANCED' ? 'badge-hard' : 'badge-expert';
@@ -97,7 +103,7 @@ function PathMiniCard({ path }: { path: typeof learningPaths[0] }) {
         <div className="path-card-desc">{path.description}</div>
         <div style={{ marginTop: 'auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.75rem', color: 'var(--text-body-subtle)' }}>
-            <span>{path.completedLessons}/{path.lessonCount} bài học</span>
+            <span>{completedLessons}/{lessonCount} bài học</span>
             <span>{Math.round(progress)}%</span>
           </div>
           <div className="progress-bar">
@@ -109,38 +115,36 @@ function PathMiniCard({ path }: { path: typeof learningPaths[0] }) {
   );
 }
 
-function RecentLabCard({ lab }: { lab: typeof labs[0] }) {
-  const diffClass = lab.difficulty === 'EASY' ? 'badge-easy' : 
-                    lab.difficulty === 'MEDIUM' ? 'badge-medium-diff' : 
-                    lab.difficulty === 'HARD' ? 'badge-hard' : 'badge-expert';
-  const statusContent = lab.status === 'COMPLETED' ? (
+function RecentLabCard({ attempt }: { attempt: LabAttempt }) {
+  const statusContent = attempt.status === 'COMPLETED' ? (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--fg-success-strong)' }}>
       <CheckCircle2 size={14} /> Hoàn thành
     </span>
-  ) : lab.status === 'IN_PROGRESS' ? (
+  ) : attempt.status === 'RUNNING' ? (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--fg-brand)' }}>
-      <RotateCw size={14} style={{ animation: 'spin 3s linear infinite' }} /> Đang làm
+      <RotateCw size={14} style={{ animation: 'spin 3s linear infinite' }} /> Đang chạy
     </span>
-  ) : null;
+  ) : (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-body-subtle)' }}>
+      Chưa hoàn thành
+    </span>
+  );
 
   return (
-    <NextLink href={`/labs/${lab.id}`} style={{ textDecoration: 'none' }}>
+    <NextLink href={`/labs/${attempt.labId}`} style={{ textDecoration: 'none' }}>
       <div className="card lab-card">
         <div className="lab-card-header">
-          <span className={`badge ${diffClass}`}>{lab.difficulty}</span>
+          <span className={`badge badge-medium-diff`}>Attempt</span>
           {statusContent}
         </div>
-        <div className="lab-card-title">{lab.title}</div>
-        <div className="lab-card-desc">{lab.description}</div>
+        <div className="lab-card-title">{attempt.labTitle}</div>
+        <div className="lab-card-desc">Bắt đầu lúc: {new Date(attempt.startedAt).toLocaleString('vi-VN')}</div>
         <div className="lab-card-meta" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           <span className="lab-card-meta-item" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            <Clock size={12} /> {lab.estimatedMinutes} phút
+            <Trophy size={12} /> {attempt.score} điểm
           </span>
           <span className="lab-card-meta-item" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            <Trophy size={12} /> {lab.points} điểm
-          </span>
-          <span className="lab-card-meta-item" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            <LinkIcon size={12} /> {lab.vulnerabilityName}
+            Gợi ý đã dùng: {attempt.hintsUsed}
           </span>
         </div>
       </div>
@@ -149,9 +153,61 @@ function RecentLabCard({ lab }: { lab: typeof labs[0] }) {
 }
 
 export default function DashboardPage() {
-  const completionRate = dashboardStats.totalLabs > 0
-    ? Math.round((dashboardStats.completedLabs / dashboardStats.totalLabs) * 100)
-    : 0;
+  const { isAuthenticated } = useAuth();
+  const [vulns, setVulns] = useState<Vulnerability[]>([]);
+  const [paths, setPaths] = useState<LearningPath[]>([]);
+  const [attempts, setAttempts] = useState<LabAttempt[]>([]);
+  const [stats, setStats] = useState({
+    totalVulnerabilities: 8,
+    totalLabs: 14,
+    completedLabs: 0,
+    totalPoints: 0,
+    progressPercentage: 0,
+  });
+
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [vulnsRes, pathsRes] = await Promise.all([
+          api.vulnerabilities.getAll(),
+          api.learningPaths.getAll()
+        ]);
+
+        if (vulnsRes.success) setVulns(vulnsRes.data);
+        if (pathsRes.success) setPaths(pathsRes.data);
+
+        if (isAuthenticated) {
+          const [dashboardRes, attemptsRes] = await Promise.all([
+            api.users.getDashboard(),
+            api.labs.getMyAttempts()
+          ]);
+
+          if (dashboardRes.success && dashboardRes.data) {
+            const d = dashboardRes.data;
+            setStats({
+              totalVulnerabilities: vulnsRes.data?.length || 8,
+              totalLabs: d.totalLabs || 14,
+              completedLabs: d.completedLabs || 0,
+              totalPoints: d.totalScore || 0,
+              progressPercentage: Math.round(d.progressPercentage || 0),
+            });
+          }
+
+          if (attemptsRes.success && attemptsRes.data) {
+            setAttempts(attemptsRes.data);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load dashboard data:', e);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, [isAuthenticated]);
 
   return (
     <div>
@@ -160,7 +216,7 @@ export default function DashboardPage() {
         <div className="hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', alignItems: 'center' }}>
           <div>
             <div className="badge badge-brand" style={{ marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <Lock size={12} /> Nền tảng học Pentest #1 Việt Nam
+              <Lock size={12} /> Nền tảng học Pentest Web #1 Việt Nam
             </div>
             <h1 style={{ fontSize: '2.5rem', fontWeight: 900, lineHeight: 1.1, marginBottom: 'var(--space-2)', color: 'var(--text-heading)' }}>
               Học <span className="text-brand">Pentest Web</span> qua{' '}
@@ -168,7 +224,7 @@ export default function DashboardPage() {
             </h1>
             <p style={{ fontSize: '1.0625rem', maxWidth: '50ch', marginBottom: 'var(--space-4)' }}>
               Nắm vững kỹ năng khai thác lỗ hổng bảo mật web từ cơ bản đến nâng cao.
-              Tài liệu chi tiết kết hợp bài lab thực hành tương tác.
+              Tài liệu chi tiết kết hợp bài lab thực hành tương tác trực tiếp với Docker container.
             </p>
             <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
               <NextLink href="/labs" className="btn btn-primary btn-lg" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
@@ -186,10 +242,10 @@ export default function DashboardPage() {
       {/* Stats */}
       <section className="animate-fade-in-up animate-delay-1" style={{ marginBottom: 'var(--space-6)' }}>
         <div className="grid-4">
-          <StatCard value={String(dashboardStats.totalVulnerabilities)} label="Loại lỗ hổng" color="green" />
-          <StatCard value={String(dashboardStats.totalLabs)} label="Bài Lab thực hành" color="blue" />
-          <StatCard value={`${completionRate}%`} label="Hoàn thành" color="orange" />
-          <StatCard value={`${dashboardStats.totalPoints}`} label="Tổng điểm" color="purple" />
+          <StatCard value={String(stats.totalVulnerabilities)} label="Loại lỗ hổng" color="green" />
+          <StatCard value={String(stats.totalLabs)} label="Bài Lab thực hành" color="blue" />
+          <StatCard value={isAuthenticated ? `${stats.completedLabs} labs` : 'Yêu cầu đăng nhập'} label="Hoàn thành" color="orange" />
+          <StatCard value={isAuthenticated ? `${stats.totalPoints} pts` : 'Yêu cầu đăng nhập'} label="Tổng điểm" color="purple" />
         </div>
       </section>
 
@@ -207,9 +263,13 @@ export default function DashboardPage() {
           </NextLink>
         </div>
         <div className="grid-4">
-          {vulnerabilities.slice(0, 4).map((vuln) => (
-            <VulnMiniCard key={vuln.id} vuln={vuln} />
-          ))}
+          {loading ? (
+            Array(4).fill(0).map((_, i) => <div key={i} className="card" style={{ height: '140px', background: 'var(--bg-neutral-secondary-medium)', opacity: 0.5 }}></div>)
+          ) : (
+            vulns.slice(0, 4).map((vuln) => (
+              <VulnMiniCard key={vuln.id} vuln={vuln} />
+            ))
+          )}
         </div>
       </section>
 
@@ -227,31 +287,37 @@ export default function DashboardPage() {
           </NextLink>
         </div>
         <div className="grid-3">
-          {learningPaths.map((path) => (
-            <PathMiniCard key={path.id} path={path} />
-          ))}
+          {loading ? (
+            Array(3).fill(0).map((_, i) => <div key={i} className="card" style={{ height: '160px', background: 'var(--bg-neutral-secondary-medium)', opacity: 0.5 }}></div>)
+          ) : (
+            paths.map((path) => (
+              <PathMiniCard key={path.id} path={path} />
+            ))
+          )}
         </div>
       </section>
 
-      {/* Recent Labs */}
-      <section className="animate-fade-in-up animate-delay-4" style={{ marginBottom: 'var(--space-6)' }}>
-        <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h2 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <FlaskConical size={28} style={{ color: 'var(--fg-brand)' }} /> Bài Lab gần đây
-            </h2>
-            <p className="section-subtitle">Tiếp tục nơi bạn dừng lại</p>
+      {/* Recent Lab Attempts */}
+      {isAuthenticated && attempts.length > 0 && (
+        <section className="animate-fade-in-up animate-delay-4" style={{ marginBottom: 'var(--space-6)' }}>
+          <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h2 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FlaskConical size={28} style={{ color: 'var(--fg-brand)' }} /> Phiên thực hành của bạn
+              </h2>
+              <p className="section-subtitle">Lịch sử và tiến độ làm lab gần đây</p>
+            </div>
+            <NextLink href="/labs" className="btn btn-secondary btn-sm">
+              Tất cả labs →
+            </NextLink>
           </div>
-          <NextLink href="/labs" className="btn btn-secondary btn-sm">
-            Tất cả labs →
-          </NextLink>
-        </div>
-        <div className="grid-3">
-          {labs.slice(0, 3).map((lab) => (
-            <RecentLabCard key={lab.id} lab={lab} />
-          ))}
-        </div>
-      </section>
+          <div className="grid-3">
+            {attempts.slice(0, 3).map((attempt) => (
+              <RecentLabCard key={attempt.id} attempt={attempt} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

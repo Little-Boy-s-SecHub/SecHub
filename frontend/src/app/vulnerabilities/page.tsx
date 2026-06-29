@@ -1,14 +1,32 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ShieldAlert } from 'lucide-react';
-import { vulnerabilities } from '@/lib/data';
+import { api, Vulnerability } from '@/lib/api';
 import VulnIcon from '@/components/VulnIcon';
 
-export const metadata = {
-  title: 'Lỗ hổng bảo mật - SecHub',
-  description: 'Danh sách các lỗ hổng bảo mật web phổ biến: SQL Injection, XSS, CSRF, IDOR, SSRF, và nhiều hơn nữa.',
-};
-
 export default function VulnerabilitiesPage() {
+  const [vulns, setVulns] = useState<Vulnerability[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const res = await api.vulnerabilities.getAll();
+        if (res.success) {
+          setVulns(res.data);
+        }
+      } catch (e) {
+        console.error('Failed to load vulnerabilities list:', e);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, []);
+
   return (
     <div>
       <div className="section-header">
@@ -20,41 +38,53 @@ export default function VulnerabilitiesPage() {
         </p>
       </div>
 
-      <div className="grid-3" style={{ marginTop: 'var(--space-4)' }}>
-        {vulnerabilities.map((vuln, index) => {
-          const severityClass = vuln.severity === 'CRITICAL' ? 'badge-critical' : 
-                                vuln.severity === 'HIGH' ? 'badge-high' : 
-                                vuln.severity === 'MEDIUM' ? 'badge-medium' : 'badge-low';
+      {loading ? (
+        <div className="grid-3" style={{ marginTop: 'var(--space-4)' }}>
+          {Array(6).fill(0).map((_, i) => (
+            <div key={i} className="card" style={{ height: '140px', background: 'var(--bg-neutral-secondary-medium)', opacity: 0.5 }}></div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid-3" style={{ marginTop: 'var(--space-4)' }}>
+          {vulns.map((vuln, index) => {
+            const severityClass = vuln.severity === 'CRITICAL' ? 'badge-critical' : 
+                                  vuln.severity === 'HIGH' ? 'badge-high' : 
+                                  vuln.severity === 'MEDIUM' ? 'badge-medium' : 'badge-low';
 
-          return (
-            <Link
-              key={vuln.id}
-              href={`/vulnerabilities/${vuln.slug}`}
-              style={{ textDecoration: 'none' }}
-            >
-              <div
-                className="card vuln-card animate-fade-in-up"
-                style={{
-                  animationDelay: `${index * 0.08}s`,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  height: '100%',
-                }}
+            const severityLabel = vuln.severity === 'CRITICAL' ? 'Cực kỳ nghiêm trọng' :
+                                  vuln.severity === 'HIGH' ? 'Cao' :
+                                  vuln.severity === 'MEDIUM' ? 'Trung bình' : 'Thấp';
+
+            return (
+              <Link
+                key={vuln.id}
+                href={`/vulnerabilities/${vuln.slug}`}
+                style={{ textDecoration: 'none' }}
               >
-                <div className="vuln-card-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <VulnIcon name={vuln.icon} size={24} />
+                <div
+                  className="card vuln-card animate-fade-in-up"
+                  style={{
+                    animationDelay: `${index * 0.05}s`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    height: '100%',
+                  }}
+                >
+                  <div className="vuln-card-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <VulnIcon name={vuln.icon} size={24} />
+                  </div>
+                  <div className="vuln-card-title">{vuln.name}</div>
+                  <div className="vuln-card-desc">{vuln.description}</div>
+                  <div className="vuln-card-footer" style={{ marginTop: 'auto', paddingTop: 'var(--space-2)' }}>
+                    <span className={`badge ${severityClass}`}>{severityLabel}</span>
+                    <span className="vuln-card-labs">{vuln.labCount || 0} labs →</span>
+                  </div>
                 </div>
-                <div className="vuln-card-title">{vuln.name}</div>
-                <div className="vuln-card-desc">{vuln.description}</div>
-                <div className="vuln-card-footer" style={{ marginTop: 'auto', paddingTop: 'var(--space-2)' }}>
-                  <span className={`badge ${severityClass}`}>{vuln.severity}</span>
-                  <span className="vuln-card-labs">{vuln.labCount} labs →</span>
-                </div>
-              </div>
-            </Link>
-          );
-        })}
-      </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

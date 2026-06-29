@@ -39,6 +39,14 @@ public class LabController {
         return ResponseEntity.ok(ApiResponse.success("Bắt đầu phiên thực hành", attempt));
     }
 
+    @PostMapping("/attempts/{attemptId}/stop")
+    public ResponseEntity<ApiResponse<LabAttemptDto>> stopLab(
+            @PathVariable UUID attemptId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        LabAttemptDto attempt = labService.stopLab(attemptId, userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.success("Đã dừng phiên thực hành", attempt));
+    }
+
     @PostMapping("/attempts/{attemptId}/submit")
     public ResponseEntity<ApiResponse<LabAttemptDto>> submitFlag(
             @PathVariable UUID attemptId,

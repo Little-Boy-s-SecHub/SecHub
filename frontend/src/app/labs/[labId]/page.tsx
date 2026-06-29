@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, use } from 'react';
+import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   Link as LinkIcon, 
   Clock, 
@@ -19,28 +20,12 @@ import {
   Lock, 
   BookOpen,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  RotateCw
 } from 'lucide-react';
-import { labs } from '@/lib/data';
-import { notFound } from 'next/navigation';
-
-const labHints: Record<string, string[]> = {
-  '1': [
-    'Gợi ý 1: Thử nhập ký tự đặc biệt vào trường username để xem phản hồi của server.',
-    "Gợi ý 2: SQL comment trong MySQL là '--'. Nếu bạn kết thúc username bằng comment, phần kiểm tra password sẽ bị bỏ qua.",
-    "Gợi ý 3: Thử payload: admin' -- trong trường username và để trống password.",
-  ],
-  '2': [
-    'Gợi ý 1: Tìm số cột trong query gốc bằng ORDER BY.',
-    "Gợi ý 2: Sử dụng UNION SELECT NULL,NULL,... để xác định số cột chính xác.",
-    "Gợi ý 3: Sau khi biết số cột, thử: ' UNION SELECT username,password FROM users --",
-  ],
-  '3': [
-    'Gợi ý 1: Ứng dụng không hiển thị kết quả trực tiếp. Quan sát sự thay đổi trong response.',
-    "Gợi ý 2: Thử payload Boolean-based: ' AND 1=1 -- (true) vs ' AND 1=2 -- (false)",
-    "Gợi ý 3: Sử dụng SUBSTRING() để trích xuất từng ký tự: ' AND SUBSTRING(password,1,1)='a' --",
-  ],
-};
+import { api, Lab, LabAttempt } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
+import LabSimulator from '@/components/LabSimulator';
 
 // Fallback hints
 const defaultHints = [
@@ -51,52 +36,161 @@ const defaultHints = [
 
 export default function LabDetailPage({ params }: { params: Promise<{ labId: string }> }) {
   const { labId } = use(params);
-  const lab = labs.find(l => l.id === labId);
+  const { isAuthenticated } = useAuth();
+  const router = useRouter();
 
-  if (!lab) {
-    notFound();
-  }
-
+  const [lab, setLab] = useState<Lab | null>(null);
+  const [currentAttempt, setCurrentAttempt] = useState<LabAttempt | null>(null);
   const [labStatus, setLabStatus] = useState<'idle' | 'starting' | 'running' | 'completed'>('idle');
   const [flagValue, setFlagValue] = useState('');
   const [flagResult, setFlagResult] = useState<'correct' | 'wrong' | null>(null);
   const [revealedHints, setRevealedHints] = useState(0);
-  const [elapsedTime, setElapsedTime] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
 
-  const hints = labHints[labId] || defaultHints;
+  useEffect(() => {
+    async function loadLabData() {
+      try {
+        const labRes = await api.labs.getById(labId);
+        if (labRes.success) {
+          setLab(labRes.data);
+        } else {
+          setApiError(labRes.message || 'Không thể lấy thông tin lab.');
+        }
 
-  const diffClass = lab.difficulty === 'EASY' ? 'badge-easy' : 
-                    lab.difficulty === 'MEDIUM' ? 'badge-medium-diff' : 
-                    lab.difficulty === 'HARD' ? 'badge-hard' : 'badge-expert';
+        if (isAuthenticated) {
+          const attemptsRes = await api.labs.getLabAttempts(labId);
+          if (attemptsRes.success && attemptsRes.data) {
+            const running = attemptsRes.data.find(a => a.status === 'RUNNING');
+            const completed = attemptsRes.data.find(a => a.status === 'COMPLETED');
+            
+            if (running) {
+              setCurrentAttempt(running);
+              setLabStatus('running');
+              setRevealedHints(running.hintsUsed);
+            } else if (completed) {
+              setLabStatus('completed');
+            }
+          }
+        }
+      } catch (e: any) {
+        setApiError(e.message || 'Lỗi khi tải dữ liệu lab.');
+      } finally {
+        setLoading(false);
+      }
+    }
 
-  const handleStartLab = () => {
+    loadLabData();
+  }, [labId, isAuthenticated]);
+
+  if (loading) {
+    return <div style={{ textAlign: 'center', padding: 'var(--space-6)' }}>Đang tải thông tin Lab...</div>;
+  }
+
+  if (apiError || !lab) {
+    return (
+      <div className="card" style={{ textAlign: 'center', padding: 'var(--space-6)' }}>
+        <AlertCircle size={48} style={{ color: 'var(--fg-danger)', margin: '0 auto var(--space-2)' }} />
+        <h3>Lỗi tải dữ liệu</h3>
+        <p style={{ margin: 'var(--space-1) auto' }}>{apiError || 'Không tìm thấy bài lab yêu cầu.'}</p>
+        <Link href="/labs" className="btn btn-secondary" style={{ display: 'inline-flex', marginTop: 'var(--space-2)' }}>
+          Quay lại phòng Lab
+        </Link>
+      </div>
+    );
+  }
+
+  // Parse hints from JSON
+  let hints = defaultHints;
+  if (lab.hintsJson) {
+    try {
+      hints = JSON.parse(lab.hintsJson);
+    } catch (e) {
+      console.error('Failed to parse hints json', e);
+    }
+  }
+
+  const diffClass = lab.difficulty === 'BEGINNER' ? 'badge-easy' : 
+                    lab.difficulty === 'INTERMEDIATE' ? 'badge-medium-diff' : 
+                    'badge-hard';
+  
+  const difficultyLabel = lab.difficulty === 'BEGINNER' ? 'Dễ' :
+                          lab.difficulty === 'INTERMEDIATE' ? 'Trung bình' : 'Khó';
+
+  const handleStartLab = async () => {
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+
     setLabStatus('starting');
-    // Simulate container startup
-    setTimeout(() => {
-      setLabStatus('running');
-    }, 2000);
-  };
-
-  const handleStopLab = () => {
-    setLabStatus('idle');
-    setElapsedTime(0);
-  };
-
-  const handleSubmitFlag = () => {
-    if (!flagValue.trim()) return;
-    // Mock flag check
-    const isCorrect = flagValue.toLowerCase().includes('flag{') || flagValue === 'admin';
-    setFlagResult(isCorrect ? 'correct' : 'wrong');
-    if (isCorrect) {
-      setLabStatus('completed');
+    try {
+      const res = await api.labs.startLab(labId);
+      if (res.success && res.data) {
+        // Add a small delay for terminal experience
+        setTimeout(() => {
+          setCurrentAttempt(res.data);
+          setLabStatus('running');
+          setRevealedHints(res.data.hintsUsed);
+        }, 1500);
+      } else {
+        setLabStatus('idle');
+        alert(res.message || 'Không thể khởi động lab.');
+      }
+    } catch (e: any) {
+      setLabStatus('idle');
+      alert(e.message || 'Lỗi khởi động lab.');
     }
   };
 
-  const handleRevealHint = () => {
-    if (revealedHints < hints.length) {
-      setRevealedHints(revealedHints + 1);
+  const handleStopLab = async () => {
+    if (!currentAttempt) return;
+    try {
+      await api.labs.stopLab(currentAttempt.id);
+      setLabStatus('idle');
+      setCurrentAttempt(null);
+      setRevealedHints(0);
+      setFlagValue('');
+      setFlagResult(null);
+    } catch (e: any) {
+      alert(e.message || 'Không thể dừng lab.');
     }
   };
+
+  const handleSubmitFlag = async () => {
+    if (!currentAttempt || !flagValue.trim()) return;
+    try {
+      const res = await api.labs.submitFlag(currentAttempt.id, flagValue.trim());
+      if (res.success && res.data) {
+        setFlagResult('correct');
+        setLabStatus('completed');
+      } else {
+        setFlagResult('wrong');
+      }
+    } catch (e: any) {
+      setFlagResult('wrong');
+    }
+  };
+
+  const handleRevealHint = async () => {
+    if (!currentAttempt || revealedHints >= hints.length) return;
+    try {
+      const res = await api.labs.useHint(currentAttempt.id);
+      if (res.success && res.data) {
+        setRevealedHints(res.data.hintsUsed);
+        setCurrentAttempt(res.data);
+      }
+    } catch (e: any) {
+      alert(e.message || 'Không thể tải gợi ý.');
+    }
+  };
+
+  const handleSimulatedSuccess = (foundFlag: string) => {
+    setFlagValue(foundFlag);
+    setFlagResult(null); // Reset alert, let user click submit to verify
+  };
+
+  const isSimulated = currentAttempt?.containerId?.startsWith('sim-');
 
   return (
     <div>
@@ -113,7 +207,7 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
           {/* Lab header */}
           <div className="card animate-fade-in-up" style={{ marginBottom: 'var(--space-3)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-2)', flexWrap: 'wrap' }}>
-              <span className={`badge ${diffClass}`}>{lab.difficulty}</span>
+              <span className={`badge ${diffClass}`}>{difficultyLabel}</span>
               <span style={{ fontSize: '13px', color: 'var(--text-body-subtle)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                 <LinkIcon size={13} /> {lab.vulnerabilityName}
               </span>
@@ -143,10 +237,13 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
                 </div>
                 <h3 style={{ marginBottom: 'var(--space-1)' }}>Sẵn sàng bắt đầu</h3>
                 <p style={{ color: 'var(--text-body-subtle)', margin: '0 auto var(--space-3)', maxWidth: '400px' }}>
-                  Click nút bên dưới để khởi tạo Docker container chứa ứng dụng web có lỗ hổng.
+                  {!isAuthenticated 
+                    ? 'Bạn cần đăng nhập để khởi chạy container Docker chứa ứng dụng web có lỗ hổng.'
+                    : 'Click nút bên dưới để khởi tạo Docker container chứa ứng dụng web có lỗ hổng.'
+                  }
                 </p>
                 <button className="btn btn-primary btn-lg" onClick={handleStartLab} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', margin: '0 auto' }}>
-                  <Play size={16} /> Khởi động Lab
+                  <Play size={16} /> {!isAuthenticated ? 'Đăng nhập để khởi động' : 'Khởi động Lab'}
                 </button>
               </div>
             )}
@@ -164,16 +261,17 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
                     <div></div>
                   </div>
                   <div className="terminal-body">
-                    <div><span className="terminal-output">Pulling image sechub/lab-sqli:latest...</span></div>
-                    <div><span className="terminal-output">Creating container...</span></div>
-                    <div><span className="terminal-success">Starting vulnerable web app...</span></div>
+                    <div><span className="terminal-output">Checking docker availability...</span></div>
+                    <div><span className="terminal-output">Pulling vulnerable image: {lab.dockerImage}...</span></div>
+                    <div><span className="terminal-output">Spawning container: sechub-attempt-...</span></div>
+                    <div><span className="terminal-success">Starting internal web server on port {lab.dockerPort}...</span></div>
                     <div>
                       <span className="terminal-success" style={{ animation: 'blink 1s step-end infinite' }}>▌</span>
                     </div>
                   </div>
                 </div>
                 <p style={{ color: 'var(--text-body-subtle)', fontSize: '14px' }}>
-                  Đang khởi tạo môi trường lab...
+                  Đang khởi tạo môi trường lab thực tế...
                 </p>
               </div>
             )}
@@ -181,7 +279,7 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
             {(labStatus === 'running' || labStatus === 'completed') && (
               <div>
                 {/* Status bar */}
-                <div className={`lab-status-bar ${labStatus === 'completed' ? 'completed' : 'running'}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-2)' }}>
+                <div className={`lab-status-bar ${labStatus === 'completed' ? 'completed' : 'running'}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-2)', marginBottom: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', fontSize: '13px' }}>
                     <span style={{
                       width: '8px',
@@ -196,12 +294,15 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
                           <CheckCircle2 size={14} style={{ color: 'var(--fg-success-strong)' }} /> Lab đã hoàn thành!
                         </>
                       ) : (
-                        'Lab đang chạy'
+                        'Môi trường đang chạy'
                       )}
                     </span>
                     <span style={{ color: 'var(--text-body-subtle)' }}>|</span>
-                    <span style={{ color: 'var(--fg-brand)', fontFamily: 'var(--font-mono)' }}>
-                      http://localhost:8081
+                    <span style={{ color: 'var(--fg-brand)', fontFamily: 'var(--font-mono)', fontWeight: 500 }}>
+                      {isSimulated 
+                        ? `http://localhost:${currentAttempt?.containerPort} (Giả lập - Thực hành trực tiếp ở khung bên dưới)` 
+                        : `http://localhost:${currentAttempt?.containerPort}`
+                      }
                     </span>
                   </div>
                   {labStatus === 'running' && (
@@ -211,27 +312,43 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
                   )}
                 </div>
 
-                {/* Iframe placeholder */}
-                <div className="lab-iframe-placeholder">
-                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--space-2)' }}>
-                    <Globe size={48} style={{ color: 'var(--text-body-subtle)' }} />
+                {/* Render Simulator or Iframe */}
+                {labStatus === 'running' && (
+                  isSimulated ? (
+                    <LabSimulator 
+                      dockerPort={lab.dockerPort} 
+                      flag={apiError || 'FLAG{sechub_simulated_success}'} // Let's use custom flags from seeded DB
+                      onSuccess={handleSimulatedSuccess}
+                    />
+                  ) : (
+                    <div style={{
+                      border: '1px solid var(--border-default)',
+                      borderRadius: 'var(--radius-sm)',
+                      overflow: 'hidden',
+                      background: '#fff'
+                    }}>
+                      <iframe 
+                        src={`http://localhost:${currentAttempt?.containerPort}`} 
+                        style={{ width: '100%', height: '560px', border: 'none' }}
+                      />
+                    </div>
+                  )
+                )}
+
+                {labStatus === 'completed' && (
+                  <div className="card" style={{ textAlign: 'center', padding: 'var(--space-5)', background: 'rgba(0,122,85,0.05)', border: '1px solid var(--border-success)' }}>
+                    <CheckCircle2 size={48} style={{ color: 'var(--fg-success-strong)', margin: '0 auto var(--space-2)' }} />
+                    <h3 style={{ color: 'var(--fg-success-strong)' }}>Tuyệt vời!</h3>
+                    <p style={{ margin: '0 auto var(--space-3)' }}>Bạn đã hoàn thành bài thực hành này. Bạn vẫn có thể khởi động lại để thực hành tiếp!</p>
+                    <button 
+                      className="btn btn-primary" 
+                      onClick={handleStartLab} 
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', margin: '0 auto' }}
+                    >
+                      <RotateCw size={16} /> Tạo lại & Làm lại bài Lab
+                    </button>
                   </div>
-                  <div style={{ fontWeight: 600, fontSize: '1.125rem', color: 'var(--text-heading)' }}>Vulnerable Web App</div>
-                  <div style={{ fontSize: '14px', textAlign: 'center', maxWidth: '400px' }}>
-                    Ứng dụng web có lỗ hổng sẽ được hiển thị ở đây trong iframe.
-                    Khi backend được kết nối, container Docker sẽ cung cấp web app thực tế.
-                  </div>
-                  <div style={{
-                    padding: '8px 16px',
-                    background: 'var(--bg-neutral-tertiary)',
-                    borderRadius: 'var(--radius-sm)',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '13px',
-                    color: 'var(--text-body)',
-                  }}>
-                    http://localhost:8081
-                  </div>
-                </div>
+                )}
               </div>
             )}
           </div>
@@ -243,13 +360,13 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
                 <Flag size={18} style={{ color: 'var(--fg-brand)' }} /> Submit Flag
               </h3>
               <p style={{ fontSize: '14px', color: 'var(--text-body-subtle)', marginBottom: 'var(--space-2)' }}>
-                Sau khi khai thác thành công lỗ hổng, nhập flag bạn tìm được vào đây.
+                Sau khi khai thác thành công lỗ hổng, nhập flag bạn tìm được vào đây để nhận điểm.
               </p>
               <div className="flag-input-group">
                 <input
                   type="text"
                   className="flag-input"
-                  placeholder="Nhập flag (VD: flag{...})"
+                  placeholder="Nhập flag (VD: FLAG{...})"
                   value={flagValue}
                   onChange={(e) => {
                     setFlagValue(e.target.value);
@@ -273,7 +390,7 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
               )}
               {flagResult === 'wrong' && (
                 <div className="flag-result-wrong" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <AlertCircle size={16} /> Sai flag. Hãy thử lại hoặc xem gợi ý bên phải.
+                  <AlertCircle size={16} /> Sai flag. Hãy thử lại hoặc sử dụng gợi ý ở bảng bên phải.
                 </div>
               )}
             </div>
@@ -290,15 +407,15 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: 'var(--text-body)' }}>
                 <span style={{ color: 'var(--fg-brand)', flexShrink: 0 }}>○</span>
-                Tìm endpoint có lỗ hổng
+                Tìm endpoint có lỗ hổng bảo mật
               </li>
               <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: 'var(--text-body)' }}>
                 <span style={{ color: 'var(--fg-brand)', flexShrink: 0 }}>○</span>
-                Khai thác lỗ hổng {lab.vulnerabilityName}
+                Khai thác thành công lỗ hổng {lab.vulnerabilityName}
               </li>
               <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: 'var(--text-body)' }}>
                 <span style={{ color: 'var(--fg-brand)', flexShrink: 0 }}>○</span>
-                Lấy flag và submit
+                Lấy chuỗi FLAG ẩn trên hệ thống và gửi xác nhận
               </li>
             </ul>
           </div>
@@ -325,7 +442,7 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
                     }}
                     style={{
                       opacity: i <= revealedHints ? 1 : 0.4,
-                      pointerEvents: i <= revealedHints ? 'auto' : 'none',
+                      pointerEvents: (i === revealedHints && labStatus === 'running') ? 'auto' : 'none',
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
@@ -358,13 +475,13 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
               ))}
             </div>
 
-            {revealedHints < hints.length && (
+            {revealedHints < hints.length && labStatus === 'running' && (
               <button
                 className="btn btn-secondary btn-sm"
                 onClick={handleRevealHint}
                 style={{ marginTop: 'var(--space-2)', width: '100%' }}
               >
-                Mở gợi ý tiếp theo (-10 điểm)
+                Mở gợi ý tiếp theo (-{lab.points / 10} điểm)
               </button>
             )}
           </div>
