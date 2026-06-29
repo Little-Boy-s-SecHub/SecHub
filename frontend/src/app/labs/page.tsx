@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   FlaskConical, 
   CheckCircle2, 
@@ -10,10 +10,155 @@ import {
   Clock, 
   Trophy, 
   Link as LinkIcon, 
-  Search 
+  Search,
+  ChevronDown,
+  Check
 } from 'lucide-react';
 import { api, Lab, Vulnerability, LabAttempt } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+
+interface CustomSelectOption {
+  value: string;
+  label: string;
+}
+
+function CustomSelect({
+  value,
+  onChange,
+  options,
+  placeholder,
+  disabled
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  options: CustomSelectOption[];
+  placeholder: string;
+  disabled?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedOption = options.find(o => o.value === value);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  const handleToggle = () => {
+    if (!disabled) setIsOpen(!isOpen);
+  };
+
+  const handleSelect = (val: string) => {
+    onChange(val);
+    setIsOpen(false);
+  };
+
+  return (
+    <div 
+      ref={containerRef}
+      style={{ position: 'relative', userSelect: 'none' }}
+    >
+      <style>{`
+        .custom-select-option:hover {
+          background: var(--bg-neutral-tertiary) !important;
+          color: var(--text-heading) !important;
+        }
+      `}</style>
+      <div 
+        onClick={handleToggle}
+        style={{
+          background: 'var(--bg-neutral-secondary-soft)',
+          border: '1px solid var(--border-default)',
+          borderRadius: '8px',
+          padding: '10px 16px',
+          color: 'var(--text-heading)',
+          fontSize: '0.875rem',
+          fontWeight: 600,
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          minWidth: '240px',
+          opacity: disabled ? 0.6 : 1,
+          transition: 'border-color 0.2s, box-shadow 0.2s',
+          boxShadow: isOpen ? '0 0 0 2px rgba(56, 189, 248, 0.2)' : 'none',
+          borderColor: isOpen ? 'var(--fg-brand)' : 'var(--border-default)',
+        }}
+      >
+        <span>{selectedOption ? selectedOption.label : placeholder}</span>
+        <ChevronDown 
+          size={16} 
+          style={{ 
+            transition: 'transform 0.2s ease', 
+            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+            color: 'var(--text-body-subtle)' 
+          }} 
+        />
+      </div>
+
+      {isOpen && (
+        <div 
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 6px)',
+            left: 0,
+            zIndex: 100,
+            background: 'var(--bg-neutral-secondary)',
+            border: '1px solid var(--border-default)',
+            borderRadius: '8px',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.4)',
+            padding: '6px',
+            minWidth: '100%',
+            width: 'max-content',
+            maxHeight: '260px',
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '2px'
+          }}
+        >
+          {options.map((opt) => {
+            const isSelected = opt.value === value;
+            return (
+              <div
+                key={opt.value}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSelect(opt.value);
+                }}
+                className="custom-select-option"
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  fontSize: '0.875rem',
+                  color: isSelected ? 'var(--fg-brand)' : 'var(--text-body)',
+                  background: isSelected ? 'var(--bg-neutral-tertiary)' : 'transparent',
+                  fontWeight: isSelected ? 700 : 500,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  whiteSpace: 'nowrap',
+                  transition: 'background-color 0.15s, color 0.15s'
+                }}
+              >
+                <span>{opt.label}</span>
+                {isSelected && <Check size={14} style={{ color: 'var(--fg-brand)', flexShrink: 0 }} />}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function LabsPage() {
   const { isAuthenticated } = useAuth();
@@ -86,48 +231,31 @@ export default function LabsPage() {
         marginTop: 'var(--space-4)',
         marginBottom: 'var(--space-4)',
         flexWrap: 'wrap',
+        alignItems: 'center'
       }}>
-        <select
+        <CustomSelect
           value={filterVuln}
-          onChange={(e) => setFilterVuln(e.target.value)}
-          style={{
-            background: 'var(--bg-neutral-secondary-medium)',
-            border: '1px solid var(--border-default-medium)',
-            borderRadius: 'var(--radius-default)',
-            padding: '8px 16px',
-            color: 'var(--text-heading)',
-            fontSize: '0.875rem',
-            cursor: 'pointer',
-            outline: 'none',
-          }}
+          onChange={setFilterVuln}
+          options={[
+            { value: 'all', label: 'Tất cả lỗ hổng' },
+            ...vulns.map(v => ({ value: v.slug, label: v.name }))
+          ]}
+          placeholder="Tất cả lỗ hổng"
           disabled={loading}
-        >
-          <option value="all">Tất cả lỗ hổng</option>
-          {vulns.map(v => (
-            <option key={v.slug} value={v.slug}>{v.name}</option>
-          ))}
-        </select>
+        />
 
-        <select
+        <CustomSelect
           value={filterDifficulty}
-          onChange={(e) => setFilterDifficulty(e.target.value)}
-          style={{
-            background: 'var(--bg-neutral-secondary-medium)',
-            border: '1px solid var(--border-default-medium)',
-            borderRadius: 'var(--radius-default)',
-            padding: '8px 16px',
-            color: 'var(--text-heading)',
-            fontSize: '0.875rem',
-            cursor: 'pointer',
-            outline: 'none',
-          }}
+          onChange={setFilterDifficulty}
+          options={[
+            { value: 'all', label: 'Tất cả độ khó' },
+            { value: 'BEGINNER', label: 'Dễ' },
+            { value: 'INTERMEDIATE', label: 'Trung bình' },
+            { value: 'ADVANCED', label: 'Khó' }
+          ]}
+          placeholder="Tất cả độ khó"
           disabled={loading}
-        >
-          <option value="all">Tất cả độ khó</option>
-          <option value="BEGINNER">Dễ</option>
-          <option value="INTERMEDIATE">Trung bình</option>
-          <option value="ADVANCED">Khó</option>
-        </select>
+        />
 
         <div style={{ marginLeft: 'auto', fontSize: '0.875rem', color: 'var(--text-body-subtle)', display: 'flex', alignItems: 'center' }}>
           {filteredLabs.length} bài lab
