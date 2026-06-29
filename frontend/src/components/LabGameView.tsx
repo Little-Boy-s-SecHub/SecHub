@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Play, Shield, MessageSquare, Lightbulb, Lock, HelpCircle, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
+import LabSimulator from '@/components/LabSimulator';
 
 interface LabGameViewProps {
   hints: string[];
@@ -9,6 +10,14 @@ interface LabGameViewProps {
   onRevealHint: () => Promise<void>;
   points: number;
   labStatus: 'idle' | 'starting' | 'running' | 'completed';
+  onSubmitFlag: (flag: string) => Promise<void>;
+  flagResult: 'correct' | 'wrong' | null;
+  vulnerabilityName: string;
+  isSimulated?: boolean;
+  dockerPort?: number;
+  containerPort?: number;
+  apiError?: string | null;
+  onSimulatedSuccess?: (flag: string) => void;
 }
 
 interface Entity {
@@ -22,37 +31,71 @@ interface Entity {
   hintIndex: number;
 }
 
-export default function LabGameView({ hints, revealedHints, onRevealHint, points, labStatus }: LabGameViewProps) {
+export default function LabGameView({ 
+  hints, 
+  revealedHints, 
+  onRevealHint, 
+  points, 
+  labStatus, 
+  onSubmitFlag, 
+  flagResult,
+  vulnerabilityName,
+  isSimulated,
+  dockerPort,
+  containerPort,
+  apiError,
+  onSimulatedSuccess
+}: LabGameViewProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   
-  // Game states
-  const [player, setPlayer] = useState({ x: 400, y: 240, speed: 4, width: 24, height: 24 });
-  const [activeNpc, setActiveNpc] = useState<Entity | null>(null);
+  // Game engine refs (for 60fps lag-free rendering and zero stale closures)
+  const playerRef = useRef({ x: 400, y: 240, speed: 4.5, width: 24, height: 24 });
+  const keysPressedRef = useRef<Record<string, boolean>>({});
+  const activeNpcRef = useRef<Entity | null>(null);
+  
+  // UI states (for React dialog overlay)
   const [dialogue, setDialogue] = useState<{ isOpen: boolean; text: string; showOptions: boolean } | null>(null);
   const [typedText, setTypedText] = useState('');
   const [typingIndex, setTypingIndex] = useState(0);
-  const [keysPressed, setKeysPressed] = useState<Record<string, boolean>>({});
   const [isMobile, setIsMobile] = useState(false);
+  const [uiActiveNpcName, setUiActiveNpcName] = useState<string | null>(null);
+  const dialogueIsOpenRef = useRef(false);
+
+  // In-game Flag overlay states
+  const [isFlagOverlayOpen, setIsFlagOverlayOpen] = useState(false);
+  const [localFlag, setLocalFlag] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // In-game Vulnerable Server Console Modal state
+  const [isServerModalOpen, setIsServerModalOpen] = useState(false);
+
+  // Reset overlay when flagResult changes
+  useEffect(() => {
+    if (flagResult === 'correct') {
+      setIsSubmitting(false);
+    } else if (flagResult === 'wrong') {
+      setIsSubmitting(false);
+    }
+  }, [flagResult]);
 
   // Map obstacles definitions (bounding boxes)
   const obstacles = [
-    // Outer walls boundary collision is handled separately, these are interior obstacles
     { x: 100, y: 150, width: 120, height: 40, label: 'Bàn Server A' },
     { x: 580, y: 150, width: 120, height: 40, label: 'Bàn Server B' },
-    { x: 280, y: 80, width: 240, height: 30, label: 'Bàn Điều Khiển Trung Tâm' },
+    { x: 280, y: 80, width: 240, height: 30, label: 'Bàn Console Trung Tâm' },
     { x: 200, y: 320, width: 60, height: 100, label: 'Tủ Rack 1' },
     { x: 540, y: 320, width: 60, height: 100, label: 'Tủ Rack 2' },
   ];
 
-  // NPCs definitions
-  const npcs: Entity[] = [
+  // Base mentors array based on hints length
+  const baseMentors = [
     {
       x: 160,
       y: 120,
       width: 24,
       height: 24,
-      name: 'Mentor SQLi (Guru Xanh)',
-      avatar: '🕵️‍♂️',
+      name: '2. Gợi ý 1',
+      avatar: '',
       color: '#00a3ff',
       hintIndex: 0,
     },
@@ -61,8 +104,8 @@ export default function LabGameView({ hints, revealedHints, onRevealHint, points
       y: 120,
       width: 24,
       height: 24,
-      name: 'Agent Guard (Ninja Đỏ)',
-      avatar: '🥷',
+      name: '3. Gợi ý 2',
+      avatar: '',
       color: '#ff2d55',
       hintIndex: 1,
     },
@@ -71,12 +114,50 @@ export default function LabGameView({ hints, revealedHints, onRevealHint, points
       y: 350,
       width: 24,
       height: 24,
-      name: 'Hacker Bóng Đêm (Bóng Tím)',
-      avatar: '🧙‍♂️',
+      name: '4. Gợi ý 3',
+      avatar: '',
       color: '#af52de',
       hintIndex: 2,
     },
-  ].slice(0, hints.length); // Render only as many NPCs as there are hints
+  ].slice(0, hints.length);
+
+  // Dynamic names for interactive workflow steps
+  const practiceStepNum = 2 + hints.length;
+  const submitStepNum = 3 + hints.length;
+
+  const npcs: Entity[] = [
+    ...baseMentors,
+    {
+      x: 240,
+      y: 85,
+      width: 24,
+      height: 24,
+      name: '1. Nhiệm vụ',
+      avatar: '',
+      color: '#eab308',
+      hintIndex: 99,
+    },
+    {
+      x: 400,
+      y: 85,
+      width: 24,
+      height: 24,
+      name: `${practiceStepNum}. Thực hành`,
+      avatar: '',
+      color: '#38bdf8',
+      hintIndex: 98,
+    },
+    {
+      x: 560,
+      y: 85,
+      width: 24,
+      height: 24,
+      name: `${submitStepNum}. Nộp FLAG`,
+      avatar: '',
+      color: '#10b981',
+      hintIndex: 100,
+    }
+  ];
 
   // Detect mobile device
   useEffect(() => {
@@ -85,70 +166,68 @@ export default function LabGameView({ hints, revealedHints, onRevealHint, points
     }
   }, []);
 
-  // Handle keyboard inputs
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      setKeysPressed((prev) => ({ ...prev, [e.code]: true }));
-      
-      // Prevent scrolling with arrows
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
-        e.preventDefault();
-      }
-
-      // E key to talk
-      if (e.code === 'KeyE') {
-        handleInteraction();
-      }
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      setKeysPressed((prev) => ({ ...prev, [e.code]: false }));
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, [player, activeNpc, dialogue, revealedHints]);
-
   // Handle interaction E
-  const handleInteraction = async () => {
-    if (dialogue?.isOpen) {
-      // Close dialogue
-      setDialogue(null);
-      setTypedText('');
+  const handleInteraction = () => {
+    const npc = activeNpcRef.current;
+    if (!npc) return;
+
+    if (dialogueIsOpenRef.current && dialogue) {
+      if (typingIndex < dialogue.text.length) {
+        setTypedText(dialogue.text);
+        setTypingIndex(dialogue.text.length);
+      } else {
+        setDialogue(null);
+        dialogueIsOpenRef.current = false;
+        setTypedText('');
+      }
       return;
     }
 
-    if (activeNpc) {
-      const idx = activeNpc.hintIndex;
-      if (idx < revealedHints) {
-        // Already unlocked
-        triggerDialogue(hints[idx], false);
-      } else if (idx === revealedHints) {
-        // Next to unlock
-        if (labStatus === 'running') {
-          triggerDialogue(
-            `Tôi giữ Gợi ý số ${idx + 1}. Mở khóa gợi ý này sẽ tiêu tốn ${points / 10} điểm. Bạn có đồng ý mở khóa không?`,
-            true
-          );
-        } else {
-          triggerDialogue('Bạn cần Khởi động Lab trước để mở khóa gợi ý này.', false);
-        }
-      } else {
-        // Locked
+    // Special NPC: Mission Board
+    if (npc.hintIndex === 99) {
+      triggerDialogue(
+        `NHIỆM VỤ BÀI THỰC HÀNH:\n\n1. Di chuyển lại gần máy tính "${practiceStepNum}. Thực hành" ở giữa và tương tác để thực hành khai thác lỗ hổng [${vulnerabilityName}].\n\n2. Trích xuất mã cờ bí mật (FLAG).\n\n3. Đến Thiết Bị "${submitStepNum}. Nộp FLAG" bên phải để nộp bài!`,
+        false
+      );
+      return;
+    }
+
+    // Special NPC: Vulnerable App Server Console
+    if (npc.hintIndex === 98) {
+      setIsServerModalOpen(true);
+      return;
+    }
+
+    // Special NPC: Flag Submission Terminal
+    if (npc.hintIndex === 100) {
+      setIsFlagOverlayOpen(true);
+      return;
+    }
+
+    // Standard mentors (Hints)
+    const idx = npc.hintIndex;
+    if (idx < revealedHints) {
+      triggerDialogue(hints[idx], false);
+    } else if (idx === revealedHints) {
+      if (labStatus === 'running') {
         triggerDialogue(
-          `Gợi ý này đã bị khóa. Hãy mở khóa gợi ý số ${revealedHints + 1} của ${npcs[revealedHints]?.name} trước!`,
-          false
+          `Tôi giữ Gợi ý số ${idx + 1}. Mở khóa gợi ý này sẽ tiêu tốn ${points / 10} điểm. Bạn có đồng ý mở khóa không?`,
+          true
         );
+      } else {
+        triggerDialogue('Bạn cần Khởi động Lab trước để mở khóa gợi ý này.', false);
       }
+    } else {
+      triggerDialogue(
+        `Gợi ý này đã bị khóa. Hãy mở khóa gợi ý số ${revealedHints + 1} của Mentor trước!`,
+        false
+      );
     }
   };
 
   const triggerDialogue = (text: string, showOptions: boolean) => {
     setDialogue({ isOpen: true, text, showOptions });
+    dialogueIsOpenRef.current = true;
     setTypedText('');
     setTypingIndex(0);
   };
@@ -159,7 +238,7 @@ export default function LabGameView({ hints, revealedHints, onRevealHint, points
       const timer = setTimeout(() => {
         setTypedText((prev) => prev + dialogue.text[typingIndex]);
         setTypingIndex((prev) => prev + 1);
-      }, 15);
+      }, 12);
       return () => clearTimeout(timer);
     }
   }, [dialogue, typingIndex]);
@@ -169,15 +248,24 @@ export default function LabGameView({ hints, revealedHints, onRevealHint, points
     if (onRevealHint) {
       try {
         setDialogue({ isOpen: true, text: 'Đang mở khóa gợi ý...', showOptions: false });
-        setTypedText('Đang kết nối API bảo mật để giải mã dữ liệu...');
+        setTypedText('Đang giải mã dữ liệu gợi ý từ máy chủ...');
         await onRevealHint();
-        // Wait a bit, then show the hint
         setTimeout(() => {
           triggerDialogue(hints[revealedHints], false);
-        }, 1000);
+        }, 800);
       } catch (e: any) {
-        triggerDialogue(`Lỗi khi mở gợi ý: ${e.message || 'Lỗi không xác định'}`, false);
+        triggerDialogue(`Lỗi: ${e.message || 'Không thể mở gợi ý'}`, false);
       }
+    }
+  };
+
+  const handleFlagSubmit = async () => {
+    if (!localFlag.trim()) return;
+    setIsSubmitting(true);
+    try {
+      await onSubmitFlag(localFlag);
+    } catch (e) {
+      setIsSubmitting(false);
     }
   };
 
@@ -185,92 +273,202 @@ export default function LabGameView({ hints, revealedHints, onRevealHint, points
   useEffect(() => {
     let animationId: number;
 
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      const isTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
+
+      keysPressedRef.current[e.code] = true;
+      keysPressedRef.current[e.key.toLowerCase()] = true;
+      
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+        if (!isTyping) {
+          e.preventDefault();
+        }
+      }
+
+      // Handle Escape key to close dialogue, flag overlay, or server modal
+      if (e.key === 'Escape' || e.code === 'Escape') {
+        if (dialogueIsOpenRef.current) {
+          setDialogue(null);
+          dialogueIsOpenRef.current = false;
+          setTypedText('');
+        }
+        if (isFlagOverlayOpen) {
+          setIsFlagOverlayOpen(false);
+        }
+        if (isServerModalOpen) {
+          setIsServerModalOpen(false);
+        }
+        return;
+      }
+
+      if (e.code === 'KeyE' || e.key.toLowerCase() === 'e') {
+        if (isTyping) return;
+        
+        if (isFlagOverlayOpen) {
+          setIsFlagOverlayOpen(false);
+        } else if (isServerModalOpen) {
+          // ESC closes server modal to allow typing inside simulation
+        } else {
+          handleInteraction();
+        }
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      keysPressedRef.current[e.code] = false;
+      keysPressedRef.current[e.key.toLowerCase()] = false;
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
     const updatePhysics = () => {
-      // Don't move if dialogue is open
-      if (dialogue?.isOpen) return;
+      if (dialogueIsOpenRef.current || isFlagOverlayOpen || isServerModalOpen) return;
 
       let dx = 0;
       let dy = 0;
 
-      if (keysPressed['ArrowUp'] || keysPressed['KeyW']) dy = -player.speed;
-      if (keysPressed['ArrowDown'] || keysPressed['KeyS']) dy = player.speed;
-      if (keysPressed['ArrowLeft'] || keysPressed['KeyA']) dx = -player.speed;
-      if (keysPressed['ArrowRight'] || keysPressed['KeyD']) dx = player.speed;
+      const keys = keysPressedRef.current;
+      if (keys['ArrowUp'] || keys['KeyW'] || keys['w'] || keys['u']) dy = -playerRef.current.speed;
+      if (keys['ArrowDown'] || keys['KeyS'] || keys['s']) dy = playerRef.current.speed;
+      if (keys['ArrowLeft'] || keys['KeyA'] || keys['a']) dx = -playerRef.current.speed;
+      if (keys['ArrowRight'] || keys['KeyD'] || keys['d']) dx = playerRef.current.speed;
 
-      if (dx !== 0 || dy !== 0) {
-        // Diagonal speed correction
-        if (dx !== 0 && dy !== 0) {
-          dx *= 0.7071;
-          dy *= 0.7071;
-        }
+      if (dx !== 0 && dy !== 0) {
+        dx *= 0.7071;
+        dy *= 0.7071;
+      }
 
-        let newX = player.x + dx;
-        let newY = player.y + dy;
+      // SLIDING COLLISION PHYSICS (X and Y resolved independently)
+      if (dx !== 0) {
+        let newX = playerRef.current.x + dx;
+        if (newX < 15) newX = 15;
+        if (newX > 800 - playerRef.current.width - 15) newX = 800 - playerRef.current.width - 15;
 
-        // Boundary collision (800x480 map)
-        if (newX < 12) newX = 12;
-        if (newX > 800 - player.width - 12) newX = 800 - player.width - 12;
-        if (newY < 12) newY = 12;
-        if (newY > 480 - player.height - 12) newY = 480 - player.height - 12;
-
-        // Obstacle collision check
-        const playerBox = { x: newX, y: newY, width: player.width, height: player.height };
-        let hasCollision = false;
+        const playerBoxX = { x: newX, y: playerRef.current.y, width: playerRef.current.width, height: playerRef.current.height };
+        let collidesX = false;
 
         for (const obs of obstacles) {
           if (
-            playerBox.x < obs.x + obs.width &&
-            playerBox.x + playerBox.width > obs.x &&
-            playerBox.y < obs.y + obs.height &&
-            playerBox.y + playerBox.height > obs.y
+            playerBoxX.x < obs.x + obs.width &&
+            playerBoxX.x + playerBoxX.width > obs.x &&
+            playerBoxX.y < obs.y + obs.height &&
+            playerBoxX.y + playerBoxX.height > obs.y
           ) {
-            hasCollision = true;
+            collidesX = true;
             break;
           }
         }
 
-        // NPC collision check (cannot walk through NPCs)
         for (const npc of npcs) {
           if (
-            playerBox.x < npc.x + npc.width &&
-            playerBox.x + playerBox.width > npc.x &&
-            playerBox.y < npc.y + npc.height &&
-            playerBox.y + playerBox.height > npc.y
+            playerBoxX.x < npc.x + npc.width &&
+            playerBoxX.x + playerBoxX.width > npc.x &&
+            playerBoxX.y < npc.y + npc.height &&
+            playerBoxX.y + playerBoxX.height > npc.y
           ) {
-            hasCollision = true;
+            collidesX = true;
             break;
           }
         }
 
-        if (!hasCollision) {
-          setPlayer((prev) => ({ ...prev, x: newX, y: newY }));
+        if (!collidesX) {
+          playerRef.current.x = newX;
+        }
+      }
+
+      if (dy !== 0) {
+        let newY = playerRef.current.y + dy;
+        if (newY < 15) newY = 15;
+        if (newY > 480 - playerRef.current.height - 15) newY = 480 - playerRef.current.height - 15;
+
+        const playerBoxY = { x: playerRef.current.x, y: newY, width: playerRef.current.width, height: playerRef.current.height };
+        let collidesY = false;
+
+        for (const obs of obstacles) {
+          if (
+            playerBoxY.x < obs.x + obs.width &&
+            playerBoxY.x + playerBoxY.width > obs.x &&
+            playerBoxY.y < obs.y + obs.height &&
+            playerBoxY.y + playerBoxY.height > obs.y
+          ) {
+            collidesY = true;
+            break;
+          }
+        }
+
+        for (const npc of npcs) {
+          if (
+            playerBoxY.x < npc.x + npc.width &&
+            playerBoxY.x + playerBoxY.width > npc.x &&
+            playerBoxY.y < npc.y + npc.height &&
+            playerBoxY.y + playerBoxY.height > npc.y
+          ) {
+            collidesY = true;
+            break;
+          }
+        }
+
+        if (!collidesY) {
+          playerRef.current.y = newY;
         }
       }
     };
 
     const detectNpcProximity = () => {
       let closeNpc: Entity | null = null;
+      const p = playerRef.current;
+      
       for (const npc of npcs) {
-        // Distance calculation
-        const px = player.x + player.width / 2;
-        const py = player.y + player.height / 2;
+        const px = p.x + p.width / 2;
+        const py = p.y + p.height / 2;
         const nx = npc.x + npc.width / 2;
         const ny = npc.y + npc.height / 2;
-        const dist = Math.sqrt(Math.pow(px - nx, 2) + Math.pow(py - ny, 2));
         
+        const dist = Math.sqrt(Math.pow(px - nx, 2) + Math.pow(py - ny, 2));
         if (dist < 48) {
           closeNpc = npc;
           break;
         }
       }
-      setActiveNpc(closeNpc);
+
+      activeNpcRef.current = closeNpc;
+      setUiActiveNpcName(closeNpc ? closeNpc.name : null);
     };
 
-    const loop = () => {
-      updatePhysics();
-      detectNpcProximity();
-      drawGame();
-      animationId = requestAnimationFrame(loop);
+    // Helper to draw text with a solid dark outline for maximum clarity
+    const drawTextWithOutline = (ctx: CanvasRenderingContext2D, text: string, x: number, y: number, textColor: string) => {
+      ctx.font = 'bold 11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.strokeStyle = '#020617';
+      ctx.lineWidth = 4;
+      ctx.strokeText(text, x, y);
+      ctx.fillStyle = textColor;
+      ctx.fillText(text, x, y);
+    };
+
+    // Helper to draw a dashed flowing arrow showing step direction
+    const drawArrow = (ctx: CanvasRenderingContext2D, fromX: number, fromY: number, toX: number, toY: number, color: string) => {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 6]);
+      ctx.lineDashOffset = -Math.floor(Date.now() * 0.015) % 12;
+      ctx.beginPath();
+      ctx.moveTo(fromX, fromY);
+      ctx.lineTo(toX, toY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      const angle = Math.atan2(toY - fromY, toX - fromX);
+      const midX = (fromX + toX) / 2;
+      const midY = (fromY + toY) / 2;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(midX, midY);
+      ctx.lineTo(midX - 8 * Math.cos(angle - Math.PI / 6), midY - 8 * Math.sin(angle - Math.PI / 6));
+      ctx.lineTo(midX - 8 * Math.cos(angle + Math.PI / 6), midY - 8 * Math.sin(angle + Math.PI / 6));
+      ctx.fill();
     };
 
     const drawGame = () => {
@@ -279,12 +477,11 @@ export default function LabGameView({ hints, revealedHints, onRevealHint, points
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      // 1. Clear background & draw grid pattern
-      ctx.fillStyle = '#0b0f19'; // Retro dark navy
+      // 1. Draw Background Grid
+      ctx.fillStyle = '#0b0f19';
       ctx.fillRect(0, 0, 800, 480);
 
-      // Grid line drawings
-      ctx.strokeStyle = '#151e33';
+      ctx.strokeStyle = '#141e33';
       ctx.lineWidth = 1;
       const gridSize = 40;
       for (let i = 0; i < 800; i += gridSize) {
@@ -300,30 +497,42 @@ export default function LabGameView({ hints, revealedHints, onRevealHint, points
         ctx.stroke();
       }
 
-      // Outer room boundaries wall
-      ctx.strokeStyle = '#2d4066';
-      ctx.lineWidth = 6;
-      ctx.strokeRect(6, 6, 800 - 12, 480 - 12);
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 8;
+      ctx.strokeRect(4, 4, 800 - 8, 480 - 8);
 
-      // 2. Draw Obstacles
+      // 2. Draw animated flowing arrow paths connecting objects in chronological order
+      const pathPoints = [
+        { x: 240 + 12, y: 85 + 12 }, // 1. Nhiệm vụ
+      ];
+      // Mentors
+      baseMentors.forEach((m) => {
+        pathPoints.push({ x: m.x + 12, y: m.y + 12 });
+      });
+      // Practice and Submit
+      pathPoints.push({ x: 400 + 12, y: 85 + 12 }); // 3. Thực hành
+      pathPoints.push({ x: 560 + 12, y: 85 + 12 }); // 4. Nộp FLAG
+
+      // Draw paths
+      for (let i = 0; i < pathPoints.length - 1; i++) {
+        drawArrow(ctx, pathPoints[i].x, pathPoints[i].y, pathPoints[i + 1].x, pathPoints[i + 1].y, 'rgba(0, 242, 254, 0.45)');
+      }
+
+      // 3. Draw Obstacles
       obstacles.forEach((obs) => {
-        // Draw server table base shadow
         ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
         ctx.fillRect(obs.x + 4, obs.y + 4, obs.width, obs.height);
 
-        // Draw cabinet
-        ctx.fillStyle = '#1e293b'; // Slate grey
+        ctx.fillStyle = '#1e293b';
         ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
         ctx.strokeStyle = '#334155';
         ctx.lineWidth = 2;
         ctx.strokeRect(obs.x, obs.y, obs.width, obs.height);
 
         if (obs.label.startsWith('Tủ Rack')) {
-          // Draw server blades lines and flashing neon LED pixels
           ctx.fillStyle = '#0f172a';
           ctx.fillRect(obs.x + 4, obs.y + 6, obs.width - 8, obs.height - 12);
           
-          // Blade lines
           ctx.strokeStyle = '#1e293b';
           ctx.lineWidth = 1;
           for (let ly = obs.y + 12; ly < obs.y + obs.height - 8; ly += 10) {
@@ -332,157 +541,139 @@ export default function LabGameView({ hints, revealedHints, onRevealHint, points
             ctx.lineTo(obs.x + obs.width - 8, ly);
             ctx.stroke();
 
-            // Flashing LEDs
-            const seed = Math.sin(Date.now() * 0.005 + ly) * 10;
-            ctx.fillStyle = seed > 5 ? '#00f2fe' : seed < -5 ? '#ff2d55' : '#00a3ff';
+            const seed = Math.sin(Date.now() * 0.006 + ly) * 10;
+            ctx.fillStyle = seed > 4 ? '#00f2fe' : seed < -4 ? '#ff2d55' : '#10b981';
             ctx.fillRect(obs.x + 10, ly - 3, 3, 3);
-            ctx.fillStyle = seed > 2 ? '#27c93f' : '#10b981';
+            ctx.fillStyle = seed > 0 ? '#27c93f' : '#64748b';
             ctx.fillRect(obs.x + 16, ly - 3, 3, 3);
           }
         } else {
-          // Console desks
-          ctx.fillStyle = '#38bdf8'; // Blue screen light glow
-          ctx.fillRect(obs.x + 12, obs.y + 6, obs.width - 24, 4);
-          ctx.fillStyle = '#475569';
-          ctx.font = '9px monospace';
-          ctx.fillText('CONSOLE', obs.x + 16, obs.y + 24);
+          ctx.fillStyle = '#38bdf8';
+          ctx.fillRect(obs.x + 10, obs.y + 6, obs.width - 20, 3);
+          ctx.fillStyle = '#1e293b';
+          ctx.font = 'bold 9px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('CONSOLE', obs.x + obs.width / 2, obs.y + 22);
         }
       });
 
-      // 3. Draw NPCs
+      // 4. Draw NPCs & Interactive points (no emojis)
       npcs.forEach((npc) => {
-        // Draw glowing aura under NPC
-        const isLocked = npc.hintIndex > revealedHints;
-        const isUnlockable = npc.hintIndex === revealedHints;
+        const isSpecial = npc.hintIndex >= 98;
+        const isLocked = !isSpecial && npc.hintIndex > revealedHints;
+        const isUnlockable = !isSpecial && npc.hintIndex === revealedHints;
         
         ctx.beginPath();
         ctx.arc(npc.x + npc.width / 2, npc.y + npc.height / 2 + 10, 16, 0, Math.PI * 2);
         ctx.fillStyle = isLocked 
-          ? 'rgba(71,85,105,0.2)' 
+          ? 'rgba(71,85,105,0.15)' 
           : isUnlockable 
-            ? 'rgba(250,204,21,0.25)' 
-            : 'rgba(0,242,254,0.25)';
+            ? 'rgba(250,204,21,0.2)' 
+            : 'rgba(16,185,129,0.15)';
         ctx.fill();
 
-        // Draw shadow ring border
-        ctx.strokeStyle = isLocked ? '#475569' : isUnlockable ? '#fac015' : '#00f2fe';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
+        if (isUnlockable) {
+          ctx.strokeStyle = '#eab308';
+          ctx.lineWidth = 1;
+          ctx.stroke();
 
-        // Draw emoji avatar
-        ctx.font = '20px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(
-          isLocked ? '🔒' : npc.avatar, 
-          npc.x + npc.width / 2, 
-          npc.y + npc.height / 2
-        );
+          ctx.fillStyle = '#eab308';
+          ctx.font = 'bold 9px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('HINT UNLOCKED', npc.x + npc.width / 2, npc.y - 25);
+        }
 
-        // Draw tag text above NPC
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = '10px monospace';
-        ctx.fillText(
-          isLocked ? 'Gợi ý bị khóa' : npc.name.split(' (')[0],
-          npc.x + npc.width / 2,
-          npc.y - 12
-        );
+        // Draw representing colors
+        ctx.fillStyle = npc.color;
+        ctx.fillRect(npc.x, npc.y, npc.width, npc.height);
+
+        if (npc.hintIndex === 100) {
+          const glow = Math.sin(Date.now() * 0.008) * 5;
+          ctx.fillStyle = glow > 0 ? '#10b981' : '#047857';
+          ctx.fillRect(npc.x + 4, npc.y + 4, 16, 8);
+        } else if (npc.hintIndex === 99) {
+          ctx.fillStyle = '#eab308';
+          ctx.fillRect(npc.x + 6, npc.y + 4, 12, 10);
+        } else if (npc.hintIndex === 98) {
+          const blueGlow = Math.sin(Date.now() * 0.005) * 5;
+          ctx.fillStyle = blueGlow > 0 ? '#00f2fe' : '#0284c7';
+          ctx.fillRect(npc.x + 4, npc.y + 4, 16, 12);
+        }
+
+        // Labels using outline drawing logic for 100% clarity
+        const isCurrentActive = activeNpcRef.current?.name === npc.name;
+        if (isCurrentActive) {
+          // Draw Name higher up
+          drawTextWithOutline(ctx, npc.name, npc.x + npc.width / 2, npc.y - 15, '#eab308');
+          // Draw Interact prompt below name
+          drawTextWithOutline(ctx, isMobile ? '[CHẠM]' : '[ẤN PHÍM E]', npc.x + npc.width / 2, npc.y - 3, '#ffffff');
+        } else {
+          // Draw Standard Label
+          drawTextWithOutline(ctx, npc.name, npc.x + npc.width / 2, npc.y - 5, '#cbd5e1');
+        }
       });
 
-      // 4. Draw Player
-      // Player shadow
-      ctx.beginPath();
-      ctx.arc(player.x + player.width / 2, player.y + player.height / 2 + 10, 12, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-      ctx.fill();
+      // 5. Draw Player
+      const p = playerRef.current;
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.fillRect(p.x - 2, p.y + p.height - 4, p.width + 4, 6);
 
-      // Draw hacker player
-      ctx.fillStyle = '#10b981'; // Cyber emerald green hoodie
-      ctx.beginPath();
-      ctx.arc(player.x + player.width / 2, player.y + player.height / 2, 10, 0, Math.PI * 2);
-      ctx.fill();
-      
-      // Face
-      ctx.fillStyle = '#ffdbb5';
-      ctx.beginPath();
-      ctx.arc(player.x + player.width / 2, player.y + player.height / 2 + 2, 6, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.fillStyle = '#22c55e'; // Green character
+      ctx.fillRect(p.x, p.y, p.width, p.height);
 
-      // Hoodie hood top
-      ctx.fillStyle = '#059669';
-      ctx.beginPath();
-      ctx.arc(player.x + player.width / 2, player.y + player.height / 2 - 2, 8, Math.PI, 0);
-      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(p.x + 4, p.y + 6, 4, 4);
+      ctx.fillRect(p.x + p.width - 8, p.y + 6, 4, 4);
 
-      // Sunglasses
-      ctx.fillStyle = '#000';
-      ctx.fillRect(player.x + player.width / 2 - 5, player.y + player.height / 2, 4, 3);
-      ctx.fillRect(player.x + player.width / 2 + 1, player.y + player.height / 2, 4, 3);
-      ctx.beginPath();
-      ctx.moveTo(player.x + player.width / 2 - 1, player.y + player.height / 2 + 1);
-      ctx.lineTo(player.x + player.width / 2 + 1, player.y + player.height / 2 + 1);
-      ctx.stroke();
-
-      // Glowing laptop in hand
-      ctx.fillStyle = '#00f2fe';
-      ctx.fillRect(player.x + player.width / 2 - 4, player.y + player.height / 2 + 8, 8, 4);
-
-      // Player name tag
-      ctx.fillStyle = '#10b981';
-      ctx.font = '10px monospace';
-      ctx.fillText('HACKER', player.x + player.width / 2, player.y - 12);
-
-      // 5. Draw interactive prompt indicator bubble
-      if (activeNpc) {
-        const text = isMobile ? 'Chạm để nói chuyện' : 'Ấn [E] để nói chuyện';
-        ctx.fillStyle = 'rgba(16,185,129,0.95)';
-        ctx.strokeStyle = '#059669';
-        ctx.lineWidth = 1.5;
-        
-        // Render speech bubble shape
-        const bx = player.x + player.width / 2 - 60;
-        const by = player.y - 48;
-        const bw = 120;
-        const bh = 22;
-        
-        ctx.fillRect(bx, by, bw, bh);
-        ctx.strokeRect(bx, by, bw, bh);
-
-        // Arrow pointer pointing to player
-        ctx.beginPath();
-        ctx.moveTo(bx + bw / 2 - 6, by + bh);
-        ctx.lineTo(bx + bw / 2, by + bh + 6);
-        ctx.lineTo(bx + bw / 2 + 6, by + bh);
-        ctx.closePath();
-        ctx.fillStyle = 'rgba(16,185,129,0.95)';
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.fillStyle = '#fff';
-        ctx.font = '10px monospace';
-        ctx.fillText(text, player.x + player.width / 2, by + bh / 2 + 1);
-      }
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(p.x + 6, p.y + 14, 12, 3);
     };
 
-    loop();
+    const renderLoop = () => {
+      updatePhysics();
+      detectNpcProximity();
+      drawGame();
+      animationId = requestAnimationFrame(renderLoop);
+    };
+
+    animationId = requestAnimationFrame(renderLoop);
 
     return () => {
       cancelAnimationFrame(animationId);
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [player, activeNpc, dialogue, revealedHints]);
+  }, [revealedHints, hints, points, labStatus, isFlagOverlayOpen, isServerModalOpen]);
 
-  // Mobile controller touch pad triggers
-  const handleTouchStart = (dir: string) => {
-    setKeysPressed((prev) => ({ ...prev, [dir]: true }));
+  const handleTouchStart = (key: string) => {
+    keysPressedRef.current[key] = true;
   };
 
-  const handleTouchEnd = (dir: string) => {
-    setKeysPressed((prev) => ({ ...prev, [dir]: false }));
+  const handleTouchEnd = (key: string) => {
+    keysPressedRef.current[key] = false;
+  };
+
+  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (activeNpcRef.current) {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const clickX = ((e.clientX - rect.left) / rect.width) * 800;
+      const clickY = ((e.clientY - rect.top) / rect.height) * 480;
+
+      const npc = activeNpcRef.current;
+      const npcCenterX = npc.x + npc.width / 2;
+      const npcCenterY = npc.y + npc.height / 2;
+      
+      const distance = Math.sqrt(Math.pow(clickX - npcCenterX, 2) + Math.pow(clickY - npcCenterY, 2));
+      if (distance < 50) {
+        handleInteraction();
+      }
+    }
   };
 
   return (
     <div style={{ position: 'relative', width: '100%', userSelect: 'none' }}>
-      {/* Game Screen Container */}
       <div style={{
         position: 'relative',
         background: '#020617',
@@ -491,21 +682,22 @@ export default function LabGameView({ hints, revealedHints, onRevealHint, points
         overflow: 'hidden',
         boxShadow: 'var(--shadow-md)',
       }}>
-        {/* Canvas Screen */}
+        {/* Render Canvas */}
         <canvas
           ref={canvasRef}
           width={800}
           height={480}
-          onClick={() => activeNpc && handleInteraction()}
+          onClick={handleCanvasClick}
           style={{
             display: 'block',
             width: '100%',
             height: 'auto',
             imageRendering: 'pixelated',
+            cursor: uiActiveNpcName ? 'pointer' : 'default',
           }}
         />
 
-        {/* Scanlines overlay effect */}
+        {/* Scanline CRT overlay filter */}
         <div style={{
           position: 'absolute',
           top: 0,
@@ -515,10 +707,10 @@ export default function LabGameView({ hints, revealedHints, onRevealHint, points
           background: 'linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%)',
           backgroundSize: '100% 4px',
           pointerEvents: 'none',
-          opacity: 0.4,
+          opacity: 0.35,
         }}></div>
 
-        {/* HUD Score Overlay */}
+        {/* HUD Info bar */}
         <div style={{
           position: 'absolute',
           top: '16px',
@@ -536,14 +728,12 @@ export default function LabGameView({ hints, revealedHints, onRevealHint, points
           alignItems: 'center',
           pointerEvents: 'none',
         }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            <Shield size={12} /> Points: {points}
-          </span>
+          <span>Points: {points}</span>
           <span style={{ color: 'var(--text-body-subtle)' }}>|</span>
-          <span>Unlocked Hints: {revealedHints}/{hints.length}</span>
+          <span>Gợi ý mở: {revealedHints}/{hints.length}</span>
         </div>
 
-        {/* Retro monospaced Dialog Overlay */}
+        {/* In-Game Dialogue window overlay */}
         {dialogue?.isOpen && (
           <div style={{
             position: 'absolute',
@@ -551,42 +741,25 @@ export default function LabGameView({ hints, revealedHints, onRevealHint, points
             left: '16px',
             right: '16px',
             background: 'rgba(15, 23, 42, 0.95)',
-            border: `2px solid ${activeNpc?.color || 'var(--border-default)'}`,
+            border: `2px solid ${activeNpcRef.current?.color || 'var(--border-default)'}`,
             borderRadius: 'var(--radius-sm)',
             padding: '16px 20px',
             display: 'flex',
-            gap: '16px',
+            flexDirection: 'column',
             zIndex: 100,
-            boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5)',
+            boxShadow: '0 10px 25px -5px rgba(0,0,0,0.6)',
           }}>
-            {/* NPC Avatar */}
-            <div style={{
-              width: '54px',
-              height: '54px',
-              background: 'rgba(0,0,0,0.3)',
-              border: `2px solid ${activeNpc?.color || 'var(--border-default)'}`,
-              borderRadius: 'var(--radius-sm)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '28px',
-              flexShrink: 0,
-            }}>
-              {activeNpc?.avatar || '❓'}
-            </div>
-
-            {/* Dialogue text box */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <div style={{
                 fontSize: '12px',
                 fontWeight: 700,
-                color: activeNpc?.color || 'var(--text-heading)',
+                color: activeNpcRef.current?.color || 'var(--text-heading)',
                 fontFamily: 'var(--font-mono)',
                 marginBottom: '4px',
                 textTransform: 'uppercase',
                 letterSpacing: '1px'
               }}>
-                {activeNpc?.name || 'Hacker Guide'}
+                {activeNpcRef.current?.name || 'Hacker Guide'}
               </div>
               <p style={{
                 fontSize: '13px',
@@ -602,38 +775,29 @@ export default function LabGameView({ hints, revealedHints, onRevealHint, points
                 )}
               </p>
 
-              {/* Unlock Yes/No Dialog Prompt Options */}
               {dialogue.showOptions && typingIndex >= dialogue.text.length && (
                 <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
                   <button
                     className="btn btn-primary btn-sm"
                     onClick={handleConfirmUnlock}
-                    style={{
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '12px',
-                      padding: '4px 16px',
-                    }}
+                    style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', padding: '4px 16px' }}
                   >
-                    Có, mua gợi ý (-{points / 10} pts)
+                    Đồng ý (-{points / 10} pts)
                   </button>
                   <button
                     className="btn btn-secondary btn-sm"
                     onClick={() => {
                       setDialogue(null);
+                      dialogueIsOpenRef.current = false;
                       setTypedText('');
                     }}
-                    style={{
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '12px',
-                      padding: '4px 16px',
-                    }}
+                    style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', padding: '4px 16px' }}
                   >
-                    Để sau
+                    Bỏ qua
                   </button>
                 </div>
               )}
 
-              {/* Press enter/click to close instruction */}
               {!dialogue.showOptions && typingIndex >= dialogue.text.length && (
                 <div 
                   onClick={handleInteraction}
@@ -647,14 +811,164 @@ export default function LabGameView({ hints, revealedHints, onRevealHint, points
                     animation: 'pulse-glow 1.5s infinite',
                   }}
                 >
-                  {isMobile ? '[ Chạm vào đây để đóng ]' : '[ Ấn E hoặc Click để đóng ]'}
+                  {isMobile ? '[ Chạm để đóng ]' : '[ Ấn E hoặc Click để đóng ]'}
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* Mobile controls: touch arrow buttons overlay */}
+        {/* Flag Submission Terminal Overlay */}
+        {isFlagOverlayOpen && (
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            background: 'rgba(15, 23, 42, 0.96)',
+            border: '2px solid #10b981',
+            borderRadius: '12px',
+            padding: '24px',
+            width: '360px',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.6)',
+            zIndex: 110,
+            color: '#e2e8f0',
+            fontFamily: 'var(--font-mono)',
+          }}>
+            <h4 style={{ margin: '0 0 16px 0', color: '#10b981', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', borderBottom: '1px solid rgba(16,185,129,0.2)', paddingBottom: '8px' }}>
+              THIẾT BỊ NỘP FLAG
+            </h4>
+            
+            <p style={{ fontSize: '11px', color: '#94a3b8', margin: '0 0 12px 0', lineHeight: 1.5 }}>
+              Nhập mã flag thu thập được từ bài lab để tiến hành xác thực hệ thống.
+            </p>
+
+            <input
+              type="text"
+              value={localFlag}
+              onChange={(e) => {
+                setLocalFlag(e.target.value);
+              }}
+              placeholder="FLAG{...}"
+              style={{
+                width: '100%',
+                background: '#090d16',
+                border: '1px solid rgba(16,185,129,0.3)',
+                borderRadius: '6px',
+                padding: '8px 12px',
+                color: '#fff',
+                fontSize: '13px',
+                marginBottom: '16px',
+                fontFamily: 'var(--font-mono)',
+                outline: 'none',
+              }}
+              onKeyDown={async (e) => {
+                if (e.key === 'Enter') {
+                  await handleFlagSubmit();
+                }
+              }}
+            />
+
+            {flagResult === 'correct' && (
+              <div style={{ color: '#10b981', fontSize: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                ✓ Hệ thống xác thực THÀNH CÔNG! (+{points}đ)
+              </div>
+            )}
+            {flagResult === 'wrong' && (
+              <div style={{ color: '#ff2d55', fontSize: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                ✗ SAI LỆCH MÃ! Vui lòng thử lại.
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  setIsFlagOverlayOpen(false);
+                }}
+                style={{ fontSize: '12px', padding: '6px 12px' }}
+              >
+                Đóng
+              </button>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={handleFlagSubmit}
+                disabled={isSubmitting || !localFlag.trim() || labStatus === 'completed'}
+                style={{ fontSize: '12px', padding: '6px 16px', background: '#10b981', border: 'none' }}
+              >
+                {isSubmitting ? 'Đang gửi...' : 'Xác thực'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* In-Game Vulnerable Server Console Overlay */}
+        {isServerModalOpen && (
+          <div style={{
+            position: 'absolute',
+            top: '5%',
+            left: '5%',
+            width: '90%',
+            height: '90%',
+            background: '#ffffff',
+            border: '2px solid var(--border-default)',
+            borderRadius: '12px',
+            boxShadow: '0 15px 40px rgba(0,0,0,0.6)',
+            zIndex: 120,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}>
+            {/* Custom browser header */}
+            <div style={{ background: 'var(--bg-neutral-tertiary)', borderBottom: '1px solid var(--border-default)', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ff5f56', display: 'inline-block' }}></span>
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ffbd2e', display: 'inline-block' }}></span>
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#27c93f', display: 'inline-block' }}></span>
+              </div>
+              <div style={{ background: 'var(--bg-neutral-secondary-medium)', border: '1px solid var(--border-default-medium)', borderRadius: '4px', padding: '3px 16px', fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-body-subtle)', flex: 1, textAlign: 'center', maxWidth: '400px', margin: '0 auto' }}>
+                http://localhost:{containerPort}
+              </div>
+              <button
+                onClick={() => setIsServerModalOpen(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-body-subtle)',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  padding: '2px 8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Application Practice Frame */}
+            <div style={{ flex: 1, overflow: 'auto', background: isSimulated ? 'var(--bg-neutral-primary-medium)' : '#ffffff' }}>
+              {isSimulated ? (
+                <div style={{ padding: '20px' }}>
+                  <LabSimulator 
+                    dockerPort={dockerPort || 8081} 
+                    flag={apiError || 'FLAG{sechub_simulated_success}'}
+                    onSuccess={onSimulatedSuccess || (() => {})}
+                  />
+                </div>
+              ) : (
+                <iframe 
+                  src={`http://localhost:${containerPort}`} 
+                  style={{ width: '100%', height: '100%', border: 'none' }}
+                />
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Mobile controls overlay */}
         {isMobile && (
           <div style={{
             position: 'absolute',
@@ -668,8 +982,8 @@ export default function LabGameView({ hints, revealedHints, onRevealHint, points
           }}>
             <div></div>
             <button
-              onTouchStart={() => handleTouchStart('KeyW')}
-              onTouchEnd={() => handleTouchEnd('KeyW')}
+              onTouchStart={() => handleTouchStart('ArrowUp')}
+              onTouchEnd={() => handleTouchEnd('ArrowUp')}
               style={{
                 width: '42px',
                 height: '42px',
@@ -687,8 +1001,8 @@ export default function LabGameView({ hints, revealedHints, onRevealHint, points
             <div></div>
 
             <button
-              onTouchStart={() => handleTouchStart('KeyA')}
-              onTouchEnd={() => handleTouchEnd('KeyA')}
+              onTouchStart={() => handleTouchStart('ArrowLeft')}
+              onTouchEnd={() => handleTouchEnd('ArrowLeft')}
               style={{
                 width: '42px',
                 height: '42px',
@@ -722,8 +1036,8 @@ export default function LabGameView({ hints, revealedHints, onRevealHint, points
               E
             </button>
             <button
-              onTouchStart={() => handleTouchStart('KeyD')}
-              onTouchEnd={() => handleTouchEnd('KeyD')}
+              onTouchStart={() => handleTouchStart('ArrowRight')}
+              onTouchEnd={() => handleTouchEnd('ArrowRight')}
               style={{
                 width: '42px',
                 height: '42px',
@@ -741,8 +1055,8 @@ export default function LabGameView({ hints, revealedHints, onRevealHint, points
 
             <div></div>
             <button
-              onTouchStart={() => handleTouchStart('KeyS')}
-              onTouchEnd={() => handleTouchEnd('KeyS')}
+              onTouchStart={() => handleTouchStart('ArrowDown')}
+              onTouchEnd={() => handleTouchEnd('ArrowDown')}
               style={{
                 width: '42px',
                 height: '42px',
@@ -762,7 +1076,6 @@ export default function LabGameView({ hints, revealedHints, onRevealHint, points
         )}
       </div>
 
-      {/* On-screen controls instructions */}
       {!isMobile && (
         <div style={{
           marginTop: '8px',
@@ -771,7 +1084,7 @@ export default function LabGameView({ hints, revealedHints, onRevealHint, points
           color: 'var(--text-body-subtle)',
           fontFamily: 'var(--font-mono)',
         }}>
-          Điều khiển: Di chuyển bằng phím <strong style={{ color: 'var(--fg-brand)' }}>WASD</strong> hoặc <strong style={{ color: 'var(--fg-brand)' }}>Mũi tên</strong>. Ấn phím <strong style={{ color: 'var(--fg-brand)' }}>E</strong> khi ở gần NPC để trò chuyện.
+          Điều khiển: Di chuyển bằng phím <strong style={{ color: 'var(--fg-brand)' }}>WASD</strong> hoặc <strong style={{ color: 'var(--fg-brand)' }}>Mũi tên</strong>. Ấn phím <strong style={{ color: 'var(--fg-brand)' }}>E</strong> khi ở gần NPC/Thiết bị để tương tác.
         </div>
       )}
     </div>

@@ -198,80 +198,14 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
 
   return (
     <div>
-      {/* Top Header Control Bar */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 'var(--space-4)',
-        gap: 'var(--space-2)',
-        flexWrap: 'wrap'
-      }}>
-        {/* Breadcrumb */}
-        <div className="breadcrumb" style={{ margin: 0 }}>
-          <Link href="/labs">Phòng Lab</Link>
-          <span className="breadcrumb-separator">/</span>
-          <span className="breadcrumb-current">{lab.title}</span>
-        </div>
-
-        {/* View Mode Toggle Switch */}
-        <div style={{
-          display: 'inline-flex',
-          background: 'var(--bg-neutral-secondary-medium)',
-          border: '1px solid var(--border-default-medium)',
-          borderRadius: 'var(--radius-default)',
-          padding: '2px',
-          boxShadow: 'var(--shadow-sm)',
-        }}>
-          <button
-            onClick={() => setViewMode('standard')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              border: 'none',
-              borderRadius: 'calc(var(--radius-default) - 2px)',
-              padding: '6px 16px',
-              fontSize: '13px',
-              fontFamily: 'var(--font-sans)',
-              fontWeight: 600,
-              cursor: 'pointer',
-              background: viewMode === 'standard' ? 'var(--bg-brand)' : 'transparent',
-              color: viewMode === 'standard' ? '#fff' : 'var(--text-body-subtle)',
-              transition: 'all var(--transition-fast)',
-            }}
-          >
-            <LayoutGrid size={14} /> Giao diện Chuẩn
-          </button>
-          <button
-            onClick={() => setViewMode('game')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              border: 'none',
-              borderRadius: 'calc(var(--radius-default) - 2px)',
-              padding: '6px 16px',
-              fontSize: '13px',
-              fontFamily: 'var(--font-sans)',
-              fontWeight: 600,
-              cursor: 'pointer',
-              background: viewMode === 'game' ? 'var(--bg-brand)' : 'transparent',
-              color: viewMode === 'game' ? '#fff' : 'var(--text-body-subtle)',
-              transition: 'all var(--transition-fast)',
-            }}
-          >
-            <Gamepad2 size={14} /> Chế độ Game 2D
-          </button>
-        </div>
+      {/* Breadcrumb */}
+      <div className="breadcrumb">
+        <Link href="/labs">Phòng Lab</Link>
+        <span className="breadcrumb-separator">/</span>
+        <span className="breadcrumb-current">{lab.title}</span>
       </div>
 
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: viewMode === 'game' ? '1fr 1.2fr' : '1fr 360px', 
-        gap: 'var(--space-4)',
-        transition: 'grid-template-columns 0.3s ease'
-      }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 'var(--space-4)' }}>
         {/* Main content */}
         <div>
           {/* Lab header */}
@@ -346,250 +280,112 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
               </div>
             )}
 
-            {(labStatus === 'running' || labStatus === 'completed') && (
-              <div>
-                {/* Status bar */}
-                <div className={`lab-status-bar ${labStatus === 'completed' ? 'completed' : 'running'}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-2)', marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', fontSize: '13px' }}>
-                    <span style={{
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: '50%',
-                      background: labStatus === 'completed' ? 'var(--fg-success-strong)' : '#27c93f',
-                      animation: labStatus === 'completed' ? 'none' : 'pulse-glow 2s ease-in-out infinite',
-                    }}></span>
-                    <span style={{ color: 'var(--text-heading)', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                      {labStatus === 'completed' ? (
-                        <>
-                          <CheckCircle2 size={14} style={{ color: 'var(--fg-success-strong)' }} /> Lab đã hoàn thành!
-                        </>
-                      ) : (
-                        'Môi trường đang chạy'
-                      )}
+            {labStatus === 'running' && (
+              <div className="card" style={{ textAlign: 'center', padding: 'var(--space-6)' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--space-2)' }}>
+                  <span style={{ position: 'relative', display: 'flex', height: '48px', width: '48px' }}>
+                    <span style={{ animation: 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite', position: 'absolute', display: 'inline-flex', height: '100%', width: '100%', borderRadius: '50%', background: 'var(--bg-brand)', opacity: 0.75 }}></span>
+                    <span style={{ position: 'relative', display: 'inline-flex', borderRadius: '50%', height: '48px', width: '48px', background: 'var(--bg-brand)', alignItems: 'center', justifyContent: 'center' }}>
+                      <MonitorPlay size={24} style={{ color: '#fff' }} />
                     </span>
-                    <span style={{ color: 'var(--text-body-subtle)' }}>|</span>
-                    <span style={{ color: 'var(--fg-brand)', fontFamily: 'var(--font-mono)', fontWeight: 500 }}>
-                      {isSimulated 
-                        ? `http://localhost:${currentAttempt?.containerPort} (Giả lập - Thực hành trực tiếp ở khung bên dưới)` 
-                        : `http://localhost:${currentAttempt?.containerPort}`
-                      }
-                    </span>
-                  </div>
-                  {labStatus === 'running' && (
-                    <button className="btn btn-danger btn-sm" onClick={handleStopLab} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                      <Square size={12} /> Dừng Lab
-                    </button>
-                  )}
+                  </span>
                 </div>
+                <h3 style={{ marginBottom: '8px' }}>Môi trường đang hoạt động</h3>
+                <p style={{ color: 'var(--text-body-subtle)', marginBottom: '24px', maxWidth: '480px', margin: '0 auto 24px', lineHeight: 1.6 }}>
+                  Môi trường phòng Lab đã sẵn sàng. Cổng kết nối dịch vụ ảo: <code style={{ color: 'var(--fg-brand)', background: 'var(--bg-neutral-secondary)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'var(--font-mono)' }}>http://localhost:{currentAttempt?.containerPort}</code>. 
+                  Nhấn vào nút bên dưới để mở giao diện làm bài thực hành (chứa Website lỗi và Game 2D chỉ dẫn).
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  <Link 
+                    href={`/labs/${labId}/play`} 
+                    target="_blank" 
+                    className="btn btn-primary btn-lg" 
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                  >
+                    <Play size={16} /> Mở phòng thực hành (Mở Tab mới)
+                  </Link>
+                  <button 
+                    className="btn btn-danger btn-lg" 
+                    onClick={handleStopLab} 
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                  >
+                    <Square size={16} /> Dừng Lab
+                  </button>
+                </div>
+              </div>
+            )}
 
-                {/* Render Simulator or Iframe */}
-                {labStatus === 'running' && (
-                  isSimulated ? (
-                    <LabSimulator 
-                      dockerPort={lab.dockerPort} 
-                      flag={apiError || 'FLAG{sechub_simulated_success}'} // Let's use custom flags from seeded DB
-                      onSuccess={handleSimulatedSuccess}
-                    />
-                  ) : (
-                    <div style={{
-                      border: '1px solid var(--border-default)',
-                      borderRadius: 'var(--radius-sm)',
-                      overflow: 'hidden',
-                      background: '#fff'
-                    }}>
-                      <iframe 
-                        src={`http://localhost:${currentAttempt?.containerPort}`} 
-                        style={{ width: '100%', height: '560px', border: 'none' }}
-                      />
-                    </div>
-                  )
-                )}
-
-                {labStatus === 'completed' && (
-                  <div className="card" style={{ textAlign: 'center', padding: 'var(--space-5)', background: 'rgba(0,122,85,0.05)', border: '1px solid var(--border-success)' }}>
-                    <CheckCircle2 size={48} style={{ color: 'var(--fg-success-strong)', margin: '0 auto var(--space-2)' }} />
-                    <h3 style={{ color: 'var(--fg-success-strong)' }}>Tuyệt vời!</h3>
-                    <p style={{ margin: '0 auto var(--space-3)' }}>Bạn đã hoàn thành bài thực hành này. Bạn vẫn có thể khởi động lại để thực hành tiếp!</p>
-                    <button 
-                      className="btn btn-primary" 
-                      onClick={handleStartLab} 
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', margin: '0 auto' }}
-                    >
-                      <RotateCw size={16} /> Tạo lại & Làm lại bài Lab
-                    </button>
-                  </div>
-                )}
+            {labStatus === 'completed' && (
+              <div className="card" style={{ textAlign: 'center', padding: 'var(--space-6)', border: '1px solid var(--border-success)', background: 'rgba(0,122,85,0.03)' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--space-2)' }}>
+                  <CheckCircle2 size={56} style={{ color: 'var(--fg-success-strong)' }} />
+                </div>
+                <h2 style={{ color: 'var(--fg-success-strong)', marginBottom: '8px' }}>Tuyệt vời! Bạn đã hoàn thành!</h2>
+                <p style={{ color: 'var(--text-body-subtle)', marginBottom: '24px', maxWidth: '480px', margin: '0 auto 24px', lineHeight: 1.6 }}>
+                  Bạn đã vượt qua thử thách này và ghi nhận +{lab.points} điểm. Bạn có thể mở lại phòng thực hành để nghiên cứu tiếp hoặc làm lại từ đầu.
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  <Link 
+                    href={`/labs/${labId}/play`} 
+                    target="_blank" 
+                    className="btn btn-secondary btn-lg" 
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                  >
+                    <Play size={16} /> Xem lại phòng thực hành
+                  </Link>
+                  <button 
+                    className="btn btn-primary btn-lg" 
+                    onClick={handleStartLab} 
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                  >
+                    <RotateCw size={16} /> Tạo lại & Làm lại bài Lab
+                  </button>
+                </div>
               </div>
             )}
           </div>
-
-          {/* Flag submission */}
-          {(labStatus === 'running' || labStatus === 'completed') && (
-            <div className="card animate-fade-in-up animate-delay-2" style={{ marginBottom: 'var(--space-3)' }}>
-              <h3 style={{ marginBottom: 'var(--space-2)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Flag size={18} style={{ color: 'var(--fg-brand)' }} /> Submit Flag
-              </h3>
-              <p style={{ fontSize: '14px', color: 'var(--text-body-subtle)', marginBottom: 'var(--space-2)' }}>
-                Sau khi khai thác thành công lỗ hổng, nhập flag bạn tìm được vào đây để nhận điểm.
-              </p>
-              <div className="flag-input-group">
-                <input
-                  type="text"
-                  className="flag-input"
-                  placeholder="Nhập flag (VD: FLAG{...})"
-                  value={flagValue}
-                  onChange={(e) => {
-                    setFlagValue(e.target.value);
-                    setFlagResult(null);
-                  }}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSubmitFlag()}
-                  disabled={labStatus === 'completed'}
-                />
-                <button
-                  className="btn btn-primary"
-                  onClick={handleSubmitFlag}
-                  disabled={labStatus === 'completed' || !flagValue.trim()}
-                >
-                  Submit
-                </button>
-              </div>
-              {flagResult === 'correct' && (
-                <div className="flag-result-correct" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <CheckCircle2 size={16} /> Chính xác! Bạn đã hoàn thành lab này! +{lab.points} điểm
-                </div>
-              )}
-              {flagResult === 'wrong' && (
-                <div className="flag-result-wrong" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <AlertCircle size={16} /> Sai flag. Hãy thử lại hoặc sử dụng gợi ý ở bảng bên phải.
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Right sidebar */}
         <div>
-          {viewMode === 'game' ? (
-            <div className="card animate-fade-in-up" style={{ padding: 'var(--space-3)' }}>
-              <h3 style={{ fontSize: '1.0625rem', fontWeight: 700, marginBottom: 'var(--space-2)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Gamepad2 size={18} style={{ color: 'var(--fg-brand)' }} /> Không gian Game 2D
-              </h3>
-              <LabGameView 
-                hints={hints} 
-                revealedHints={revealedHints} 
-                onRevealHint={handleRevealHint} 
-                points={lab.points} 
-                labStatus={labStatus} 
-              />
-            </div>
-          ) : (
-            <>
-              {/* Objectives */}
-              <div className="card animate-fade-in-up-delay-1" style={{ marginBottom: 'var(--space-3)' }}>
-                <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-2)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Target size={18} style={{ color: 'var(--fg-brand)' }} /> Mục tiêu
-                </h3>
-                <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: 'var(--text-body)' }}>
-                    <span style={{ color: 'var(--fg-brand)', flexShrink: 0 }}>○</span>
-                    Tìm endpoint có lỗ hổng bảo mật
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: 'var(--text-body)' }}>
-                    <span style={{ color: 'var(--fg-brand)', flexShrink: 0 }}>○</span>
-                    Khai thác thành công lỗ hổng {lab.vulnerabilityName}
-                  </li>
-                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: 'var(--text-body)' }}>
-                    <span style={{ color: 'var(--fg-brand)', flexShrink: 0 }}>○</span>
-                    Lấy chuỗi FLAG ẩn trên hệ thống và gửi xác nhận
-                  </li>
-                </ul>
+          {/* Objectives */}
+          <div className="card animate-fade-in-up animate-delay-1" style={{ marginBottom: 'var(--space-3)' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-2)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Target size={18} style={{ color: 'var(--fg-brand)' }} /> Mục tiêu thực hành
+            </h3>
+            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px', padding: 0, margin: 0 }}>
+              <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: 'var(--text-body)' }}>
+                <span style={{ color: 'var(--fg-brand)', flexShrink: 0 }}>○</span>
+                Tìm endpoint có lỗ hổng bảo mật
+              </li>
+              <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: 'var(--text-body)' }}>
+                <span style={{ color: 'var(--fg-brand)', flexShrink: 0 }}>○</span>
+                Khai thác thành công lỗ hổng {lab.vulnerabilityName}
+              </li>
+              <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: 'var(--text-body)' }}>
+                <span style={{ color: 'var(--fg-brand)', flexShrink: 0 }}>○</span>
+                Lấy chuỗi FLAG ẩn trên hệ thống và gửi xác nhận
+              </li>
+            </ul>
+          </div>
+
+          {/* Related vulnerability */}
+          <div className="card animate-fade-in-up animate-delay-2">
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-2)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <BookOpen size={18} style={{ color: 'var(--fg-brand)' }} /> Tài liệu liên quan
+            </h3>
+            <Link
+              href={`/vulnerabilities/${lab.vulnerabilitySlug}`}
+              className="related-link-card"
+            >
+              <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-heading)', marginBottom: '4px' }}>
+                {lab.vulnerabilityName}
               </div>
-
-              {/* Hints */}
-              <div className="card animate-fade-in-up-delay-2" style={{ marginBottom: 'var(--space-3)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Lightbulb size={18} style={{ color: 'var(--fg-brand)' }} /> Gợi ý
-                  </h3>
-                  <span style={{ fontSize: '12px', color: 'var(--text-body-subtle)' }}>
-                    {revealedHints}/{hints.length}
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-                  {hints.map((hint, i) => (
-                    <div key={i} className={`hint-item ${i < revealedHints ? 'open' : ''}`}>
-                      <button
-                        className="hint-trigger"
-                        onClick={() => {
-                          if (i < revealedHints) return;
-                          if (i === revealedHints) handleRevealHint();
-                        }}
-                        style={{
-                          opacity: i <= revealedHints ? 1 : 0.4,
-                          pointerEvents: (i === revealedHints && labStatus === 'running') ? 'auto' : 'none',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          width: '100%'
-                        }}
-                      >
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                          {i < revealedHints ? (
-                            <>
-                              <Lightbulb size={14} style={{ color: 'var(--fg-brand)' }} /> Gợi ý {i + 1}
-                            </>
-                          ) : (
-                            <>
-                              <Lock size={14} /> Gợi ý {i + 1}
-                            </>
-                          )}
-                        </span>
-                        <span style={{ display: 'flex', alignItems: 'center' }}>
-                          {i < revealedHints ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                        </span>
-                      </button>
-                      {i < revealedHints && (
-                        <div className="hint-content" style={{ maxHeight: '200px', padding: '12px 16px' }}>
-                          <p style={{ fontSize: '13px', color: 'var(--text-body)', lineHeight: 1.6 }}>
-                            {hint}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                {revealedHints < hints.length && labStatus === 'running' && (
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    onClick={handleRevealHint}
-                    style={{ marginTop: 'var(--space-2)', width: '100%' }}
-                  >
-                    Mở gợi ý tiếp theo (-{lab.points / 10} điểm)
-                  </button>
-                )}
+              <div style={{ fontSize: '12px', color: 'var(--text-body-subtle)' }}>
+                Xem chi tiết lỗ hổng, cách khai thác và phòng chống →
               </div>
-
-              {/* Related vulnerability */}
-              <div className="card animate-fade-in-up-delay-3">
-                <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-2)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <BookOpen size={18} style={{ color: 'var(--fg-brand)' }} /> Tài liệu liên quan
-                </h3>
-                <Link
-                  href={`/vulnerabilities/${lab.vulnerabilitySlug}`}
-                  className="related-link-card"
-                >
-                  <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-heading)', marginBottom: '4px' }}>
-                    {lab.vulnerabilityName}
-                  </div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-body-subtle)' }}>
-                    Xem chi tiết lỗ hổng, cách khai thác và phòng chống →
-                  </div>
-                </Link>
-              </div>
-            </>
-          )}
+            </Link>
+          </div>
         </div>
       </div>
     </div>

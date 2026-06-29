@@ -1,11 +1,23 @@
 'use client';
 
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const pathname = usePathname();
+
+  const isPlayPage = pathname?.endsWith('/play');
+
+  if (isPlayPage) {
+    return (
+      <main style={{ minHeight: '100vh', background: 'var(--bg-neutral-primary)', padding: '16px' }}>
+        {children}
+      </main>
+    );
+  }
 
   return (
     <div className="app-layout">

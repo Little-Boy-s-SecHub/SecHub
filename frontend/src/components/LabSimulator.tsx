@@ -670,30 +670,108 @@ function GeneralTerminalSimulator({ flag, dockerPort, onSuccess }: { flag: strin
 
   return (
     <div>
-      <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: 'var(--space-1)' }}>Cổng kết nối Sandbox Simulator</h3>
-      <div className="terminal" style={{ fontSize: '13px' }}>
-        <div className="terminal-header">
+      <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '12px', color: 'var(--text-heading)' }}>
+        Cổng kết nối Sandbox Simulator
+      </h3>
+      
+      {/* High-contrast Catppuccin developer terminal mockup */}
+      <div style={{
+        background: '#1e1e2e',
+        borderRadius: '10px',
+        border: '1px solid #313244',
+        boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
+        overflow: 'hidden',
+        fontSize: '13px',
+      }}>
+        {/* Terminal window header */}
+        <div style={{
+          background: '#181825',
+          padding: '10px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: '1px solid #313244',
+        }}>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <span className="terminal-dot red"></span>
-            <span className="terminal-dot yellow"></span>
-            <span className="terminal-dot green"></span>
+            <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#f38ba8', display: 'inline-block' }}></span>
+            <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#f9e2af', display: 'inline-block' }}></span>
+            <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#a6e3a1', display: 'inline-block' }}></span>
           </div>
-          <span className="terminal-title">sechub@sandbox-sim</span>
-          <div></div>
+          <span style={{ color: '#cdd6f4', fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 600 }}>
+            sechub@sandbox-sim
+          </span>
+          <div style={{ width: '50px' }}></div>
         </div>
-        <div className="terminal-body" style={{ minHeight: '220px', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ flex: 1, overflowY: 'auto', fontFamily: 'var(--font-mono)', whiteSpace: 'pre-wrap' }}>
-            {history.map((h, i) => (
-              <div key={i}>{h}</div>
-            ))}
+
+        {/* Terminal Screen Body */}
+        <div style={{
+          background: '#11111b',
+          padding: '16px',
+          minHeight: '260px',
+          display: 'flex',
+          flexDirection: 'column',
+        }}>
+          <div style={{ flex: 1, overflowY: 'auto', fontFamily: 'var(--font-mono)', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
+            {history.map((h, i) => {
+              // Syntax highlighting for prompt lines
+              if (h.startsWith('sechub@sandbox:~$')) {
+                const cmdPart = h.replace('sechub@sandbox:~$', '');
+                return (
+                  <div key={i} style={{ marginBottom: '6px' }}>
+                    <span style={{ color: '#89b4fa', fontWeight: 'bold' }}>sechub@sandbox:~$</span>
+                    <span style={{ color: '#f5c2e7', marginLeft: '8px', fontWeight: 'bold' }}>{cmdPart}</span>
+                  </div>
+                );
+              }
+              // Syntax highlighting for flag
+              if (h.includes('[+] Flag:')) {
+                return (
+                  <div key={i} style={{ color: '#a6e3a1', fontWeight: 'bold', padding: '6px', background: 'rgba(166,227,161,0.1)', borderLeft: '3px solid #a6e3a1', margin: '6px 0', borderRadius: '2px' }}>
+                    {h}
+                  </div>
+                );
+              }
+              // Success indicators
+              if (h.startsWith('[+]')) {
+                return <div key={i} style={{ color: '#a6e3a1', marginBottom: '4px' }}>{h}</div>;
+              }
+              // Error indicators
+              if (h.startsWith('sh: command not found')) {
+                return <div key={i} style={{ color: '#f38ba8', marginBottom: '4px', fontWeight: 'bold' }}>{h}</div>;
+              }
+              // Help list commands highlighting
+              if (h.startsWith('  help') || h.startsWith('  info') || h.startsWith('  exploit') || h.startsWith('  getflag') || h.startsWith('  clear')) {
+                const parts = h.split('-');
+                return (
+                  <div key={i} style={{ color: '#a6adc8', marginLeft: '12px', marginBottom: '3px' }}>
+                    <span style={{ color: '#f9e2af', fontFamily: 'monospace', display: 'inline-block', width: '100px', fontWeight: 'bold' }}>{parts[0]}</span>
+                    <span>- {parts.slice(1).join('-')}</span>
+                  </div>
+                );
+              }
+              // Fallback default message lines
+              return <div key={i} style={{ color: '#bac2de', marginBottom: '4px' }}>{h}</div>;
+            })}
           </div>
-          <form onSubmit={handleCommandSubmit} style={{ display: 'flex', borderTop: '1px solid var(--border-default)', marginTop: '8px', paddingTop: '8px' }}>
-            <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--fg-brand)', marginRight: '8px' }}>sechub@sandbox:~$</span>
+
+          {/* Input form */}
+          <form onSubmit={handleCommandSubmit} style={{ display: 'flex', borderTop: '1px solid #313244', marginTop: '12px', paddingTop: '12px', alignItems: 'center' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', color: '#89b4fa', marginRight: '8px', fontWeight: 'bold' }}>
+              sechub@sandbox:~$
+            </span>
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-heading)', fontFamily: 'var(--font-mono)' }}
+              style={{
+                flex: 1,
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                color: '#ffffff', // Guarantee white typing color against black background!
+                fontFamily: 'var(--font-mono)',
+                fontSize: '13px',
+              }}
               autoFocus
             />
           </form>
