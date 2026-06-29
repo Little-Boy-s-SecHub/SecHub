@@ -482,25 +482,26 @@ export default function LabGameView({
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      // 1. Draw Background Grid
-      ctx.fillStyle = '#090d16';
+      // 1. Draw Background Grid & Floor Tiles
+      ctx.fillStyle = '#080d1a';
       ctx.fillRect(0, 0, 800, 480);
 
-      // Sci-fi grid lines
-      ctx.strokeStyle = '#121b2d';
-      ctx.lineWidth = 1;
+      // Cyber Tiling Floor Grid
       const gridSize = 40;
       for (let i = 0; i < 800; i += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(i, 0);
-        ctx.lineTo(i, 480);
-        ctx.stroke();
-      }
-      for (let j = 0; j < 480; j += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(0, j);
-        ctx.lineTo(800, j);
-        ctx.stroke();
+        for (let j = 0; j < 480; j += gridSize) {
+          // Grid Plate Border
+          ctx.strokeStyle = '#111927';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(i, j, gridSize, gridSize);
+
+          // Floor Plate Rivets in corners
+          ctx.fillStyle = '#1e293b';
+          ctx.fillRect(i + 2, j + 2, 2, 2);
+          ctx.fillRect(i + gridSize - 4, j + 2, 2, 2);
+          ctx.fillRect(i + 2, j + gridSize - 4, 2, 2);
+          ctx.fillRect(i + gridSize - 4, j + gridSize - 4, 2, 2);
+        }
       }
 
       ctx.strokeStyle = '#1e293b';
@@ -519,18 +520,18 @@ export default function LabGameView({
 
       // Draw path lines
       for (let i = 0; i < pathPoints.length - 1; i++) {
-        drawArrow(ctx, pathPoints[i].x, pathPoints[i].y, pathPoints[i + 1].x, pathPoints[i + 1].y, 'rgba(56, 189, 248, 0.4)');
+        drawArrow(ctx, pathPoints[i].x, pathPoints[i].y, pathPoints[i + 1].x, pathPoints[i + 1].y, 'rgba(56, 189, 248, 0.45)');
       }
 
       // 3. Draw Ambient Light glows (Ambient Illumination under consoles and NPCs)
       npcs.forEach((npc) => {
-        const glowRad = 28;
+        const glowRad = 32;
         const radialGlow = ctx.createRadialGradient(
           npc.x + npc.width / 2, npc.y + npc.height / 2 + 10, 2,
           npc.x + npc.width / 2, npc.y + npc.height / 2 + 10, glowRad
         );
-        radialGlow.addColorStop(0, npc.color + '33'); // 20% opacity
-        radialGlow.addColorStop(1, npc.color + '00'); // 0% opacity
+        radialGlow.addColorStop(0, npc.color + '44'); // 27% opacity
+        radialGlow.addColorStop(1, npc.color + '00');
         ctx.fillStyle = radialGlow;
         ctx.beginPath();
         ctx.arc(npc.x + npc.width / 2, npc.y + npc.height / 2 + 10, glowRad, 0, Math.PI * 2);
@@ -540,7 +541,7 @@ export default function LabGameView({
       // Ambient light under player
       const p = playerRef.current;
       const playerGlow = ctx.createRadialGradient(p.x + 12, p.y + 12, 2, p.x + 12, p.y + 12, 26);
-      playerGlow.addColorStop(0, 'rgba(34, 197, 94, 0.25)');
+      playerGlow.addColorStop(0, 'rgba(34, 197, 94, 0.3)');
       playerGlow.addColorStop(1, 'rgba(34, 197, 94, 0)');
       ctx.fillStyle = playerGlow;
       ctx.beginPath();
@@ -554,20 +555,21 @@ export default function LabGameView({
 
         // Desk gradient
         const deskGrad = ctx.createLinearGradient(obs.x, obs.y, obs.x, obs.y + obs.height);
-        deskGrad.addColorStop(0, '#1e293b');
-        deskGrad.addColorStop(1, '#0f172a');
+        deskGrad.addColorStop(0, '#1f2937');
+        deskGrad.addColorStop(0.5, '#111827');
+        deskGrad.addColorStop(1, '#030712');
         ctx.fillStyle = deskGrad;
         ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
         
-        ctx.strokeStyle = '#38bdf8';
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = '#374151';
+        ctx.lineWidth = 2;
         ctx.strokeRect(obs.x, obs.y, obs.width, obs.height);
 
         if (obs.label.startsWith('Tủ Rack')) {
           ctx.fillStyle = '#05070c';
           ctx.fillRect(obs.x + 4, obs.y + 6, obs.width - 8, obs.height - 12);
           
-          ctx.strokeStyle = '#1e293b';
+          ctx.strokeStyle = '#1f2937';
           ctx.lineWidth = 1;
           for (let ly = obs.y + 12; ly < obs.y + obs.height - 8; ly += 10) {
             ctx.beginPath();
@@ -581,19 +583,25 @@ export default function LabGameView({
             ctx.fillStyle = seed > 0 ? '#22c55e' : '#475569';
             ctx.fillRect(obs.x + 16, ly - 3, 3, 3);
           }
+          // Server cabinet glass door glow lines
+          ctx.strokeStyle = 'rgba(56, 189, 248, 0.15)';
+          ctx.beginPath();
+          ctx.moveTo(obs.x + 6, obs.y + 4);
+          ctx.lineTo(obs.x + 6, obs.y + obs.height - 4);
+          ctx.stroke();
         } else {
-          // Blue neon reflection line on control consoles
+          // Console neon reflection lines
           ctx.fillStyle = '#38bdf8';
           ctx.fillRect(obs.x + 8, obs.y + 4, obs.width - 16, 2);
           
-          ctx.fillStyle = 'rgba(56, 189, 248, 0.8)';
+          ctx.fillStyle = 'rgba(56, 189, 248, 0.75)';
           ctx.font = 'bold 8px monospace';
           ctx.textAlign = 'center';
           ctx.fillText('CONSOLE SYSTEM', obs.x + obs.width / 2, obs.y + 20);
         }
       });
 
-      // 5. Draw NPCs & Interactive points (stationary canvas representation)
+      // 5. Draw NPCs & Interactive points (stationary canvas representation with 2D RPG Character Art)
       npcs.forEach((npc) => {
         const isSpecial = npc.hintIndex >= 98;
         const isUnlockable = !isSpecial && npc.hintIndex === revealedHints;
@@ -605,54 +613,129 @@ export default function LabGameView({
           : 'rgba(56,189,248,0.1)';
         ctx.fill();
 
-        // Draw representing colored cyber cabinet / character
-        const charGrad = ctx.createLinearGradient(npc.x, npc.y, npc.x + npc.width, npc.y + npc.height);
-        charGrad.addColorStop(0, npc.color);
-        charGrad.addColorStop(1, '#090d16');
-        ctx.fillStyle = charGrad;
-        ctx.fillRect(npc.x, npc.y, npc.width, npc.height);
-
-        // Core highlights on server boxes
-        if (npc.hintIndex === 100) {
-          const glow = Math.sin(Date.now() * 0.008) * 5;
-          ctx.fillStyle = glow > 0 ? '#10b981' : '#047857';
-          ctx.fillRect(npc.x + 4, npc.y + 4, 16, 8);
-        } else if (npc.hintIndex === 99) {
-          ctx.fillStyle = '#eab308';
-          ctx.fillRect(npc.x + 6, npc.y + 4, 12, 10);
+        // Procedural Retro Sprite Drawing
+        if (npc.hintIndex === 99) {
+          // 1. Bảng Nhiệm Vụ Kiosk
+          // Legs
+          ctx.fillStyle = '#4b5563';
+          ctx.fillRect(npc.x + 6, npc.y + 12, 2, 10);
+          ctx.fillRect(npc.x + 16, npc.y + 12, 2, 10);
+          // Board wood frame
+          ctx.fillStyle = '#b45309';
+          ctx.fillRect(npc.x + 2, npc.y, 20, 13);
+          // Inner yellow corkboard
+          ctx.fillStyle = '#fef08a';
+          ctx.fillRect(npc.x + 4, npc.y + 2, 16, 9);
+          // Paper sheet
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(npc.x + 6, npc.y + 3, 5, 6);
+          ctx.fillStyle = '#d97706';
+          ctx.fillRect(npc.x + 12, npc.y + 5, 3, 4);
         } else if (npc.hintIndex === 98) {
-          const blueGlow = Math.sin(Date.now() * 0.005) * 5;
-          ctx.fillStyle = blueGlow > 0 ? '#00f2fe' : '#0284c7';
-          ctx.fillRect(npc.x + 4, npc.y + 4, 16, 12);
+          // 3. Máy Chủ Thực Hành CRT
+          ctx.fillStyle = '#374151';
+          ctx.fillRect(npc.x + 2, npc.y + 2, 20, 20);
+          ctx.strokeStyle = '#4b5563';
+          ctx.strokeRect(npc.x + 2, npc.y + 2, 20, 20);
+          // CRT glow monitor
+          ctx.fillStyle = '#030712';
+          ctx.fillRect(npc.x + 4, npc.y + 4, 16, 10);
+          ctx.strokeStyle = '#0284c7';
+          ctx.strokeRect(npc.x + 4, npc.y + 4, 16, 10);
+          // Blinking green screen lines
+          const pulse = Math.sin(Date.now() * 0.01) * 3;
+          ctx.fillStyle = '#22c55e';
+          ctx.fillRect(npc.x + 6 + (pulse > 0 ? 1 : 0), npc.y + 6, 8, 1);
+          ctx.fillStyle = '#10b981';
+          ctx.fillRect(npc.x + 6, npc.y + 9, 10, 1);
+          // Console keyboard shelf
+          ctx.fillStyle = '#4b5563';
+          ctx.fillRect(npc.x, npc.y + 15, 24, 3);
+          ctx.fillStyle = '#111827';
+          ctx.fillRect(npc.x + 4, npc.y + 15, 16, 1);
+        } else if (npc.hintIndex === 100) {
+          // 4. Thiết Bị Nộp FLAG Floppy kiosk
+          ctx.fillStyle = '#1f2937';
+          ctx.fillRect(npc.x + 3, npc.y + 2, 18, 20);
+          ctx.strokeStyle = '#10b981';
+          ctx.strokeRect(npc.x + 3, npc.y + 2, 18, 20);
+          // Disk slot
+          ctx.fillStyle = '#030712';
+          ctx.fillRect(npc.x + 6, npc.y + 13, 12, 2);
+          // Glowing status monitor
+          const pulseDisk = Math.sin(Date.now() * 0.008) * 10;
+          ctx.fillStyle = pulseDisk > 0 ? '#10b981' : '#047857';
+          ctx.fillRect(npc.x + 6, npc.y + 5, 12, 5);
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(npc.x + 8, npc.y + 6, 2, 2);
+        } else {
+          // Mentors (Hacker hooded wizard sprites with glowing eyes)
+          // Shadow body
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(npc.x + 4, npc.y + 8, 16, 13);
+          // Cloak trims
+          ctx.fillStyle = npc.color;
+          ctx.fillRect(npc.x + 4, npc.y + 8, 2, 13);
+          ctx.fillRect(npc.x + 18, npc.y + 8, 2, 13);
+          // Hands
+          ctx.fillStyle = '#f1f5f9';
+          ctx.fillRect(npc.x + 2, npc.y + 13, 2, 3);
+          ctx.fillRect(npc.x + 20, npc.y + 13, 2, 3);
+          // Hood
+          ctx.fillStyle = npc.color;
+          ctx.beginPath();
+          ctx.arc(npc.x + 12, npc.y + 6, 8, 0, Math.PI * 2);
+          ctx.fill();
+          // Shaded face cavity
+          ctx.fillStyle = '#030712';
+          ctx.beginPath();
+          ctx.arc(npc.x + 12, npc.y + 7, 5, 0, Math.PI * 2);
+          ctx.fill();
+          // Glowing pixel eyes
+          ctx.fillStyle = npc.color;
+          ctx.fillRect(npc.x + 9, npc.y + 6, 2, 2);
+          ctx.fillRect(npc.x + 13, npc.y + 6, 2, 2);
         }
-
-        ctx.strokeStyle = npc.color;
-        ctx.lineWidth = 1;
-        ctx.strokeRect(npc.x, npc.y, npc.width, npc.height);
       });
 
-      // 6. Draw Player
+      // 6. Draw Player (Cyber Astronaut Sprite with helmet & visor)
       ctx.fillStyle = 'rgba(0,0,0,0.45)';
-      ctx.fillRect(p.x - 2, p.y + p.height - 4, p.width + 4, 6);
+      ctx.beginPath();
+      ctx.ellipse(p.x + 12, p.y + 22, 10, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
 
-      // Player metallic gradient
-      const playerGrad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.height);
-      playerGrad.addColorStop(0, '#4ade80');
-      playerGrad.addColorStop(1, '#15803d');
-      ctx.fillStyle = playerGrad;
-      ctx.fillRect(p.x, p.y, p.width, p.height);
+      // Green backpack
+      ctx.fillStyle = '#16a34a';
+      ctx.fillRect(p.x + 2, p.y + 8, 4, 12);
+      ctx.fillStyle = '#4ade80';
+      ctx.fillRect(p.x + 2, p.y + 9, 3, 10);
 
-      ctx.strokeStyle = '#22c55e';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(p.x, p.y, p.width, p.height);
-
-      // Eyes
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(p.x + 4, p.y + 6, 4, 4);
-      ctx.fillRect(p.x + p.width - 8, p.y + 6, 4, 4);
-
+      // Suit body
       ctx.fillStyle = '#1e293b';
-      ctx.fillRect(p.x + 6, p.y + 14, 12, 3);
+      ctx.fillRect(p.x + 6, p.y + 8, 12, 12);
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(p.x + 6, p.y + 14, 12, 2);
+      ctx.fillStyle = '#4ade80';
+      ctx.fillRect(p.x + 11, p.y + 14, 2, 2);
+
+      // Boots
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(p.x + 6, p.y + 20, 4, 3);
+      ctx.fillRect(p.x + 14, p.y + 20, 4, 3);
+
+      // Space helmet
+      ctx.fillStyle = '#475569';
+      ctx.beginPath();
+      ctx.arc(p.x + 12, p.y + 6, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#64748b';
+      ctx.stroke();
+
+      // Glowing green visor
+      ctx.fillStyle = '#4ade80';
+      ctx.fillRect(p.x + 8, p.y + 4, 9, 4);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(p.x + 14, p.y + 4, 2, 1);
 
       // Simple Sharp "YOU" label drawn on canvas directly above head
       drawTextWithOutline(ctx, 'BẠN', p.x + p.width / 2, p.y - 6, '#4ade80');
@@ -1040,6 +1123,7 @@ export default function LabGameView({
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
+            userSelect: 'text', // Allow drag-select text inside the server modal!
           }}>
             {/* Custom browser header */}
             <div style={{ background: 'var(--bg-neutral-tertiary)', borderBottom: '1px solid var(--border-default)', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'space-between' }}>

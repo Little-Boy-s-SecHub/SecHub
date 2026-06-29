@@ -136,7 +136,11 @@ public class LabService {
 
         attempt.setFlagSubmitted(flag);
 
-        if (attempt.getLab().getFlag() != null && attempt.getLab().getFlag().equals(flag.trim())) {
+        boolean isSimulated = attempt.getContainerId() != null && attempt.getContainerId().startsWith("sim-");
+        boolean isCorrectFlag = (attempt.getLab().getFlag() != null && attempt.getLab().getFlag().equals(flag.trim()))
+                || (isSimulated && "FLAG{sechub_simulated_success}".equals(flag.trim()));
+
+        if (isCorrectFlag) {
             attempt.setStatus(LabAttempt.Status.COMPLETED);
             attempt.setCompletedAt(LocalDateTime.now());
 

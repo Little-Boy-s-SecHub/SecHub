@@ -188,58 +188,219 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
         position: 'relative', 
         width: '100vw', 
         height: '100vh', 
-        background: '#090d16', 
+        background: 'radial-gradient(circle, #0f172a 0%, #030712 100%)', 
         display: 'flex', 
-        flexDirection: 'column',
         alignItems: 'center', 
         justifyContent: 'center',
-        padding: '24px'
+        padding: '20px',
+        overflow: 'hidden'
       }}>
-        {/* Floating Exit Button */}
-        <button
-          onClick={() => setViewMode('standard')}
-          style={{
-            position: 'absolute',
-            top: '20px',
-            right: '20px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            background: '#ff2d55',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '8px',
-            padding: '10px 20px',
-            fontSize: '13px',
-            fontWeight: 700,
-            cursor: 'pointer',
-            boxShadow: '0 4px 15px rgba(255,45,85,0.4)',
-            zIndex: 9999,
-          }}
-        >
-          <ArrowLeft size={14} /> Quay lại thực hành (Thoát Game)
-        </button>
+        {/* Neon Marquee Keyframes & Button styles */}
+        <style>{`
+          @keyframes neon-glow {
+            from { text-shadow: 0 0 5px #00f2fe, 0 0 10px #00f2fe; }
+            to { text-shadow: 0 0 15px #00f2fe, 0 0 25px #00f2fe, 0 0 35px #00f2fe; }
+          }
+          .marquee-glowing {
+            animation: neon-glow 1.5s ease-in-out infinite alternate;
+          }
+          .arcade-btn {
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            font-weight: 900;
+            color: #ffffff;
+            text-transform: uppercase;
+            font-family: var(--font-sans);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+            box-sizing: border-box;
+          }
+          .arcade-btn:active {
+            transform: translateY(3px);
+          }
+        `}</style>
 
-        {/* Full-screen arcade game cabinet */}
-        <div style={{ width: '100%', maxWidth: '1000px', margin: '0 auto' }}>
-          <h2 style={{ color: '#fff', textAlign: 'center', marginBottom: '16px', fontFamily: 'var(--font-sans)', fontWeight: 800, fontSize: '1.25rem', letterSpacing: '0.5px' }}>
-          CHẾ ĐỘ GAME 2D - ĐIỀU TRA GỢI Ý VÀ NỘP FLAG
-          </h2>
-          <LabGameView 
-            hints={hints} 
-            revealedHints={revealedHints} 
-            onRevealHint={handleRevealHint} 
-            points={lab.points} 
-            labStatus={labStatus}
-            onSubmitFlag={handleSubmitFlag}
-            flagResult={flagResult}
-            vulnerabilityName={lab.vulnerabilityName}
-            isSimulated={isSimulated}
-            dockerPort={lab.dockerPort}
-            containerPort={currentAttempt?.containerPort}
-            apiError={apiError}
-            onSimulatedSuccess={handleSimulatedSuccess}
-          />
+        {/* 3D Retro Arcade Cabinet Frame */}
+        <div style={{
+          width: '100%',
+          maxWidth: '900px',
+          background: '#111827',
+          borderRadius: '24px',
+          border: '10px solid #1f2937',
+          boxShadow: '0 25px 60px -15px rgba(0,0,0,0.9), 0 0 40px rgba(56,189,248,0.2)',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'relative'
+        }}>
+          {/* Cabinet Marquee Header (Glowing neon style) */}
+          <div style={{
+            background: '#030712',
+            padding: '16px 24px',
+            borderBottom: '6px solid #1f2937',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: 'inset 0 0 25px rgba(0,242,254,0.15)'
+          }}>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ff5f56' }}></span>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ffbd2e' }}></span>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#27c93f' }}></span>
+            </div>
+            
+            <h2 className="marquee-glowing" style={{
+              color: '#00f2fe',
+              margin: 0,
+              fontFamily: 'var(--font-mono)',
+              fontSize: '15px',
+              fontWeight: 'bold',
+              letterSpacing: '2.5px',
+              textTransform: 'uppercase'
+            }}>
+              SEC-GATE 3000 RETRO CONSOLE
+            </h2>
+            
+            <div style={{
+              background: '#1e293b',
+              padding: '2px 8px',
+              borderRadius: '4px',
+              fontSize: '10px',
+              fontFamily: 'var(--font-mono)',
+              color: '#38bdf8',
+              border: '1px solid rgba(56,189,248,0.2)'
+            }}>
+              SCORE: {lab.points}
+            </div>
+          </div>
+
+          {/* CRT Screen Frame wrapper */}
+          <div style={{
+            background: '#090d16',
+            padding: '16px',
+            position: 'relative'
+          }}>
+            <LabGameView 
+              hints={hints} 
+              revealedHints={revealedHints} 
+              onRevealHint={handleRevealHint} 
+              points={lab.points} 
+              labStatus={labStatus}
+              onSubmitFlag={handleSubmitFlag}
+              flagResult={flagResult}
+              vulnerabilityName={lab.vulnerabilityName}
+              isSimulated={isSimulated}
+              dockerPort={lab.dockerPort}
+              containerPort={currentAttempt?.containerPort}
+              apiError={apiError}
+              onSimulatedSuccess={handleSimulatedSuccess}
+            />
+          </div>
+
+          {/* Slanted 3D Control Deck Dashboard */}
+          <div style={{
+            background: 'linear-gradient(180deg, #1e293b 0%, #0f172a 100%)',
+            borderTop: '6px solid #1f2937',
+            padding: '16px 32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            position: 'relative',
+            boxShadow: 'inset 0 4px 0 rgba(255,255,255,0.1)'
+          }}>
+            {/* Visual Joystick assembly */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{
+                position: 'relative',
+                width: '60px',
+                height: '60px',
+                background: '#030712',
+                borderRadius: '50%',
+                border: '3px solid #334155',
+                boxShadow: 'inset 0 4px 8px rgba(0,0,0,0.8)'
+              }}>
+                {/* Shaft */}
+                <div style={{
+                  position: 'absolute',
+                  top: '15px',
+                  left: '26px',
+                  width: '6px',
+                  height: '24px',
+                  background: 'linear-gradient(90deg, #94a3b8 0%, #cbd5e1 100%)',
+                  transform: 'rotate(-15deg)',
+                  transformOrigin: 'bottom center',
+                  borderRadius: '3px'
+                }}></div>
+                {/* Red ball knob */}
+                <div style={{
+                  position: 'absolute',
+                  top: '2px',
+                  left: '18px',
+                  width: '20px',
+                  height: '20px',
+                  background: 'radial-gradient(circle, #f87171 0%, #ef4444 60%, #b91c1c 100%)',
+                  borderRadius: '50%',
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,255,255,0.4)'
+                }}></div>
+              </div>
+              <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748b' }}>
+                WASD TO MOVE
+              </span>
+            </div>
+
+            {/* Glowing Retro Push Buttons */}
+            <div style={{ display: 'flex', gap: '18px', alignItems: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                <button
+                  className="arcade-btn"
+                  onClick={() => alert('HƯỚNG DẪN:\n\n- Đi chuyển bằng WASD hoặc phím Mũi tên.\n- Đi lại gần các thiết bị trên bản đồ.\n- Nhấn phím E để tương tác.\n- Nhấn phím ESC để đóng bảng.')}
+                  style={{
+                    background: 'radial-gradient(circle, #60a5fa 0%, #1d4ed8 100%)',
+                    boxShadow: '0 4px 0 #1e3a8a, inset 0 2px 4px rgba(255,255,255,0.3)'
+                  }}
+                >
+                  HD
+                </button>
+                <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: '#94a3b8', fontWeight: 'bold' }}>HELP</span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                <button
+                  className="arcade-btn"
+                  onClick={handleRevealHint}
+                  style={{
+                    background: 'radial-gradient(circle, #fbbf24 0%, #b45309 100%)',
+                    boxShadow: '0 4px 0 #78350f, inset 0 2px 4px rgba(255,255,255,0.3)'
+                  }}
+                >
+                  Gợi ý
+                </button>
+                <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: '#94a3b8', fontWeight: 'bold' }}>HINT</span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                <button
+                  className="arcade-btn"
+                  onClick={() => setViewMode('standard')}
+                  style={{
+                    background: 'radial-gradient(circle, #f87171 0%, #dc2626 100%)',
+                    boxShadow: '0 4px 0 #991b1b, inset 0 2px 4px rgba(255,255,255,0.3)'
+                  }}
+                >
+                  Thoát
+                </button>
+                <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: '#94a3b8', fontWeight: 'bold' }}>EXIT</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );

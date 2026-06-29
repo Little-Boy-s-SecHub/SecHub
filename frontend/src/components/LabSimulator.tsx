@@ -710,6 +710,7 @@ function GeneralTerminalSimulator({ flag, dockerPort, onSuccess }: { flag: strin
           minHeight: '260px',
           display: 'flex',
           flexDirection: 'column',
+          userSelect: 'text', // Allow text selection explicitly
         }}>
           <div style={{ flex: 1, overflowY: 'auto', fontFamily: 'var(--font-mono)', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
             {history.map((h, i) => {
@@ -725,9 +726,47 @@ function GeneralTerminalSimulator({ flag, dockerPort, onSuccess }: { flag: strin
               }
               // Syntax highlighting for flag
               if (h.includes('[+] Flag:')) {
+                const flagVal = h.split('[+] Flag:')[1]?.trim() || '';
                 return (
-                  <div key={i} style={{ color: '#a6e3a1', fontWeight: 'bold', padding: '6px', background: 'rgba(166,227,161,0.1)', borderLeft: '3px solid #a6e3a1', margin: '6px 0', borderRadius: '2px' }}>
-                    {h}
+                  <div key={i} style={{ 
+                    color: '#a6e3a1', 
+                    fontWeight: 'bold', 
+                    padding: '6px 12px', 
+                    background: 'rgba(166,227,161,0.1)', 
+                    borderLeft: '3px solid #a6e3a1', 
+                    margin: '6px 0', 
+                    borderRadius: '4px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '12px',
+                  }}>
+                    <span>{h}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (flagVal) {
+                          navigator.clipboard.writeText(flagVal);
+                          // Show a brief visual confirmation or alert
+                          alert('Đã sao chép Flag thành công!');
+                        }
+                      }}
+                      style={{
+                        background: '#22c55e',
+                        color: '#05070c',
+                        border: 'none',
+                        borderRadius: '4px',
+                        padding: '3px 10px',
+                        fontSize: '11px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        transition: 'background 0.2s',
+                      }}
+                      onMouseOver={(e) => { e.currentTarget.style.background = '#4ade80'; }}
+                      onMouseOut={(e) => { e.currentTarget.style.background = '#22c55e'; }}
+                    >
+                      Sao chép
+                    </button>
                   </div>
                 );
               }
