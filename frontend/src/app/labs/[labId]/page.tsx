@@ -21,11 +21,14 @@ import {
   BookOpen,
   ChevronDown,
   ChevronRight,
-  RotateCw
+  RotateCw,
+  Gamepad2,
+  LayoutGrid
 } from 'lucide-react';
 import { api, Lab, LabAttempt } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import LabSimulator from '@/components/LabSimulator';
+import LabGameView from '@/components/LabGameView';
 
 // Fallback hints
 const defaultHints = [
@@ -47,6 +50,7 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
   const [revealedHints, setRevealedHints] = useState(0);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'standard' | 'game'>('standard');
 
   useEffect(() => {
     async function loadLabData() {
@@ -194,14 +198,80 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
 
   return (
     <div>
-      {/* Breadcrumb */}
-      <div className="breadcrumb">
-        <Link href="/labs">Phòng Lab</Link>
-        <span className="breadcrumb-separator">/</span>
-        <span className="breadcrumb-current">{lab.title}</span>
+      {/* Top Header Control Bar */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 'var(--space-4)',
+        gap: 'var(--space-2)',
+        flexWrap: 'wrap'
+      }}>
+        {/* Breadcrumb */}
+        <div className="breadcrumb" style={{ margin: 0 }}>
+          <Link href="/labs">Phòng Lab</Link>
+          <span className="breadcrumb-separator">/</span>
+          <span className="breadcrumb-current">{lab.title}</span>
+        </div>
+
+        {/* View Mode Toggle Switch */}
+        <div style={{
+          display: 'inline-flex',
+          background: 'var(--bg-neutral-secondary-medium)',
+          border: '1px solid var(--border-default-medium)',
+          borderRadius: 'var(--radius-default)',
+          padding: '2px',
+          boxShadow: 'var(--shadow-sm)',
+        }}>
+          <button
+            onClick={() => setViewMode('standard')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              border: 'none',
+              borderRadius: 'calc(var(--radius-default) - 2px)',
+              padding: '6px 16px',
+              fontSize: '13px',
+              fontFamily: 'var(--font-sans)',
+              fontWeight: 600,
+              cursor: 'pointer',
+              background: viewMode === 'standard' ? 'var(--bg-brand)' : 'transparent',
+              color: viewMode === 'standard' ? '#fff' : 'var(--text-body-subtle)',
+              transition: 'all var(--transition-fast)',
+            }}
+          >
+            <LayoutGrid size={14} /> Giao diện Chuẩn
+          </button>
+          <button
+            onClick={() => setViewMode('game')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              border: 'none',
+              borderRadius: 'calc(var(--radius-default) - 2px)',
+              padding: '6px 16px',
+              fontSize: '13px',
+              fontFamily: 'var(--font-sans)',
+              fontWeight: 600,
+              cursor: 'pointer',
+              background: viewMode === 'game' ? 'var(--bg-brand)' : 'transparent',
+              color: viewMode === 'game' ? '#fff' : 'var(--text-body-subtle)',
+              transition: 'all var(--transition-fast)',
+            }}
+          >
+            <Gamepad2 size={14} /> Chế độ Game 2D
+          </button>
+        </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 'var(--space-4)' }}>
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: viewMode === 'game' ? '1fr 1.2fr' : '1fr 360px', 
+        gap: 'var(--space-4)',
+        transition: 'grid-template-columns 0.3s ease'
+      }}>
         {/* Main content */}
         <div>
           {/* Lab header */}
@@ -399,110 +469,127 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
 
         {/* Right sidebar */}
         <div>
-          {/* Objectives */}
-          <div className="card animate-fade-in-up animate-delay-1" style={{ marginBottom: 'var(--space-3)' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-2)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Target size={18} style={{ color: 'var(--fg-brand)' }} /> Mục tiêu
-            </h3>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: 'var(--text-body)' }}>
-                <span style={{ color: 'var(--fg-brand)', flexShrink: 0 }}>○</span>
-                Tìm endpoint có lỗ hổng bảo mật
-              </li>
-              <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: 'var(--text-body)' }}>
-                <span style={{ color: 'var(--fg-brand)', flexShrink: 0 }}>○</span>
-                Khai thác thành công lỗ hổng {lab.vulnerabilityName}
-              </li>
-              <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: 'var(--text-body)' }}>
-                <span style={{ color: 'var(--fg-brand)', flexShrink: 0 }}>○</span>
-                Lấy chuỗi FLAG ẩn trên hệ thống và gửi xác nhận
-              </li>
-            </ul>
-          </div>
-
-          {/* Hints */}
-          <div className="card animate-fade-in-up animate-delay-2" style={{ marginBottom: 'var(--space-3)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Lightbulb size={18} style={{ color: 'var(--fg-brand)' }} /> Gợi ý
+          {viewMode === 'game' ? (
+            <div className="card animate-fade-in-up" style={{ padding: 'var(--space-3)' }}>
+              <h3 style={{ fontSize: '1.0625rem', fontWeight: 700, marginBottom: 'var(--space-2)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Gamepad2 size={18} style={{ color: 'var(--fg-brand)' }} /> Không gian Game 2D
               </h3>
-              <span style={{ fontSize: '12px', color: 'var(--text-body-subtle)' }}>
-                {revealedHints}/{hints.length}
-              </span>
+              <LabGameView 
+                hints={hints} 
+                revealedHints={revealedHints} 
+                onRevealHint={handleRevealHint} 
+                points={lab.points} 
+                labStatus={labStatus} 
+              />
             </div>
+          ) : (
+            <>
+              {/* Objectives */}
+              <div className="card animate-fade-in-up-delay-1" style={{ marginBottom: 'var(--space-3)' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-2)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Target size={18} style={{ color: 'var(--fg-brand)' }} /> Mục tiêu
+                </h3>
+                <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: 'var(--text-body)' }}>
+                    <span style={{ color: 'var(--fg-brand)', flexShrink: 0 }}>○</span>
+                    Tìm endpoint có lỗ hổng bảo mật
+                  </li>
+                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: 'var(--text-body)' }}>
+                    <span style={{ color: 'var(--fg-brand)', flexShrink: 0 }}>○</span>
+                    Khai thác thành công lỗ hổng {lab.vulnerabilityName}
+                  </li>
+                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: 'var(--text-body)' }}>
+                    <span style={{ color: 'var(--fg-brand)', flexShrink: 0 }}>○</span>
+                    Lấy chuỗi FLAG ẩn trên hệ thống và gửi xác nhận
+                  </li>
+                </ul>
+              </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-              {hints.map((hint, i) => (
-                <div key={i} className={`hint-item ${i < revealedHints ? 'open' : ''}`}>
-                  <button
-                    className="hint-trigger"
-                    onClick={() => {
-                      if (i < revealedHints) return;
-                      if (i === revealedHints) handleRevealHint();
-                    }}
-                    style={{
-                      opacity: i <= revealedHints ? 1 : 0.4,
-                      pointerEvents: (i === revealedHints && labStatus === 'running') ? 'auto' : 'none',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      width: '100%'
-                    }}
-                  >
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                      {i < revealedHints ? (
-                        <>
-                          <Lightbulb size={14} style={{ color: 'var(--fg-brand)' }} /> Gợi ý {i + 1}
-                        </>
-                      ) : (
-                        <>
-                          <Lock size={14} /> Gợi ý {i + 1}
-                        </>
-                      )}
-                    </span>
-                    <span style={{ display: 'flex', alignItems: 'center' }}>
-                      {i < revealedHints ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                    </span>
-                  </button>
-                  {i < revealedHints && (
-                    <div className="hint-content" style={{ maxHeight: '200px', padding: '12px 16px' }}>
-                      <p style={{ fontSize: '13px', color: 'var(--text-body)', lineHeight: 1.6 }}>
-                        {hint}
-                      </p>
-                    </div>
-                  )}
+              {/* Hints */}
+              <div className="card animate-fade-in-up-delay-2" style={{ marginBottom: 'var(--space-3)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Lightbulb size={18} style={{ color: 'var(--fg-brand)' }} /> Gợi ý
+                  </h3>
+                  <span style={{ fontSize: '12px', color: 'var(--text-body-subtle)' }}>
+                    {revealedHints}/{hints.length}
+                  </span>
                 </div>
-              ))}
-            </div>
 
-            {revealedHints < hints.length && labStatus === 'running' && (
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={handleRevealHint}
-                style={{ marginTop: 'var(--space-2)', width: '100%' }}
-              >
-                Mở gợi ý tiếp theo (-{lab.points / 10} điểm)
-              </button>
-            )}
-          </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+                  {hints.map((hint, i) => (
+                    <div key={i} className={`hint-item ${i < revealedHints ? 'open' : ''}`}>
+                      <button
+                        className="hint-trigger"
+                        onClick={() => {
+                          if (i < revealedHints) return;
+                          if (i === revealedHints) handleRevealHint();
+                        }}
+                        style={{
+                          opacity: i <= revealedHints ? 1 : 0.4,
+                          pointerEvents: (i === revealedHints && labStatus === 'running') ? 'auto' : 'none',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          width: '100%'
+                        }}
+                      >
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          {i < revealedHints ? (
+                            <>
+                              <Lightbulb size={14} style={{ color: 'var(--fg-brand)' }} /> Gợi ý {i + 1}
+                            </>
+                          ) : (
+                            <>
+                              <Lock size={14} /> Gợi ý {i + 1}
+                            </>
+                          )}
+                        </span>
+                        <span style={{ display: 'flex', alignItems: 'center' }}>
+                          {i < revealedHints ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                        </span>
+                      </button>
+                      {i < revealedHints && (
+                        <div className="hint-content" style={{ maxHeight: '200px', padding: '12px 16px' }}>
+                          <p style={{ fontSize: '13px', color: 'var(--text-body)', lineHeight: 1.6 }}>
+                            {hint}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
 
-          {/* Related vulnerability */}
-          <div className="card animate-fade-in-up animate-delay-3">
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-2)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <BookOpen size={18} style={{ color: 'var(--fg-brand)' }} /> Tài liệu liên quan
-            </h3>
-            <Link
-              href={`/vulnerabilities/${lab.vulnerabilitySlug}`}
-              className="related-link-card"
-            >
-              <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-heading)', marginBottom: '4px' }}>
-                {lab.vulnerabilityName}
+                {revealedHints < hints.length && labStatus === 'running' && (
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={handleRevealHint}
+                    style={{ marginTop: 'var(--space-2)', width: '100%' }}
+                  >
+                    Mở gợi ý tiếp theo (-{lab.points / 10} điểm)
+                  </button>
+                )}
               </div>
-              <div style={{ fontSize: '12px', color: 'var(--text-body-subtle)' }}>
-                Xem chi tiết lỗ hổng, cách khai thác và phòng chống →
+
+              {/* Related vulnerability */}
+              <div className="card animate-fade-in-up-delay-3">
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-2)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <BookOpen size={18} style={{ color: 'var(--fg-brand)' }} /> Tài liệu liên quan
+                </h3>
+                <Link
+                  href={`/vulnerabilities/${lab.vulnerabilitySlug}`}
+                  className="related-link-card"
+                >
+                  <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-heading)', marginBottom: '4px' }}>
+                    {lab.vulnerabilityName}
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-body-subtle)' }}>
+                    Xem chi tiết lỗ hổng, cách khai thác và phòng chống →
+                  </div>
+                </Link>
               </div>
-            </Link>
-          </div>
+            </>
+          )}
         </div>
       </div>
     </div>
