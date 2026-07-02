@@ -52,6 +52,8 @@ export default function LabGameView({
   const playerRef = useRef({ x: 400, y: 240, speed: 4.5, width: 24, height: 24 });
   const keysPressedRef = useRef<Record<string, boolean>>({});
   const activeNpcRef = useRef<Entity | null>(null);
+  const walkFrameRef = useRef({ frame: 0, lastToggle: 0 });
+  const particlesRef = useRef<Array<{ x: number; y: number; vx: number; vy: number; size: number; alpha: number }>>([]);
   
   // UI states (for React dialog overlay)
   const [dialogue, setDialogue] = useState<{ isOpen: boolean; text: string; showOptions: boolean } | null>(null);
@@ -83,18 +85,21 @@ export default function LabGameView({
 
   // Map obstacles definitions (bounding boxes)
   const obstacles = [
-    { x: 100, y: 150, width: 120, height: 40, label: 'Bàn Server A' },
-    { x: 580, y: 150, width: 120, height: 40, label: 'Bàn Server B' },
-    { x: 280, y: 80, width: 240, height: 30, label: 'Bàn Console Trung Tâm' },
-    { x: 200, y: 320, width: 60, height: 100, label: 'Tủ Rack 1' },
-    { x: 540, y: 320, width: 60, height: 100, label: 'Tủ Rack 2' },
+    { x: 80, y: 60, width: 80, height: 40, label: 'Bàn Nhiệm Vụ' },
+    { x: 360, y: 60, width: 80, height: 40, label: 'Bàn Thực Hành' },
+    { x: 640, y: 60, width: 80, height: 40, label: 'Bàn Nộp FLAG' },
+    { x: 200, y: 120, width: 80, height: 80, label: 'Tủ Rack 1' },
+    { x: 520, y: 120, width: 80, height: 80, label: 'Tủ Rack 2' },
+    { x: 200, y: 320, width: 80, height: 100, label: 'Tủ Rack 3' },
+    { x: 520, y: 320, width: 80, height: 100, label: 'Tủ Rack 4' },
+    { x: 360, y: 300, width: 80, height: 40, label: 'Bàn Console Dưới' },
   ];
 
   // Base mentors array based on hints length
   const baseMentors = [
     {
-      x: 160,
-      y: 120,
+      x: 228,
+      y: 200,
       width: 24,
       height: 24,
       name: '2. Gợi ý 1',
@@ -103,8 +108,8 @@ export default function LabGameView({
       hintIndex: 0,
     },
     {
-      x: 640,
-      y: 120,
+      x: 548,
+      y: 200,
       width: 24,
       height: 24,
       name: '3. Gợi ý 2',
@@ -113,8 +118,8 @@ export default function LabGameView({
       hintIndex: 1,
     },
     {
-      x: 400,
-      y: 350,
+      x: 388,
+      y: 360,
       width: 24,
       height: 24,
       name: '4. Gợi ý 3',
@@ -124,15 +129,16 @@ export default function LabGameView({
     },
   ].slice(0, hints.length);
 
-  // Dynamic names for interactive workflow steps
-  const practiceStepNum = 2 + hints.length;
-  const submitStepNum = 3 + hints.length;
+  // Dynamic names for interactive workflow steps (always end with practice + submit)
+  // Steps: 1.Nhiệm vụ → 2..N+1.Gợi ý → N+2.Thực hành → N+3.Nộp FLAG
+  const practiceStepNum = hints.length + 2;
+  const submitStepNum = hints.length + 3;
 
   const npcs: Entity[] = [
     ...baseMentors,
     {
-      x: 240,
-      y: 85,
+      x: 108,
+      y: 100,
       width: 24,
       height: 24,
       name: '1. Nhiệm vụ',
@@ -141,8 +147,8 @@ export default function LabGameView({
       hintIndex: 99,
     },
     {
-      x: 400,
-      y: 85,
+      x: 388,
+      y: 100,
       width: 24,
       height: 24,
       name: `${practiceStepNum}. Thực hành`,
@@ -151,8 +157,8 @@ export default function LabGameView({
       hintIndex: 98,
     },
     {
-      x: 560,
-      y: 85,
+      x: 668,
+      y: 100,
       width: 24,
       height: 24,
       name: `${submitStepNum}. Nộp FLAG`,
@@ -453,27 +459,26 @@ export default function LabGameView({
       ctx.fillText(text, x, y);
     };
 
-    // Helper to draw a dashed flowing arrow showing step direction
+    // Helper to draw pixel-style dashed arrow (16-bit aesthetic)
     const drawArrow = (ctx: CanvasRenderingContext2D, fromX: number, fromY: number, toX: number, toY: number, color: string) => {
       ctx.strokeStyle = color;
-      ctx.lineWidth = 2.5;
-      ctx.setLineDash([8, 8]);
-      ctx.lineDashOffset = -Math.floor(Date.now() * 0.018) % 16;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      ctx.lineDashOffset = -Math.floor(Date.now() * 0.02) % 8;
       ctx.beginPath();
-      ctx.moveTo(fromX, fromY);
-      ctx.lineTo(toX, toY);
+      ctx.moveTo(Math.floor(fromX), Math.floor(fromY));
+      ctx.lineTo(Math.floor(toX), Math.floor(toY));
       ctx.stroke();
       ctx.setLineDash([]);
 
+      // Pixel arrowhead (5px triangle)
       const angle = Math.atan2(toY - fromY, toX - fromX);
-      const midX = (fromX + toX) / 2;
-      const midY = (fromY + toY) / 2;
+      const midX = Math.floor((fromX + toX) / 2);
+      const midY = Math.floor((fromY + toY) / 2);
       ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.moveTo(midX, midY);
-      ctx.lineTo(midX - 9 * Math.cos(angle - Math.PI / 6), midY - 9 * Math.sin(angle - Math.PI / 6));
-      ctx.lineTo(midX - 9 * Math.cos(angle + Math.PI / 6), midY - 9 * Math.sin(angle + Math.PI / 6));
-      ctx.fill();
+      ctx.fillRect(midX, midY, 2, 2);
+      ctx.fillRect(Math.floor(midX - Math.cos(angle) * 3 - Math.sin(angle) * 3), Math.floor(midY - Math.sin(angle) * 3 + Math.cos(angle) * 3), 2, 2);
+      ctx.fillRect(Math.floor(midX - Math.cos(angle) * 3 + Math.sin(angle) * 3), Math.floor(midY - Math.sin(angle) * 3 - Math.cos(angle) * 3), 2, 2);
     };
 
     const drawGame = () => {
@@ -482,343 +487,1065 @@ export default function LabGameView({
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      // 1. Draw Cyberpunk/Matrix Dark Grid & Radar Sweep
-      ctx.fillStyle = '#060a13'; // Deep rich cyber navy
-      ctx.fillRect(0, 0, 800, 480);
+      const now = Date.now();
 
-      // Radar Pulse in center
-      const radarPulse = 220 + Math.sin(Date.now() * 0.0035) * 35;
-      const radarGlow = ctx.createRadialGradient(400, 240, 10, 400, 240, radarPulse);
-      radarGlow.addColorStop(0, 'rgba(8, 47, 73, 0.18)');
-      radarGlow.addColorStop(1, 'rgba(6, 10, 19, 0)');
-      ctx.fillStyle = radarGlow;
-      ctx.beginPath();
-      ctx.arc(400, 240, radarPulse, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Blueprint style grid and crosses
-      const gridSize = 40;
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.04)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      for (let x = 0; x <= 800; x += gridSize) {
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, 480);
-      }
-      for (let y = 0; y <= 480; y += gridSize) {
-        ctx.moveTo(0, y);
-        ctx.lineTo(800, y);
-      }
-      ctx.stroke();
-
-      // Draw subtle intersection crosses (+)
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.12)';
-      ctx.lineWidth = 1.2;
-      for (let x = gridSize; x < 800; x += gridSize) {
-        for (let y = gridSize; y < 480; y += gridSize) {
-          ctx.beginPath();
-          ctx.moveTo(x - 3, y);
-          ctx.lineTo(x + 3, y);
-          ctx.moveTo(x, y - 3);
-          ctx.lineTo(x, y + 3);
-          ctx.stroke();
+      // Lazy-init ambient floating particles
+      if (particlesRef.current.length === 0) {
+        for (let i = 0; i < 25; i++) {
+          particlesRef.current.push({
+            x: Math.random() * 800,
+            y: Math.random() * 480,
+            vx: (Math.random() - 0.5) * 0.4,
+            vy: -Math.random() * 0.3 - 0.1,
+            size: Math.random() > 0.6 ? 2 : 1,
+            alpha: Math.random() * 0.5 + 0.2,
+          });
         }
       }
 
-      // Scanner Scanline sweep
-      const scanY = (Date.now() * 0.065) % 480;
-      const scanGrad = ctx.createLinearGradient(0, scanY - 18, 0, scanY);
-      scanGrad.addColorStop(0, 'rgba(56, 189, 248, 0)');
-      scanGrad.addColorStop(1, 'rgba(56, 189, 248, 0.07)');
-      ctx.fillStyle = scanGrad;
-      ctx.fillRect(0, scanY - 18, 800, 18);
+      // ════════════════════════════════════════════
+      // 1. SERVER ROOM ENVIRONMENT
+      // ════════════════════════════════════════════
 
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.2)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, scanY);
-      ctx.lineTo(800, scanY);
-      ctx.stroke();
+      // Floor base
+      ctx.fillStyle = '#0b1120';
+      ctx.fillRect(0, 0, 800, 480);
 
-      // Cyber room outer border
-      ctx.strokeStyle = 'rgba(30, 41, 59, 0.8)';
-      ctx.lineWidth = 6;
-      ctx.strokeRect(3, 3, 800 - 6, 480 - 6);
-
-      // 2. Draw animated flowing arrow paths connecting objects
-      const pathPoints = [
-        { x: 240 + 12, y: 85 + 12 }, // 1. Nhiệm vụ
-      ];
-      baseMentors.forEach((m) => {
-        pathPoints.push({ x: m.x + 12, y: m.y + 12 });
-      });
-      pathPoints.push({ x: 400 + 12, y: 85 + 12 }); // 3. Thực hành
-      pathPoints.push({ x: 560 + 12, y: 85 + 12 }); // 4. Nộp FLAG
-
-      for (let i = 0; i < pathPoints.length - 1; i++) {
-        drawArrow(ctx, pathPoints[i].x, pathPoints[i].y, pathPoints[i + 1].x, pathPoints[i + 1].y, 'rgba(56, 189, 248, 0.5)');
+      // Floor tiles (larger 32px, metallic look)
+      for (let tx = 0; tx < 800; tx += 32) {
+        for (let ty = 0; ty < 480; ty += 32) {
+          const isAlt = ((tx / 32 + ty / 32) % 2 === 0);
+          ctx.fillStyle = isAlt ? '#0d1526' : '#101b30';
+          ctx.fillRect(tx, ty, 32, 32);
+          // Tile groove lines
+          ctx.fillStyle = '#1a2744';
+          ctx.fillRect(tx + 31, ty, 1, 32);
+          ctx.fillRect(tx, ty + 31, 32, 1);
+          // Subtle highlight at top-left
+          ctx.fillStyle = '#152040';
+          ctx.fillRect(tx, ty, 32, 1);
+          ctx.fillRect(tx, ty, 1, 32);
+        }
       }
 
-      // 3. Draw pulsing glowing auras under entities
+      // Floor reflective sheen (horizontal bands)
+      for (let fy = 0; fy < 480; fy += 64) {
+        ctx.globalAlpha = 0.03;
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillRect(0, fy, 800, 2);
+        ctx.globalAlpha = 1;
+      }
+
+      // ── FLOOR DECORATIONS (cables, cracks, stains) ──
+
+      // 1. Embedded cable runs (under-floor conduits visible through tiles)
+      ctx.globalAlpha = 0.25;
+      // Main horizontal cable run
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(60, 200, 680, 2);
+      ctx.fillStyle = '#064e3b';
+      ctx.fillRect(60, 202, 680, 1);
+      // Branch cables going to server racks
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(200, 200, 2, 120);  // left branch to rack 1
+      ctx.fillRect(540, 200, 2, 120);  // right branch to rack 2
+      // Second cable run (blue data cable)
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(80, 280, 640, 2);
+      ctx.fillStyle = '#0c4a6e';
+      ctx.fillRect(80, 282, 640, 1);
+      // Vertical branch from data cable
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(400, 100, 2, 180);  // center vertical to console
+      // Red power cable (diagonal run)
+      ctx.fillStyle = '#ef4444';
+      for (let rx = 120; rx < 350; rx += 4) {
+        ctx.fillRect(rx, 380 + Math.floor((rx - 120) * 0.15), 3, 2);
+      }
+      // Cable junction boxes (small squares where cables cross)
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(198, 198, 6, 6);
+      ctx.fillRect(538, 198, 6, 6);
+      ctx.fillRect(398, 198, 6, 6);
+      ctx.fillStyle = '#64748b';
+      ctx.fillRect(199, 199, 4, 4);
+      ctx.fillRect(539, 199, 4, 4);
+      ctx.fillRect(399, 199, 4, 4);
+      ctx.globalAlpha = 1;
+
+      // 2. Cracked / broken floor tiles
+      // Crack pattern 1 (near rack 1)
+      ctx.globalAlpha = 0.18;
+      ctx.fillStyle = '#0a101c';
+      ctx.fillRect(180, 300, 1, 18);
+      ctx.fillRect(180, 300, 12, 1);
+      ctx.fillRect(192, 300, 1, 8);
+      ctx.fillRect(185, 310, 8, 1);
+      ctx.fillRect(193, 305, 6, 1);
+      // Crack pattern 2 (center-left)
+      ctx.fillRect(320, 420, 1, 14);
+      ctx.fillRect(320, 420, 8, 1);
+      ctx.fillRect(328, 420, 1, 6);
+      ctx.fillRect(322, 428, 10, 1);
+      // Crack pattern 3 (right area)
+      ctx.fillRect(620, 250, 15, 1);
+      ctx.fillRect(620, 250, 1, 10);
+      ctx.fillRect(635, 250, 1, 7);
+      ctx.fillRect(625, 255, 1, 12);
+      // Broken tile chips (small displaced pixels)
+      ctx.fillStyle = '#1a2744';
+      ctx.fillRect(183, 315, 2, 2);
+      ctx.fillRect(193, 308, 2, 1);
+      ctx.fillRect(325, 432, 2, 2);
+      ctx.fillRect(623, 258, 3, 1);
+      ctx.globalAlpha = 1;
+
+      // 3. Oil / coolant stains (irregular dark patches with sheen)
+      // Stain 1 — large coolant leak near rack 2
+      ctx.globalAlpha = 0.07;
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(550, 430, 28, 16);
+      ctx.fillRect(546, 434, 36, 8);
+      ctx.fillRect(554, 426, 16, 4);
+      // Iridescent sheen on stain
+      ctx.fillStyle = '#6366f1';
+      ctx.fillRect(556, 434, 8, 2);
+      ctx.fillStyle = '#06b6d4';
+      ctx.fillRect(562, 436, 6, 2);
+      ctx.globalAlpha = 0.05;
+      // Stain 2 — small oil drip near console A
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(140, 195, 16, 10);
+      ctx.fillRect(136, 198, 24, 4);
+      ctx.fillStyle = '#a855f7';
+      ctx.fillRect(144, 198, 4, 2);
+      // Stain 3 — faint drip trail from center
+      ctx.fillStyle = '#0f172a';
+      for (let dy = 240; dy < 280; dy += 8) {
+        ctx.fillRect(410, dy, 4 + (dy % 3), 3);
+      }
+      ctx.globalAlpha = 1;
+
+      // 4. Drain grates (floor utility access points)
+      ctx.globalAlpha = 0.2;
+      // Grate 1 (left area)
+      ctx.fillStyle = '#374151';
+      ctx.fillRect(70, 400, 20, 20);
+      ctx.fillStyle = '#0f172a';
+      for (let gy = 402; gy < 418; gy += 3) {
+        ctx.fillRect(72, gy, 16, 1);
+      }
+      // Grate 2 (right area)
+      ctx.fillStyle = '#374151';
+      ctx.fillRect(710, 380, 20, 20);
+      ctx.fillStyle = '#0f172a';
+      for (let gy = 382; gy < 398; gy += 3) {
+        ctx.fillRect(712, gy, 16, 1);
+      }
+      ctx.globalAlpha = 1;
+
+      // 5. Scuff marks (equipment drag marks)
+      ctx.globalAlpha = 0.06;
+      ctx.fillStyle = '#1e293b';
+      // Long horizontal scuff
+      ctx.fillRect(300, 360, 60, 2);
+      ctx.fillRect(302, 362, 56, 1);
+      // Short diagonal scuffs near server racks
+      for (let sx = 0; sx < 20; sx += 3) {
+        ctx.fillRect(230 + sx, 310 + sx, 3, 1);
+      }
+      for (let sx = 0; sx < 16; sx += 3) {
+        ctx.fillRect(570 - sx, 315 + sx, 3, 1);
+      }
+      ctx.globalAlpha = 1;
+
+      // 6. Anti-static grounding strips (thin copper lines along floor)
+      ctx.globalAlpha = 0.12;
+      ctx.fillStyle = '#b45309';
+      ctx.fillRect(14, 44, 772, 1);  // top strip along wall
+      ctx.fillRect(14, 470, 772, 1); // bottom strip
+      // Cross strips
+      ctx.fillRect(250, 44, 1, 426);
+      ctx.fillRect(550, 44, 1, 426);
+      ctx.globalAlpha = 1;
+
+      // ── WALLS (top boundary strip with depth) ──
+      ctx.fillStyle = '#1a2332';
+      ctx.fillRect(0, 0, 800, 40);
+      ctx.fillStyle = '#0f1923';
+      ctx.fillRect(0, 35, 800, 8);
+      // Wall base molding
+      ctx.fillStyle = '#2a3a5c';
+      ctx.fillRect(0, 40, 800, 3);
+      ctx.fillStyle = '#3b5278';
+      ctx.fillRect(0, 40, 800, 1);
+
+      // ── CEILING PIPE RUNS ──
+      ctx.fillStyle = '#374151';
+      ctx.fillRect(50, 8, 700, 4);
+      ctx.fillStyle = '#4b5563';
+      ctx.fillRect(50, 8, 700, 1);
+      // Pipe joints
+      for (let pj = 100; pj < 750; pj += 120) {
+        ctx.fillStyle = '#6b7280';
+        ctx.fillRect(pj, 6, 8, 8);
+        ctx.fillStyle = '#9ca3af';
+        ctx.fillRect(pj + 1, 6, 1, 8);
+      }
+
+      // Second pipe
+      ctx.fillStyle = '#dc2626';
+      ctx.fillRect(60, 18, 680, 3);
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(60, 18, 680, 1);
+
+      // ── CABLE TRAYS (hanging cables) ──
+      const cableColors = ['#22c55e', '#38bdf8', '#eab308', '#a855f7', '#ef4444'];
+      for (let ci = 0; ci < 5; ci++) {
+        const cx = 80 + ci * 150;
+        const sag = Math.sin(now * 0.001 + ci) * 2;
+        ctx.fillStyle = cableColors[ci];
+        // Vertical drop from pipe
+        ctx.fillRect(cx, 12, 2, 20 + sag);
+        // Small drip/connector at bottom
+        ctx.fillRect(cx - 1, 30 + sag, 4, 3);
+      }
+
+      // ── WALL DECORATIONS ──
+      // Warning poster 1 (left wall)
+      ctx.fillStyle = '#eab308';
+      ctx.fillRect(30, 10, 24, 18);
+      ctx.fillStyle = '#854d0e';
+      ctx.fillRect(32, 12, 20, 14);
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(36, 14, 12, 2); // text line
+      ctx.fillRect(36, 18, 8, 2);
+      // Hazard triangle
+      ctx.fillStyle = '#eab308';
+      ctx.fillRect(40, 22, 4, 2);
+
+      // "SECURITY" poster (right wall)
+      ctx.fillStyle = '#1e40af';
+      ctx.fillRect(720, 10, 50, 22);
+      ctx.fillStyle = '#1d4ed8';
+      ctx.fillRect(722, 12, 46, 18);
+      ctx.fillStyle = '#60a5fa';
+      ctx.fillRect(726, 15, 20, 2);
+      ctx.fillRect(726, 19, 30, 2);
+      ctx.fillRect(726, 23, 14, 2);
+
+      // Emergency exit sign
+      ctx.fillStyle = '#16a34a';
+      ctx.fillRect(390, 6, 20, 10);
+      ctx.fillStyle = '#4ade80';
+      ctx.fillRect(392, 8, 16, 6);
+      ctx.fillStyle = '#166534';
+      ctx.fillRect(396, 9, 4, 4); // person icon
+      ctx.fillRect(401, 10, 6, 1); // arrow
+
+      // ── EMERGENCY / AMBIENT LIGHTS ──
+      // Ceiling LED strips
+      for (let lx = 60; lx < 800; lx += 200) {
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(lx, 0, 80, 5);
+        // Light glow
+        const lightPulse = Math.sin(now * 0.002 + lx * 0.01) * 0.3 + 0.7;
+        ctx.globalAlpha = lightPulse * 0.15;
+        ctx.fillStyle = '#e0f2fe';
+        ctx.fillRect(lx - 20, 0, 120, 50);
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillRect(lx + 2, 1, 76, 2);
+      }
+
+      // ── SIDE WALL ELEMENTS (left & right boundaries) ──
+      // Left wall panel
+      ctx.fillStyle = '#1a2332';
+      ctx.fillRect(0, 40, 12, 440);
+      ctx.fillStyle = '#2a3a5c';
+      ctx.fillRect(10, 40, 3, 440);
+
+      // Right wall panel
+      ctx.fillStyle = '#1a2332';
+      ctx.fillRect(788, 40, 12, 440);
+      ctx.fillStyle = '#2a3a5c';
+      ctx.fillRect(787, 40, 3, 440);
+
+      // Wall-mounted ethernet panels
+      for (let ep = 80; ep < 460; ep += 140) {
+        ctx.fillStyle = '#1f2937';
+        ctx.fillRect(2, ep, 8, 20);
+        ctx.fillStyle = '#374151';
+        ctx.fillRect(3, ep + 1, 6, 18);
+        // Port LEDs
+        ctx.fillStyle = Math.sin(now * 0.003 + ep) > 0 ? '#22c55e' : '#064e3b';
+        ctx.fillRect(4, ep + 4, 2, 2);
+        ctx.fillStyle = Math.sin(now * 0.005 + ep) > 0 ? '#38bdf8' : '#0c4a6e';
+        ctx.fillRect(4, ep + 10, 2, 2);
+      }
+
+      // ── FLOOR MARKINGS (safety lines) ──
+      ctx.globalAlpha = 0.08;
+      ctx.fillStyle = '#eab308';
+      ctx.fillRect(14, 450, 772, 2);
+      ctx.fillRect(14, 460, 772, 2);
+      ctx.globalAlpha = 1;
+
+      // ════════════════════════════════════════════
+      // 2. AMBIENT DATA PARTICLES (floating upward)
+      // ════════════════════════════════════════════
+      particlesRef.current.forEach(pt => {
+        pt.x += pt.vx;
+        pt.y += pt.vy;
+        if (pt.y < 0) { pt.y = 480; pt.x = Math.random() * 800; }
+        if (pt.x < 0) pt.x = 800;
+        if (pt.x > 800) pt.x = 0;
+        const twinkle = Math.sin(now * 0.004 + pt.x * 0.05) * 0.2;
+        ctx.globalAlpha = Math.max(0.05, pt.alpha + twinkle);
+        ctx.fillStyle = pt.size > 1 ? '#67e8f9' : '#a5f3fc';
+        ctx.fillRect(Math.floor(pt.x), Math.floor(pt.y), pt.size, pt.size);
+      });
+      ctx.globalAlpha = 1;
+
+      // ════════════════════════════════════════════
+      // 3. PIXEL DASHED ARROW PATHS
+      // ════════════════════════════════════════════
+      const pathPoints: { x: number; y: number }[] = [];
+      const missionNpc = npcs.find(n => n.hintIndex === 99);
+      if (missionNpc) {
+        pathPoints.push({ x: missionNpc.x + missionNpc.width / 2, y: missionNpc.y + missionNpc.height / 2 });
+      }
+      
+      const sortedMentors = [...baseMentors].sort((a, b) => a.hintIndex - b.hintIndex);
+      sortedMentors.forEach((m) => {
+        pathPoints.push({ x: m.x + m.width / 2, y: m.y + m.height / 2 });
+      });
+
+      const practiceNpc = npcs.find(n => n.hintIndex === 98);
+      if (practiceNpc) {
+        pathPoints.push({ x: practiceNpc.x + practiceNpc.width / 2, y: practiceNpc.y + practiceNpc.height / 2 });
+      }
+
+      const submitNpc = npcs.find(n => n.hintIndex === 100);
+      if (submitNpc) {
+        pathPoints.push({ x: submitNpc.x + submitNpc.width / 2, y: submitNpc.y + submitNpc.height / 2 });
+      }
+
+      // 3. PIXEL DASHED ARROW PATHS (sequential sweep, 1s hold, sequential fade, 3s rest)
+      const S = pathPoints.length - 1;
+      const durationPerSegment = 800; // ms
+      const T_show = S * durationPerSegment;
+      const T_wait = 1000; // wait 1s after drawing final segment
+      const T_visible = T_show + T_wait;
+      const T_fade = S * durationPerSegment; // fade out from 1 to 6
+      const T_rest = 3000; // 3 seconds rest
+      const T_total = T_visible + T_fade + T_rest;
+      const cycleTime = now % T_total;
+
+      if (cycleTime < T_visible) {
+        // Draw phase + Hold phase
+        const currentDrawSegmentIndex = Math.min(S, Math.floor(cycleTime / durationPerSegment));
+        const segmentElapsed = cycleTime % durationPerSegment;
+        const fraction = cycleTime >= T_show ? 1.0 : segmentElapsed / durationPerSegment;
+
+        for (let i = 0; i < S; i++) {
+          if (i > currentDrawSegmentIndex) continue;
+
+          const from = pathPoints[i];
+          const to = pathPoints[i + 1];
+          
+          // Define path segment state
+          let isCompleted = false;
+          let isActive = false;
+          
+          if (i < revealedHints) {
+            isCompleted = true;
+          } else if (i === revealedHints) {
+            isActive = true;
+          }
+          
+          if (i === hints.length) {
+            if (labStatus === 'running' || labStatus === 'completed') {
+              isCompleted = true;
+            } else if (revealedHints === hints.length) {
+              isActive = true;
+            }
+          }
+          
+          if (i === hints.length + 1) {
+            if (labStatus === 'completed') {
+              isCompleted = true;
+            } else if (labStatus === 'running') {
+              isActive = true;
+            }
+          }
+
+          const isGrowing = i === currentDrawSegmentIndex;
+          const targetX = isGrowing ? from.x + (to.x - from.x) * fraction : to.x;
+          const targetY = isGrowing ? from.y + (to.y - from.y) * fraction : to.y;
+
+          // 1. Conduit
+          ctx.globalAlpha = 0.08;
+          ctx.strokeStyle = isCompleted ? '#10b981' : isActive ? '#38bdf8' : '#334155';
+          ctx.lineWidth = 8;
+          ctx.beginPath();
+          ctx.moveTo(from.x, from.y);
+          ctx.lineTo(targetX, targetY);
+          ctx.stroke();
+          ctx.globalAlpha = 1.0;
+
+          // 2. Main Arrow
+          const lineColor = isCompleted 
+            ? '#10b981' 
+            : isActive 
+              ? `hsl(${(now * 0.15) % 360}, 90%, 60%)` 
+              : 'rgba(71, 85, 105, 0.25)';
+          drawArrow(ctx, from.x, from.y, targetX, targetY, lineColor);
+
+          // 3. Signal Particle
+          if ((isCompleted || isActive) && !isGrowing) {
+            const pulseSpeed = isCompleted ? 0.0015 : 0.001;
+            const progress = (now * pulseSpeed + i * 0.3) % 1.0;
+            const px = from.x + (to.x - from.x) * progress;
+            const py = from.y + (to.y - from.y) * progress;
+            ctx.fillStyle = isCompleted ? 'rgba(16, 185, 129, 0.4)' : 'rgba(56, 189, 248, 0.4)';
+            ctx.fillRect(px - 4, py - 4, 8, 8);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(px - 2, py - 2, 4, 4);
+          }
+        }
+      } else if (cycleTime < T_visible + T_fade) {
+        // Fade-out phase (disappears from 1 to 6)
+        const fadeTime = cycleTime - T_visible;
+        const currentFadeSegmentIndex = Math.floor(fadeTime / durationPerSegment);
+        const segmentElapsed = fadeTime % durationPerSegment;
+        const fraction = segmentElapsed / durationPerSegment;
+
+        for (let i = 0; i < S; i++) {
+          if (i < currentFadeSegmentIndex) continue;
+
+          const from = pathPoints[i];
+          const to = pathPoints[i + 1];
+          
+          let isCompleted = false;
+          let isActive = false;
+          
+          if (i < revealedHints) {
+            isCompleted = true;
+          } else if (i === revealedHints) {
+            isActive = true;
+          }
+          
+          if (i === hints.length) {
+            if (labStatus === 'running' || labStatus === 'completed') {
+              isCompleted = true;
+            } else if (revealedHints === hints.length) {
+              isActive = true;
+            }
+          }
+          
+          if (i === hints.length + 1) {
+            if (labStatus === 'completed') {
+              isCompleted = true;
+            } else if (labStatus === 'running') {
+              isActive = true;
+            }
+          }
+
+          const isFading = i === currentFadeSegmentIndex;
+          const startX = isFading ? from.x + (to.x - from.x) * fraction : from.x;
+          const startY = isFading ? from.y + (to.y - from.y) * fraction : from.y;
+
+          // 1. Conduit
+          ctx.globalAlpha = 0.08 * (1.0 - (isFading ? fraction : 0));
+          ctx.strokeStyle = isCompleted ? '#10b981' : isActive ? '#38bdf8' : '#334155';
+          ctx.lineWidth = 8;
+          ctx.beginPath();
+          ctx.moveTo(startX, startY);
+          ctx.lineTo(to.x, to.y);
+          ctx.stroke();
+          ctx.globalAlpha = 1.0;
+
+          // 2. Main Arrow
+          const lineColor = isCompleted 
+            ? '#10b981' 
+            : isActive 
+              ? `hsl(${(now * 0.15) % 360}, 90%, 60%)` 
+              : 'rgba(71, 85, 105, 0.25)';
+          drawArrow(ctx, startX, startY, to.x, to.y, lineColor);
+
+          // 3. Signal Particle
+          if ((isCompleted || isActive) && !isFading) {
+            const pulseSpeed = isCompleted ? 0.0015 : 0.001;
+            const progress = (now * pulseSpeed + i * 0.3) % 1.0;
+            const px = from.x + (to.x - from.x) * progress;
+            const py = from.y + (to.y - from.y) * progress;
+            ctx.fillStyle = isCompleted ? 'rgba(16, 185, 129, 0.4)' : 'rgba(56, 189, 248, 0.4)';
+            ctx.fillRect(px - 4, py - 4, 8, 8);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(px - 2, py - 2, 4, 4);
+          }
+        }
+      }
+
+      // ════════════════════════════════════════════
+      // 4. ENTITY GLOW AURAS + MARKERS
+      // ════════════════════════════════════════════
       npcs.forEach((npc) => {
         const isSpecial = npc.hintIndex >= 98;
         const isUnlockable = !isSpecial && npc.hintIndex === revealedHints;
-        
-        const glowPulse = Math.sin(Date.now() * 0.005 + npc.hintIndex * 1.7) * 4 + 18;
-        const radialGlow = ctx.createRadialGradient(
-          npc.x + npc.width / 2, npc.y + npc.height / 2 + 10, 2,
-          npc.x + npc.width / 2, npc.y + npc.height / 2 + 10, glowPulse
-        );
-        radialGlow.addColorStop(0, npc.color + '44');
-        radialGlow.addColorStop(1, npc.color + '00');
-        ctx.fillStyle = radialGlow;
-        ctx.beginPath();
-        ctx.arc(npc.x + npc.width / 2, npc.y + npc.height / 2 + 10, glowPulse, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Extra pulsing outer ring for unlocked mentor hints
-        if (isUnlockable) {
-          ctx.strokeStyle = 'rgba(234, 179, 8, 0.5)';
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.arc(npc.x + npc.width / 2, npc.y + npc.height / 2 + 10, glowPulse + 4, 0, Math.PI * 2);
-          ctx.stroke();
+        const cx = npc.x + npc.width / 2;
+        const cy = npc.y + npc.height;
+
+        // Ground glow circle (pixel diamond shape)
+        const pulse = Math.sin(now * 0.004 + npc.hintIndex * 2) * 3;
+        const r = 14 + pulse;
+        for (let d = 0; d < r; d += 2) {
+          ctx.globalAlpha = 0.08 * (1 - d / r);
+          ctx.fillStyle = npc.color;
+          ctx.fillRect(cx - d, cy - 2, d * 2, 4);
+        }
+        ctx.globalAlpha = 1;
+
+        // Blinking "!" for unlockable hints
+        if (isUnlockable && Math.floor(now / 400) % 2 === 0) {
+          ctx.fillStyle = '#fbbf24';
+          ctx.fillRect(npc.x + 9, npc.y - 18, 6, 10);
+          ctx.fillRect(npc.x + 9, npc.y - 6, 6, 4);
+          ctx.fillStyle = '#78350f';
+          ctx.fillRect(npc.x + 11, npc.y - 16, 2, 6);
+          ctx.fillRect(npc.x + 11, npc.y - 5, 2, 2);
         }
       });
 
-      // Ambient pulsing light under player
+      // Player ground glow
       const p = playerRef.current;
-      const playerGlowRad = Math.sin(Date.now() * 0.007) * 3 + 24;
-      const playerGlow = ctx.createRadialGradient(p.x + 12, p.y + 12, 2, p.x + 12, p.y + 12, playerGlowRad);
-      playerGlow.addColorStop(0, 'rgba(74, 222, 128, 0.4)');
-      playerGlow.addColorStop(1, 'rgba(74, 222, 128, 0)');
-      ctx.fillStyle = playerGlow;
-      ctx.beginPath();
-      ctx.arc(p.x + 12, p.y + 12, playerGlowRad, 0, Math.PI * 2);
-      ctx.fill();
+      const pgx = p.x + p.width / 2;
+      ctx.globalAlpha = 0.12;
+      ctx.fillStyle = '#4ade80';
+      ctx.fillRect(pgx - 12, p.y + p.height, 24, 3);
+      ctx.fillRect(pgx - 8, p.y + p.height + 3, 16, 2);
+      ctx.globalAlpha = 1;
 
-      // 4. Draw Obstacles (with premium Glassmorphic + Neon details)
+      // ════════════════════════════════════════════
+      // 5. OBSTACLES — DETAILED PIXEL FURNITURE
+      // ════════════════════════════════════════════
       obstacles.forEach((obs) => {
-        // Shadow
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
-        ctx.fillRect(obs.x + 4, obs.y + 4, obs.width, obs.height);
-
-        // Glassmorphic Body
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.75)'; // Transparent slate-900
-        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-        
-        // Neon borders
-        ctx.strokeStyle = obs.label.startsWith('Tủ Rack') ? 'rgba(71, 85, 105, 0.6)' : 'rgba(56, 189, 248, 0.55)';
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(obs.x, obs.y, obs.width, obs.height);
+        // Drop shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.fillRect(obs.x + 3, obs.y + 3, obs.width, obs.height);
 
         if (obs.label.startsWith('Tủ Rack')) {
-          // Tech lines / Server cabinet slots
-          ctx.strokeStyle = 'rgba(30, 41, 59, 0.9)';
-          ctx.lineWidth = 1.5;
-          for (let ly = obs.y + 10; ly < obs.y + obs.height - 6; ly += 9) {
-            ctx.beginPath();
-            ctx.moveTo(obs.x + 6, ly);
-            ctx.lineTo(obs.x + obs.width - 6, ly);
-            ctx.stroke();
-
-            // Blinking server LEDs
-            const flashVal = Math.sin(Date.now() * 0.006 + ly) * 10;
-            ctx.fillStyle = flashVal > 5 ? '#22c55e' : flashVal < -5 ? '#ef4444' : '#3b82f6';
-            ctx.fillRect(obs.x + 10, ly - 2, 2.5, 2.5);
-            ctx.fillStyle = flashVal > 0 ? '#10b981' : '#475569';
-            ctx.fillRect(obs.x + 16, ly - 2, 2.5, 2.5);
-          }
-          // Server glass gleam
-          const gleamGrad = ctx.createLinearGradient(obs.x, obs.y, obs.x + obs.width, obs.y);
-          gleamGrad.addColorStop(0.1, 'rgba(255, 255, 255, 0)');
-          gleamGrad.addColorStop(0.2, 'rgba(255, 255, 255, 0.06)');
-          gleamGrad.addColorStop(0.3, 'rgba(255, 255, 255, 0)');
-          ctx.fillStyle = gleamGrad;
+          // ── DETAILED SERVER RACK (tall, metallic) ──
+          // Outer casing
+          ctx.fillStyle = '#1e293b';
           ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-        } else {
-          // Dynamic status screen wave charts on Console Desks
-          ctx.fillStyle = 'rgba(9, 13, 22, 0.85)';
-          ctx.fillRect(obs.x + 10, obs.y + 6, obs.width - 20, obs.height - 12);
-          ctx.strokeStyle = 'rgba(56, 189, 248, 0.2)';
-          ctx.strokeRect(obs.x + 10, obs.y + 6, obs.width - 20, obs.height - 12);
-
-          // Moving grid/graph lines
-          ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          for (let gx = 0; gx < obs.width - 24; gx += 3) {
-            const gy = Math.sin(Date.now() * 0.007 + (gx + obs.x) * 0.15) * 5 + obs.y + obs.height / 2;
-            if (gx === 0) ctx.moveTo(obs.x + 12 + gx, gy);
-            else ctx.lineTo(obs.x + 12 + gx, gy);
-          }
-          ctx.stroke();
-
-          // Console header outline
-          ctx.fillStyle = 'rgba(56, 189, 248, 0.85)';
-          ctx.font = 'bold 7px monospace';
-          ctx.textAlign = 'center';
-          ctx.fillText(obs.label.toUpperCase(), obs.x + obs.width / 2, obs.y + obs.height - 10);
-        }
-      });
-
-      // 5. Draw NPCs & Kiosks (Procedural holographic tech sprites)
-      npcs.forEach((npc) => {
-        if (npc.hintIndex === 99) {
-          // 1. Mission Kiosk Board
-          // Stand
+          // Frame edges
           ctx.fillStyle = '#475569';
-          ctx.fillRect(npc.x + 9, npc.y + 14, 6, 8);
-          ctx.fillStyle = '#1e293b';
-          ctx.fillRect(npc.x + 4, npc.y + 22, 16, 2);
-
-          // Hologram frame
-          ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
-          ctx.fillRect(npc.x + 2, npc.y, 20, 14);
-          ctx.strokeStyle = '#eab308';
-          ctx.lineWidth = 1.5;
-          ctx.strokeRect(npc.x + 2, npc.y, 20, 14);
-
-          // Glowing holographic lines
-          const hLine = (Date.now() * 0.02) % 10;
-          ctx.strokeStyle = 'rgba(234, 179, 8, 0.4)';
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.moveTo(npc.x + 4, npc.y + 2 + hLine);
-          ctx.lineTo(npc.x + 20, npc.y + 2 + hLine);
-          ctx.stroke();
-
-          ctx.fillStyle = '#fef08a';
-          ctx.fillRect(npc.x + 6, npc.y + 4, 3, 3);
-          ctx.fillStyle = 'rgba(234,179,8,0.7)';
-          ctx.fillRect(npc.x + 11, npc.y + 6, 7, 2);
-        } else if (npc.hintIndex === 98) {
-          // 3. CRT Practice Server Terminal
-          ctx.fillStyle = '#334155';
-          ctx.fillRect(npc.x + 2, npc.y + 2, 20, 20);
-          ctx.strokeStyle = 'rgba(56, 189, 248, 0.8)';
-          ctx.strokeRect(npc.x + 2, npc.y + 2, 20, 20);
-
-          // CRT Terminal screen glowing neon blue
-          ctx.fillStyle = '#020617';
-          ctx.fillRect(npc.x + 4, npc.y + 4, 16, 10);
-          ctx.strokeStyle = '#38bdf8';
-          ctx.strokeRect(npc.x + 4, npc.y + 4, 16, 10);
-
-          // Interactive terminal scan lines
-          const pulse = Math.sin(Date.now() * 0.015) * 3;
-          ctx.fillStyle = 'rgba(56, 189, 248, 0.85)';
-          ctx.fillRect(npc.x + 6 + (pulse > 0 ? 1 : 0), npc.y + 6, 8, 1);
-          ctx.fillStyle = 'rgba(16, 185, 129, 0.7)';
-          ctx.fillRect(npc.x + 6, npc.y + 9, 10, 1);
-
-          // Keyboardshelf
-          ctx.fillStyle = '#1e293b';
-          ctx.fillRect(npc.x, npc.y + 15, 24, 3);
-          ctx.fillStyle = '#38bdf8';
-          ctx.fillRect(npc.x + 5, npc.y + 16, 14, 1);
-        } else if (npc.hintIndex === 100) {
-          // 4. Flag Validator Terminal Kiosk
-          ctx.fillStyle = '#1e293b';
-          ctx.fillRect(npc.x + 3, npc.y + 2, 18, 20);
-          ctx.strokeStyle = 'rgba(16, 185, 129, 0.8)';
-          ctx.strokeRect(npc.x + 3, npc.y + 2, 18, 20);
-
-          // Bio slot
-          ctx.fillStyle = '#020617';
-          ctx.fillRect(npc.x + 6, npc.y + 13, 12, 2.5);
-
-          // Glowing status monitor
-          const pulseDisk = Math.sin(Date.now() * 0.01) * 10;
-          ctx.fillStyle = pulseDisk > 0 ? '#10b981' : '#059669';
-          ctx.fillRect(npc.x + 6, npc.y + 4, 12, 6);
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(npc.x + 8, npc.y + 5, 2, 2);
-        } else {
-          // Mentors (Hooded Hacker Wizard with neon trims & glowing eyes)
-          // Hoodie Body
+          ctx.fillRect(obs.x, obs.y, obs.width, 3);
+          ctx.fillRect(obs.x, obs.y + obs.height - 3, obs.width, 3);
+          ctx.fillRect(obs.x, obs.y, 3, obs.height);
+          ctx.fillRect(obs.x + obs.width - 3, obs.y, 3, obs.height);
+          // Highlight bevel
+          ctx.fillStyle = '#64748b';
+          ctx.fillRect(obs.x + 1, obs.y + 1, obs.width - 2, 1);
+          ctx.fillRect(obs.x + 1, obs.y + 1, 1, obs.height - 2);
+          // Inner dark cavity
           ctx.fillStyle = '#0f172a';
-          ctx.fillRect(npc.x + 4, npc.y + 8, 16, 13);
-          
-          ctx.strokeStyle = npc.color;
-          ctx.lineWidth = 1.2;
-          ctx.strokeRect(npc.x + 4, npc.y + 8, 16, 13);
+          ctx.fillRect(obs.x + 5, obs.y + 6, obs.width - 10, obs.height - 12);
 
-          // Neon wizard hood
+          // Server unit slots (each 10px tall)
+          for (let ly = obs.y + 8; ly < obs.y + obs.height - 10; ly += 10) {
+            // Server unit faceplate
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(obs.x + 7, ly, obs.width - 14, 8);
+            ctx.fillStyle = '#334155';
+            ctx.fillRect(obs.x + 7, ly, obs.width - 14, 1);
+
+            // LED array (3-4 LEDs per unit)
+            const ledOffset = obs.x + 10;
+            for (let li = 0; li < 4; li++) {
+              const ledSeed = Math.sin(now * (0.003 + li * 0.002) + ly * (3.7 + li)) > 0;
+              const ledColors = ['#22c55e', '#ef4444', '#f59e0b', '#3b82f6'];
+              const ledDark = ['#064e3b', '#450a0a', '#451a03', '#172554'];
+              ctx.fillStyle = ledSeed ? ledColors[li] : ledDark[li];
+              ctx.fillRect(ledOffset + li * 5, ly + 3, 3, 3);
+            }
+
+            // Activity bar (data flow animation)
+            const barW = obs.width - 40;
+            const dataFlow = Math.floor(now * 0.01 + ly) % barW;
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(obs.x + 32, ly + 4, barW, 2);
+            ctx.fillStyle = '#22c55e';
+            ctx.fillRect(obs.x + 32 + (dataFlow % barW), ly + 4, 6, 2);
+          }
+
+          // Top ventilation grille
+          ctx.fillStyle = '#374151';
+          for (let vx = obs.x + 8; vx < obs.x + obs.width - 8; vx += 3) {
+            ctx.fillRect(vx, obs.y + obs.height - 8, 2, 4);
+          }
+
+          // Handle/latch
+          ctx.fillStyle = '#94a3b8';
+          ctx.fillRect(obs.x + obs.width - 8, obs.y + obs.height / 2 - 6, 3, 12);
+
+        } else {
+          // ── CONSOLE DESK WITH CRT MONITOR ──
+          // Desk body (thick workstation)
+          ctx.fillStyle = '#374151';
+          ctx.fillRect(obs.x, obs.y + obs.height - 12, obs.width, 12);
+          ctx.fillStyle = '#4b5563';
+          ctx.fillRect(obs.x, obs.y + obs.height - 12, obs.width, 2);
+          ctx.fillStyle = '#1f2937';
+          ctx.fillRect(obs.x + 2, obs.y + obs.height - 2, obs.width - 4, 2);
+
+          // Desk legs
+          ctx.fillStyle = '#374151';
+          ctx.fillRect(obs.x + 6, obs.y + obs.height, 4, 6);
+          ctx.fillRect(obs.x + obs.width - 10, obs.y + obs.height, 4, 6);
+
+          // CRT MONITOR (prominent)
+          const monW = Math.min(obs.width - 20, 80);
+          const monH = obs.height - 16;
+          const monX = obs.x + (obs.width - monW) / 2;
+          const monY = obs.y;
+
+          // Monitor casing (chunky CRT shape)
+          ctx.fillStyle = '#334155';
+          ctx.fillRect(monX, monY, monW, monH);
+          // Bevel highlights
+          ctx.fillStyle = '#475569';
+          ctx.fillRect(monX, monY, monW, 2);
+          ctx.fillRect(monX, monY, 2, monH);
           ctx.fillStyle = '#1e293b';
-          ctx.beginPath();
-          ctx.arc(npc.x + 12, npc.y + 6, 8, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.strokeStyle = npc.color;
-          ctx.stroke();
+          ctx.fillRect(monX + monW - 2, monY, 2, monH);
+          ctx.fillRect(monX, monY + monH - 2, monW, 2);
 
-          // Dark face cavity
+          // Screen (green phosphor CRT)
+          const scrX = monX + 4;
+          const scrY = monY + 4;
+          const scrW = monW - 8;
+          const scrH = monH - 8;
           ctx.fillStyle = '#020617';
-          ctx.beginPath();
-          ctx.arc(npc.x + 12, npc.y + 7, 5, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.fillRect(scrX, scrY, scrW, scrH);
+          // Screen inner border glow
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(scrX, scrY, scrW, 1);
+          ctx.fillRect(scrX, scrY, 1, scrH);
 
-          // Glowing neon eyes
-          const eyePulse = Math.sin(Date.now() * 0.01) > 0 ? npc.color : 'rgba(255,255,255,0.2)';
-          ctx.fillStyle = eyePulse;
-          ctx.fillRect(npc.x + 9, npc.y + 6, 2, 2);
-          ctx.fillRect(npc.x + 13, npc.y + 6, 2, 2);
+          // Terminal text lines
+          const linePhase = Math.floor(now / 700) % 5;
+          const textLines = [
+            { color: '#22c55e', y: scrY + 3, w: scrW * 0.8 },
+            { color: '#38bdf8', y: scrY + 7, w: scrW * 0.6 },
+            { color: '#22c55e', y: scrY + 11, w: scrW * 0.5 },
+            { color: '#a855f7', y: scrY + 15, w: scrW * 0.7 },
+          ];
+          textLines.forEach((line, li) => {
+            if (li <= linePhase) {
+              ctx.fillStyle = line.color;
+              ctx.fillRect(scrX + 2, line.y, Math.min(line.w, scrW - 4), 2);
+            }
+          });
+
+          // Blinking cursor
+          if (Math.floor(now / 350) % 2 === 0) {
+            const cursorLine = Math.min(linePhase, textLines.length - 1);
+            ctx.fillStyle = '#4ade80';
+            ctx.fillRect(scrX + 2 + textLines[cursorLine].w + 2, textLines[cursorLine].y, 3, 3);
+          }
+
+          // Monitor stand
+          ctx.fillStyle = '#475569';
+          ctx.fillRect(monX + monW / 2 - 4, monY + monH, 8, 4);
+          ctx.fillRect(monX + monW / 2 - 8, monY + monH + 3, 16, 3);
+
+          // Keyboard on desk
+          const kbX = monX + monW / 2 - 16;
+          const kbY = obs.y + obs.height - 10;
+          ctx.fillStyle = '#1f2937';
+          ctx.fillRect(kbX, kbY, 32, 6);
+          ctx.fillStyle = '#334155';
+          ctx.fillRect(kbX, kbY, 32, 1);
+          // Key dots
+          ctx.fillStyle = '#4b5563';
+          for (let kr = 0; kr < 2; kr++) {
+            for (let kc = 0; kc < 10; kc++) {
+              ctx.fillRect(kbX + 2 + kc * 3, kbY + 2 + kr * 2, 2, 1);
+            }
+          }
         }
       });
 
-      // 6. Draw Player (Cyber Astronaut Sprite with Hovering Animation)
-      const hoverOffset = Math.sin(Date.now() * 0.0055) * 2.5;
-      const py = p.y + hoverOffset;
+      // ════════════════════════════════════════════
+      // 6. NPC SPRITES — 32-BIT CYBER CHARACTERS
+      // ════════════════════════════════════════════
+      npcs.forEach((npc) => {
+        const nx = npc.x;
+        const ny = npc.y;
 
-      // Drop shadow on floor under the astronaut (shrinks/grows with hovering)
-      const shadowScale = 1 - (hoverOffset / 12);
-      ctx.fillStyle = 'rgba(0,0,0,0.4)';
-      ctx.beginPath();
-      ctx.ellipse(p.x + 12, p.y + 21, 9 * shadowScale, 3 * shadowScale, 0, 0, Math.PI * 2);
-      ctx.fill();
+        ctx.save();
+        const cx = nx + npc.width / 2;
+        const cy = ny + npc.height / 2;
+        ctx.translate(cx, cy);
+        ctx.scale(1.3, 1.3);
+        ctx.translate(-cx, -cy);
 
-      // Backpack
-      ctx.fillStyle = '#047857';
-      ctx.fillRect(p.x + 2, py + 8, 4, 11);
-      ctx.fillStyle = '#10b981';
-      ctx.fillRect(p.x + 2, py + 9, 3, 9);
+        if (npc.hintIndex === 99) {
+          // ── MISSION BOARD (digital bulletin board) ──
+          // Stand/mount
+          ctx.fillStyle = '#475569';
+          ctx.fillRect(nx + 8, ny + 18, 3, 6);
+          ctx.fillRect(nx + 13, ny + 18, 3, 6);
+          ctx.fillStyle = '#64748b';
+          ctx.fillRect(nx + 5, ny + 22, 14, 3);
 
-      // Cyber suit body
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(p.x + 6, py + 8, 12, 11);
-      
-      // Neon green lining
-      ctx.strokeStyle = '#22c55e';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(p.x + 6, py + 8, 12, 11);
+          // Digital board frame
+          ctx.fillStyle = '#1e293b';
+          ctx.fillRect(nx + 1, ny, 22, 18);
+          ctx.fillStyle = '#eab308';
+          ctx.fillRect(nx + 1, ny, 22, 2);
+          ctx.fillRect(nx + 1, ny, 2, 18);
+          ctx.fillRect(nx + 21, ny, 2, 18);
+          ctx.fillRect(nx + 1, ny + 16, 22, 2);
 
-      // Cybernetic core light
+          // Screen area
+          ctx.fillStyle = '#020617';
+          ctx.fillRect(nx + 3, ny + 2, 18, 14);
+
+          // Mission text lines (scrolling)
+          const scrollOffset = Math.floor(now / 1200) % 4;
+          const missionColors = ['#fbbf24', '#f59e0b', '#eab308'];
+          for (let ml = 0; ml < 3; ml++) {
+            const my = ny + 4 + ml * 4;
+            ctx.fillStyle = missionColors[ml];
+            ctx.fillRect(nx + 5, my, 10 + ((ml + scrollOffset) % 3) * 2, 2);
+          }
+
+          // Blinking indicator
+          ctx.fillStyle = Math.floor(now / 500) % 2 === 0 ? '#eab308' : '#422006';
+          ctx.fillRect(nx + 17, ny + 4, 2, 2);
+
+        } else if (npc.hintIndex === 98) {
+          // ── PRACTICE SERVER TERMINAL (workstation) ──
+          // Monitor body (thick CRT)
+          ctx.fillStyle = '#374151';
+          ctx.fillRect(nx + 1, ny, 22, 14);
+          ctx.fillStyle = '#4b5563';
+          ctx.fillRect(nx + 1, ny, 22, 2);
+          ctx.fillRect(nx + 1, ny, 2, 14);
+
+          // Screen
+          ctx.fillStyle = '#020617';
+          ctx.fillRect(nx + 3, ny + 2, 18, 10);
+
+          // Terminal content
+          ctx.fillStyle = '#38bdf8';
+          ctx.fillRect(nx + 5, ny + 4, 10, 1);
+          const tPhase = Math.floor(now / 500) % 3;
+          if (tPhase >= 1) {
+            ctx.fillStyle = '#4ade80';
+            ctx.fillRect(nx + 5, ny + 6, 14, 1);
+          }
+          if (tPhase >= 2) {
+            ctx.fillStyle = '#a855f7';
+            ctx.fillRect(nx + 5, ny + 8, 8, 1);
+          }
+          // Cursor
+          if (Math.floor(now / 300) % 2 === 0) {
+            ctx.fillStyle = '#22c55e';
+            ctx.fillRect(nx + 5 + (tPhase >= 2 ? 9 : tPhase >= 1 ? 15 : 11), ny + 4 + tPhase * 2, 2, 2);
+          }
+
+          // Stand
+          ctx.fillStyle = '#4b5563';
+          ctx.fillRect(nx + 9, ny + 14, 6, 3);
+          ctx.fillRect(nx + 6, ny + 16, 12, 2);
+
+          // Keyboard
+          ctx.fillStyle = '#1f2937';
+          ctx.fillRect(nx + 3, ny + 19, 18, 5);
+          ctx.fillStyle = '#374151';
+          for (let kx = nx + 4; kx < nx + 20; kx += 2) {
+            ctx.fillRect(kx, ny + 21, 1, 1);
+          }
+
+        } else if (npc.hintIndex === 100) {
+          // ── FLAG SUBMISSION TERMINAL (secure kiosk) ──
+          // Cabinet body
+          ctx.fillStyle = '#1e293b';
+          ctx.fillRect(nx + 3, ny + 2, 18, 20);
+          // Metal frame
+          ctx.fillStyle = '#10b981';
+          ctx.fillRect(nx + 3, ny + 2, 18, 2);
+          ctx.fillRect(nx + 3, ny + 2, 2, 20);
+          ctx.fillRect(nx + 19, ny + 2, 2, 20);
+          ctx.fillRect(nx + 3, ny + 20, 18, 2);
+
+          // Status screen
+          ctx.fillStyle = '#020617';
+          ctx.fillRect(nx + 6, ny + 5, 12, 7);
+          // "FLAG" indicator
+          ctx.fillStyle = '#10b981';
+          ctx.fillRect(nx + 7, ny + 7, 3, 2);
+          ctx.fillRect(nx + 11, ny + 7, 3, 2);
+          ctx.fillRect(nx + 15, ny + 7, 2, 2);
+
+          // Submission slot (with glow)
+          ctx.fillStyle = '#030712';
+          ctx.fillRect(nx + 7, ny + 15, 10, 3);
+          const slotGlow = Math.sin(now * 0.006) > 0;
+          ctx.fillStyle = slotGlow ? '#10b981' : '#065f46';
+          ctx.fillRect(nx + 7, ny + 15, 10, 1);
+
+          // Top LEDs (status)
+          ctx.fillStyle = Math.floor(now / 700) % 2 === 0 ? '#22c55e' : '#064e3b';
+          ctx.fillRect(nx + 8, ny + 3, 3, 2);
+          ctx.fillStyle = Math.floor(now / 500) % 2 === 0 ? '#3b82f6' : '#172554';
+          ctx.fillRect(nx + 13, ny + 3, 3, 2);
+
+        } else {
+          // ── SECURITY MENTOR (Hacker/Expert character) ──
+          const color = npc.color;
+          const isLocked = npc.hintIndex > revealedHints;
+          const breathe = Math.sin(now * 0.003 + npc.hintIndex * 2) * 0.5;
+
+          // Shadow
+          ctx.fillStyle = 'rgba(0,0,0,0.3)';
+          ctx.fillRect(nx + 4, ny + 22, 16, 3);
+
+          // BODY (jacket/coat)
+          ctx.fillStyle = isLocked ? '#1e293b' : '#0f172a';
+          ctx.fillRect(nx + 5, ny + 10, 14, 12);
+          // Jacket collar/shoulders
+          ctx.fillStyle = isLocked ? '#334155' : color;
+          ctx.fillRect(nx + 4, ny + 10, 16, 2);
+          ctx.fillRect(nx + 4, ny + 10, 2, 5);
+          ctx.fillRect(nx + 18, ny + 10, 2, 5);
+          // Center line (zipper)
+          ctx.fillStyle = isLocked ? '#475569' : '#4b5563';
+          ctx.fillRect(nx + 11, ny + 12, 2, 8);
+
+          // ID Badge
+          if (!isLocked) {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(nx + 6, ny + 14, 4, 5);
+            ctx.fillStyle = color;
+            ctx.fillRect(nx + 7, ny + 15, 2, 2);
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillRect(nx + 6, ny + 18, 4, 1);
+          }
+
+          // HEAD
+          ctx.fillStyle = '#d4a574';
+          ctx.fillRect(nx + 7, ny + 4, 10, 6);
+          // Hair/hood top
+          ctx.fillStyle = isLocked ? '#1e293b' : '#0f172a';
+          ctx.fillRect(nx + 6, ny + 2, 12, 4);
+          ctx.fillRect(nx + 8, ny + 1, 8, 2);
+
+          // EYES
+          const eyeBlink = Math.floor(now / 2500) % 25 === 0 && Math.floor(now / 80) % 3 === 0;
+          if (!eyeBlink) {
+            ctx.fillStyle = isLocked ? '#475569' : color;
+            ctx.fillRect(nx + 8, ny + 6, 3, 2);
+            ctx.fillRect(nx + 13, ny + 6, 3, 2);
+            // Pupil
+            ctx.fillStyle = '#020617';
+            ctx.fillRect(nx + 9, ny + 6, 1, 2);
+            ctx.fillRect(nx + 14, ny + 6, 1, 2);
+          } else {
+            ctx.fillStyle = '#b8977a';
+            ctx.fillRect(nx + 8, ny + 7, 3, 1);
+            ctx.fillRect(nx + 13, ny + 7, 3, 1);
+          }
+
+          // LEGS
+          ctx.fillStyle = '#1e293b';
+          ctx.fillRect(nx + 6, ny + 22, 5, 3);
+          ctx.fillRect(nx + 13, ny + 22, 5, 3);
+          // Shoes
+          ctx.fillStyle = isLocked ? '#334155' : '#374151';
+          ctx.fillRect(nx + 5, ny + 24, 6, 2);
+          ctx.fillRect(nx + 13, ny + 24, 6, 2);
+
+          // LOCK ICON overlay
+          if (isLocked) {
+            ctx.globalAlpha = 0.7;
+            ctx.fillStyle = '#94a3b8';
+            // Lock body
+            ctx.fillRect(nx + 9, ny + 14, 6, 5);
+            // Lock shackle
+            ctx.fillRect(nx + 10, ny + 11, 4, 4);
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(nx + 11, ny + 12, 2, 2);
+            // Keyhole
+            ctx.fillStyle = '#020617';
+            ctx.fillRect(nx + 11, ny + 16, 2, 2);
+            }
+        }
+        ctx.restore();
+      });
+
+      // ════════════════════════════════════════════
+      // 7. PLAYER — PIXEL HACKER PROTAGONIST
+      // ════════════════════════════════════════════
+      const keys = keysPressedRef.current;
+      const isMoving = keys['ArrowUp'] || keys['ArrowDown'] || keys['ArrowLeft'] || keys['ArrowRight'] ||
+                       keys['KeyW'] || keys['KeyS'] || keys['KeyA'] || keys['KeyD'] ||
+                       keys['w'] || keys['s'] || keys['a'] || keys['d'];
+
+      if (isMoving) {
+        if (now - walkFrameRef.current.lastToggle > 180) {
+          walkFrameRef.current.frame = walkFrameRef.current.frame === 0 ? 1 : 0;
+          walkFrameRef.current.lastToggle = now;
+        }
+      } else {
+        walkFrameRef.current.frame = 0;
+      }
+
+      const wf = walkFrameRef.current.frame;
+      const px = p.x;
+      const py = p.y;
+      const idleBob = isMoving ? 0 : Math.sin(now * 0.004) * 2.0;
+
+      ctx.save();
+      const pcx = px + p.width / 2;
+      const pcy = py + p.height / 2;
+      ctx.translate(pcx, pcy);
+      ctx.scale(1.3, 1.3);
+      ctx.translate(-pcx, -pcy);
+
+      // ── PLAYER GROUND GLOW (multi-layer pulsing aura) ──
+      const pby = py + p.height;         // player bottom Y
+      const glowPulse = Math.sin(now * 0.003) * 0.3 + 0.7;  // 0.4-1.0 pulse
+
+      // Layer 1: Wide ambient spotlight on floor
+      for (let gr = 28; gr > 0; gr -= 2) {
+        ctx.globalAlpha = 0.04 * glowPulse * (1 - gr / 28);
+        ctx.fillStyle = '#4ade80';
+        ctx.fillRect(pcx - gr, pby - 1, gr * 2, 4);
+      }
+
+      // Layer 2: Bright inner glow ring
+      const ringSize = 12 + Math.sin(now * 0.005) * 3;
+      ctx.globalAlpha = 0.15 * glowPulse;
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(pcx - ringSize, pby, ringSize * 2, 3);
+      ctx.globalAlpha = 0.25 * glowPulse;
       ctx.fillStyle = '#4ade80';
-      ctx.fillRect(p.x + 11, py + 13, 2, 2);
+      ctx.fillRect(pcx - ringSize + 3, pby + 1, (ringSize - 3) * 2, 1);
 
-      // Space boots
+      // Layer 3: Pixel diamond glow pattern (expanding/contracting)
+      const diaSize = 8 + Math.sin(now * 0.004) * 2;
+      for (let d = 0; d < diaSize; d += 2) {
+        ctx.globalAlpha = 0.08 * (1 - d / diaSize);
+        ctx.fillStyle = '#86efac';
+        ctx.fillRect(pcx - d, pby + 2, d * 2, 1);
+      }
+      ctx.globalAlpha = 1;
+
+      // Layer 4: Drop shadow (sharp pixel)
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.fillRect(px + 3, py + 22 + idleBob, 18, 3);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+      ctx.fillRect(px + 1, py + 24 + idleBob, 22, 2);
+
+      // LEGS (walk animation)
       ctx.fillStyle = '#1e293b';
-      ctx.fillRect(p.x + 6, py + 19, 4, 3);
-      ctx.fillRect(p.x + 14, py + 19, 4, 3);
+      if (wf === 0) {
+        ctx.fillRect(px + 6, py + 18 + idleBob, 5, 5);
+        ctx.fillRect(px + 13, py + 18 + idleBob, 5, 5);
+      } else {
+        ctx.fillRect(px + 5, py + 17, 5, 6);
+        ctx.fillRect(px + 14, py + 18, 5, 4);
+      }
+      // Boots
+      ctx.fillStyle = '#374151';
+      if (wf === 0) {
+        ctx.fillRect(px + 5, py + 22 + idleBob, 6, 2);
+        ctx.fillRect(px + 13, py + 22 + idleBob, 6, 2);
+      } else {
+        ctx.fillRect(px + 4, py + 22, 6, 2);
+        ctx.fillRect(px + 14, py + 21, 6, 2);
+      }
 
-      // Matte dark helmet
+      // BODY (hoodie)
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(px + 4, py + 8 + idleBob, 16, 10);
+      // Hoodie shoulder accent
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(px + 3, py + 8 + idleBob, 18, 2);
+      ctx.fillRect(px + 3, py + 8 + idleBob, 2, 6);
+      ctx.fillRect(px + 19, py + 8 + idleBob, 2, 6);
+      // Center zip
+      ctx.fillStyle = '#4ade80';
+      ctx.fillRect(px + 11, py + 10 + idleBob, 2, 7);
+
+      // ARMS + LAPTOP
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(px + 1, py + 11 + idleBob, 4, 5);
+      ctx.fillRect(px + 19, py + 11 + idleBob, 4, 5);
+      // Laptop (held in front)
       ctx.fillStyle = '#1e293b';
-      ctx.beginPath();
-      ctx.arc(p.x + 12, py + 6, 8, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#475569';
-      ctx.stroke();
+      ctx.fillRect(px + 5, py + 15 + idleBob, 14, 3);
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(px + 6, py + 13 + idleBob, 12, 3);
+      // Screen content flicker
+      if (Math.sin(now * 0.01) > 0) {
+        ctx.fillStyle = '#67e8f9';
+        ctx.fillRect(px + 8, py + 14 + idleBob, 4, 1);
+      }
+      if (Math.sin(now * 0.007 + 1) > 0) {
+        ctx.fillStyle = '#4ade80';
+        ctx.fillRect(px + 13, py + 14 + idleBob, 3, 1);
+      }
 
-      // Visor glowing bright neon green
-      ctx.fillStyle = 'rgba(34, 197, 94, 0.95)';
-      ctx.fillRect(p.x + 8, py + 4, 9, 4);
+      // HEAD (hoodie hood)
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(px + 6, py + 1 + idleBob, 12, 8);
+      ctx.fillRect(px + 8, py + idleBob, 8, 2);
+      // Hood pointed tip
+      ctx.fillRect(px + 10, py - 1 + idleBob, 4, 2);
 
-      // Visor light reflection gleam
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(p.x + 14, py + 4, 2, 1);
+      // FACE (visible under hood)
+      ctx.fillStyle = '#d4a574';
+      ctx.fillRect(px + 7, py + 4 + idleBob, 10, 5);
 
-      // Simple Sharp "YOU" label drawn on canvas directly above head
-      drawTextWithOutline(ctx, 'BẠN', p.x + p.width / 2, py - 6, '#4ade80');
+      // HACKER MASK / BANDANA (covers lower face)
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(px + 7, py + 7 + idleBob, 10, 2);
+
+      // EYES (neon green, with blink)
+      const playerBlink = Math.floor(now / 2500) % 18 === 0 && Math.floor(now / 80) % 3 === 0;
+      if (!playerBlink) {
+        ctx.fillStyle = '#4ade80';
+        ctx.fillRect(px + 8, py + 5 + idleBob, 3, 2);
+        ctx.fillRect(px + 13, py + 5 + idleBob, 3, 2);
+        // Eye highlights
+        ctx.fillStyle = '#86efac';
+        ctx.fillRect(px + 9, py + 5 + idleBob, 1, 1);
+        ctx.fillRect(px + 14, py + 5 + idleBob, 1, 1);
+        // Eye glow aura (neon light spill from eyes)
+        ctx.globalAlpha = 0.12 * glowPulse;
+        ctx.fillStyle = '#4ade80';
+        ctx.fillRect(px + 6, py + 4 + idleBob, 12, 4);
+        ctx.globalAlpha = 0.06;
+        ctx.fillRect(px + 5, py + 3 + idleBob, 14, 6);
+        ctx.globalAlpha = 1;
+      }
+
+      // Hoodie shoulder accent shimmer
+      const shimmer = Math.sin(now * 0.006) * 0.12 + 0.08;
+      ctx.globalAlpha = shimmer;
+      ctx.fillStyle = '#86efac';
+      ctx.fillRect(px + 4, py + 8 + idleBob, 16, 1);
+      ctx.globalAlpha = 1;
+      ctx.restore();
+
+      drawTextWithOutline(ctx, 'BẠN', px + p.width / 2, py - 12 + idleBob, '#4ade80');
     };
 
     const renderLoop = () => {
@@ -925,54 +1652,62 @@ export default function LabGameView({
               >
                 {isUnlockable && (
                   <div style={{
-                    fontSize: '8px',
-                    fontFamily: 'var(--font-mono)',
-                    color: '#eab308',
-                    background: 'rgba(234, 179, 8, 0.12)',
-                    border: '1px solid #eab308',
-                    borderRadius: '3px',
-                    padding: '1px 4px',
+                    fontSize: 'clamp(9px, 1.2vw, 12px)',
+                    fontFamily: '"Courier New", Courier, monospace',
+                    color: '#fbbf24',
+                    background: 'rgba(234, 179, 8, 0.15)',
+                    border: '1.5px solid #eab308',
+                    borderRadius: '4px',
+                    padding: '2px 6px',
                     fontWeight: 'bold',
-                    letterSpacing: '0.5px',
+                    letterSpacing: '0.8px',
                     textTransform: 'uppercase',
-                    marginBottom: '1px',
-                    boxShadow: '0 0 8px rgba(234,179,8,0.2)',
+                    marginBottom: '2px',
+                    boxShadow: '0 0 10px rgba(234,179,8,0.25)',
+                    textShadow: '0 0 4px rgba(234,179,8,0.4)',
                   }}>
-                    Gợi ý mở
+                    GỢI Ý MỞ
                   </div>
                 )}
 
                 <div style={{
-                  background: isCurrentActive ? 'rgba(9, 13, 22, 0.95)' : 'rgba(9, 13, 22, 0.75)',
+                  background: isCurrentActive ? 'rgba(9, 13, 22, 0.95)' : 'rgba(9, 13, 22, 0.85)',
                   border: isCurrentActive 
-                    ? `1.5px solid ${npc.color}` 
-                    : '1px solid rgba(255, 255, 255, 0.15)',
-                  borderRadius: '5px',
-                  padding: '3px 8px',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  fontFamily: 'var(--font-sans)',
-                  color: isCurrentActive ? '#ffffff' : '#cbd5e1',
+                    ? `2px solid ${npc.color}` 
+                    : '1.5px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '6px',
+                  padding: '4px 10px',
+                  fontSize: 'clamp(11px, 1.6vw, 15px)',
+                  fontWeight: 800,
+                  fontFamily: '"Courier New", Courier, monospace',
+                  color: isCurrentActive ? '#ffffff' : '#e2e8f0',
                   whiteSpace: 'nowrap',
+                  letterSpacing: '0.6px',
                   boxShadow: isCurrentActive 
-                    ? `0 0 12px ${npc.color}55` 
-                    : '0 2px 5px rgba(0, 0, 0, 0.4)',
-                  backdropFilter: 'blur(2px)',
+                    ? `0 0 14px ${npc.color}66` 
+                    : '0 2px 6px rgba(0, 0, 0, 0.5)',
+                  backdropFilter: 'blur(3px)',
+                  textRendering: 'geometricPrecision',
+                  textShadow: isCurrentActive 
+                    ? `0 0 6px ${npc.color}88` 
+                    : '0 1px 2px rgba(0,0,0,0.8)',
                 }}>
                   {npc.name}
                 </div>
 
                 {isCurrentActive && (
                   <div style={{
-                    fontSize: '8px',
-                    fontFamily: 'var(--font-mono)',
+                    fontSize: 'clamp(9px, 1.1vw, 11px)',
+                    fontFamily: '"Courier New", Courier, monospace',
                     color: '#ffffff',
                     background: npc.color,
-                    borderRadius: '3px',
-                    padding: '1px 5px',
+                    borderRadius: '4px',
+                    padding: '2px 8px',
                     fontWeight: 900,
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                    marginTop: '1px',
+                    letterSpacing: '0.5px',
+                    boxShadow: `0 2px 6px rgba(0,0,0,0.4), 0 0 8px ${npc.color}44`,
+                    marginTop: '2px',
+                    textShadow: '0 1px 2px rgba(0,0,0,0.5)',
                   }}>
                     {isMobile ? 'CHẠM ĐỂ CHỌN' : 'ẤN PHÍM E'}
                   </div>
@@ -983,6 +1718,7 @@ export default function LabGameView({
         </div>
 
         {/* Scanline CRT overlay filter */}
+        {/* CRT Scanline + Vignette overlay (enhanced for pixel art) */}
         <div style={{
           position: 'absolute',
           top: 0,
@@ -990,82 +1726,122 @@ export default function LabGameView({
           width: '100%',
           height: '100%',
           background: 'linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%)',
-          backgroundSize: '100% 4px',
+          backgroundSize: '100% 2px',
           pointerEvents: 'none',
-          opacity: 0.25,
+          opacity: 0.30,
+        }}></div>
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background: 'radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.4) 100%)',
+          pointerEvents: 'none',
         }}></div>
 
-        {/* HUD Info bar */}
+        {/* HUD Info bar - Premium Cybernetic Dashboard */}
         <div style={{
           position: 'absolute',
           top: '16px',
           left: '16px',
-          padding: '6px 12px',
-          background: 'rgba(15, 23, 42, 0.85)',
-          backdropFilter: 'blur(4px)',
-          border: '1px solid var(--border-default-medium)',
-          borderRadius: 'var(--radius-sm)',
+          padding: '8px 16px',
+          background: 'rgba(9, 13, 22, 0.9)',
+          backdropFilter: 'blur(6px)',
+          border: '1.5px solid #00f2fe',
+          borderRadius: '8px',
           fontSize: '11px',
-          fontFamily: 'var(--font-mono)',
-          color: '#38bdf8',
+          fontFamily: '"Courier New", Courier, monospace',
+          color: '#00f2fe',
           display: 'flex',
-          gap: '12px',
+          gap: '16px',
           alignItems: 'center',
           pointerEvents: 'none',
+          boxShadow: '0 4px 15px rgba(0, 242, 254, 0.25), inset 0 0 10px rgba(0, 242, 254, 0.1)',
+          letterSpacing: '0.5px',
+          fontWeight: 'bold',
         }}>
-          <span>Points: {points}</span>
-          <span style={{ color: 'var(--text-body-subtle)' }}>|</span>
-          <span>Gợi ý mở: {revealedHints}/{hints.length}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00f2fe', boxShadow: '0 0 8px #00f2fe', display: 'inline-block', animation: 'blink 1s step-end infinite' }}></span>
+            <span>DIỂM: <strong style={{ color: '#fff', textShadow: '0 0 4px #00f2fe' }}>{points}</strong></span>
+          </div>
+          <span style={{ color: 'rgba(0, 242, 254, 0.3)' }}>|</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>GỢI Ý: <strong style={{ color: '#fff', textShadow: '0 0 4px #00f2fe' }}>{revealedHints}/{hints.length}</strong></span>
+          </div>
         </div>
 
-        {/* In-Game Dialogue window overlay */}
+        {/* In-Game Dialogue window overlay - Sleek Cybernetic Terminal */}
         {dialogue?.isOpen && (
           <div style={{
             position: 'absolute',
             bottom: '16px',
             left: '16px',
             right: '16px',
-            background: 'rgba(15, 23, 42, 0.95)',
-            border: `2px solid ${activeNpcRef.current?.color || 'var(--border-default)'}`,
-            borderRadius: 'var(--radius-sm)',
+            background: 'rgba(5, 8, 16, 0.96)',
+            border: `2px solid ${activeNpcRef.current?.color || '#00f2fe'}`,
+            borderRadius: '8px',
             padding: '16px 20px',
             display: 'flex',
             flexDirection: 'column',
             zIndex: 100,
-            boxShadow: '0 10px 25px -5px rgba(0,0,0,0.6)',
+            boxShadow: `0 8px 30px rgba(0, 0, 0, 0.8), 0 0 15px ${(activeNpcRef.current?.color || '#00f2fe')}44`,
+            backdropFilter: 'blur(8px)',
           }}>
+            {/* Cyberpunk corner brackets */}
+            <div style={{ position: 'absolute', top: '4px', left: '4px', width: '8px', height: '8px', borderTop: `2px solid ${activeNpcRef.current?.color || '#00f2fe'}`, borderLeft: `2px solid ${activeNpcRef.current?.color || '#00f2fe'}` }}></div>
+            <div style={{ position: 'absolute', top: '4px', right: '4px', width: '8px', height: '8px', borderTop: `2px solid ${activeNpcRef.current?.color || '#00f2fe'}`, borderRight: `2px solid ${activeNpcRef.current?.color || '#00f2fe'}` }}></div>
+            <div style={{ position: 'absolute', bottom: '4px', left: '4px', width: '8px', height: '8px', borderBottom: `2px solid ${activeNpcRef.current?.color || '#00f2fe'}`, borderLeft: `2px solid ${activeNpcRef.current?.color || '#00f2fe'}` }}></div>
+            <div style={{ position: 'absolute', bottom: '4px', right: '4px', width: '8px', height: '8px', borderBottom: `2px solid ${activeNpcRef.current?.color || '#00f2fe'}`, borderRight: `2px solid ${activeNpcRef.current?.color || '#00f2fe'}` }}></div>
+
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <div style={{
-                fontSize: '12px',
-                fontWeight: 700,
-                color: activeNpcRef.current?.color || 'var(--text-heading)',
-                fontFamily: 'var(--font-mono)',
-                marginBottom: '4px',
+                fontSize: '11px',
+                fontWeight: 900,
+                color: activeNpcRef.current?.color || '#00f2fe',
+                fontFamily: '"Courier New", Courier, monospace',
+                marginBottom: '8px',
                 textTransform: 'uppercase',
-                letterSpacing: '1px'
+                letterSpacing: '1.5px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                textShadow: `0 0 5px ${(activeNpcRef.current?.color || '#00f2fe')}88`,
               }}>
-                {activeNpcRef.current?.name || 'Hacker Guide'}
+                <span style={{ display: 'inline-block', width: '8px', height: '8px', background: activeNpcRef.current?.color || '#00f2fe', borderRadius: '50%', boxShadow: `0 0 8px ${activeNpcRef.current?.color || '#00f2fe'}` }}></span>
+                {activeNpcRef.current?.name || 'HACKER GUIDE'}
               </div>
               <p style={{
                 fontSize: '13px',
-                color: '#f8fafc',
-                fontFamily: 'var(--font-mono)',
-                lineHeight: 1.55,
+                color: '#e2e8f0',
+                fontFamily: '"Courier New", Courier, monospace',
+                lineHeight: 1.6,
                 margin: 0,
-                whiteSpace: 'pre-wrap'
+                whiteSpace: 'pre-wrap',
+                letterSpacing: '0.3px',
               }}>
                 {typedText}
                 {typingIndex < dialogue.text.length && (
-                  <span style={{ display: 'inline-block', width: '6px', height: '12px', background: '#fff', marginLeft: '2px', animation: 'blink 0.8s step-end infinite' }}></span>
+                  <span style={{ display: 'inline-block', width: '8px', height: '14px', background: activeNpcRef.current?.color || '#00f2fe', marginLeft: '2px', animation: 'blink 0.8s step-end infinite', boxShadow: `0 0 6px ${activeNpcRef.current?.color || '#00f2fe'}` }}></span>
                 )}
               </p>
 
               {dialogue.showOptions && typingIndex >= dialogue.text.length && (
-                <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
                   <button
                     className="btn btn-primary btn-sm"
                     onClick={handleConfirmUnlock}
-                    style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', padding: '4px 16px' }}
+                    style={{
+                      fontFamily: '"Courier New", Courier, monospace',
+                      fontSize: '12px',
+                      padding: '6px 20px',
+                      background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)',
+                      border: 'none',
+                      color: '#000',
+                      fontWeight: 'bold',
+                      borderRadius: '4px',
+                      boxShadow: '0 4px 10px rgba(251, 191, 36, 0.3)',
+                    }}
                   >
                     Đồng ý (-{points / 10} pts)
                   </button>
@@ -1076,7 +1852,15 @@ export default function LabGameView({
                       dialogueIsOpenRef.current = false;
                       setTypedText('');
                     }}
-                    style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', padding: '4px 16px' }}
+                    style={{
+                      fontFamily: '"Courier New", Courier, monospace',
+                      fontSize: '12px',
+                      padding: '6px 20px',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      color: '#cbd5e1',
+                      borderRadius: '4px',
+                    }}
                   >
                     Bỏ qua
                   </button>
@@ -1089,43 +1873,73 @@ export default function LabGameView({
                   style={{
                     alignSelf: 'flex-end',
                     fontSize: '10px',
-                    fontFamily: 'var(--font-mono)',
-                    color: 'var(--text-body-subtle)',
-                    marginTop: '8px',
+                    fontFamily: '"Courier New", Courier, monospace',
+                    color: 'rgba(255, 255, 255, 0.4)',
+                    marginTop: '12px',
                     cursor: 'pointer',
+                    letterSpacing: '0.5px',
+                    padding: '2px 8px',
+                    border: '1px dashed rgba(255,255,255,0.2)',
+                    borderRadius: '4px',
                     animation: 'pulse-glow 1.5s infinite',
                   }}
                 >
-                  {isMobile ? '[ Chạm để đóng ]' : '[ Ấn E hoặc Click để đóng ]'}
+                  {isMobile ? '[ CHẠM ĐỂ ĐÓNG ]' : '[ ẤN PHÍM E HOẶC CLICK ĐỂ ĐÓNG ]'}
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* Flag Submission Terminal Overlay */}
+        {/* Flag Submission Terminal Overlay - Immersive validating console */}
         {isFlagOverlayOpen && (
           <div style={{
             position: 'absolute',
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            background: 'rgba(15, 23, 42, 0.96)',
-            border: '2px solid #10b981',
-            borderRadius: '12px',
+            background: 'rgba(6, 10, 18, 0.98)',
+            border: '2.5px solid #10b981',
+            borderRadius: '10px',
             padding: '24px',
-            width: '360px',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.6)',
+            width: '380px',
+            boxShadow: '0 15px 40px rgba(0,0,0,0.8), 0 0 25px rgba(16, 185, 129, 0.3)',
             zIndex: 110,
             color: '#e2e8f0',
-            fontFamily: 'var(--font-mono)',
+            fontFamily: '"Courier New", Courier, monospace',
+            backdropFilter: 'blur(10px)',
           }}>
-            <h4 style={{ margin: '0 0 16px 0', color: '#10b981', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', borderBottom: '1px solid rgba(16,185,129,0.2)', paddingBottom: '8px' }}>
-              THIẾT BỊ NỘP FLAG
+            {/* Custom terminal scanner line effect */}
+            <div style={{
+              position: 'absolute',
+              top: '2px',
+              left: '2px',
+              right: '2px',
+              height: '3px',
+              background: 'rgba(16, 185, 129, 0.3)',
+              boxShadow: '0 0 10px #10b981',
+              borderRadius: '2px',
+            }}></div>
+
+            <h4 style={{
+              margin: '0 0 16px 0',
+              color: '#10b981',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '14px',
+              borderBottom: '1px solid rgba(16,185,129,0.3)',
+              paddingBottom: '10px',
+              fontWeight: 'bold',
+              letterSpacing: '1px',
+              textShadow: '0 0 6px rgba(16, 185, 129, 0.4)',
+            }}>
+              <span style={{ display: 'inline-block', width: '8px', height: '8px', background: '#10b981', borderRadius: '50%', boxShadow: '0 0 8px #10b981' }}></span>
+              SECURE FLAG VERIFICATION
             </h4>
             
-            <p style={{ fontSize: '11px', color: '#94a3b8', margin: '0 0 12px 0', lineHeight: 1.5 }}>
-              Nhập mã flag thu thập được từ bài lab để tiến hành xác thực hệ thống.
+            <p style={{ fontSize: '11px', color: '#94a3b8', margin: '0 0 16px 0', lineHeight: 1.6 }}>
+              Nhập mã FLAG thu thập được từ bài Lab để hệ thống giải mã và cộng điểm.
             </p>
 
             <input
@@ -1134,18 +1948,19 @@ export default function LabGameView({
               onChange={(e) => {
                 setLocalFlag(e.target.value);
               }}
-              placeholder="FLAG{...}"
+              placeholder="FLAG{cyber_sec_key}"
               style={{
                 width: '100%',
-                background: '#090d16',
-                border: '1px solid rgba(16,185,129,0.3)',
+                background: '#030712',
+                border: '1.5px solid rgba(16,185,129,0.4)',
                 borderRadius: '6px',
-                padding: '8px 12px',
+                padding: '10px 14px',
                 color: '#fff',
                 fontSize: '13px',
                 marginBottom: '16px',
-                fontFamily: 'var(--font-mono)',
+                fontFamily: '"Courier New", Courier, monospace',
                 outline: 'none',
+                boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.8)',
               }}
               onKeyDown={async (e) => {
                 if (e.key === 'Enter') {
@@ -1155,33 +1970,41 @@ export default function LabGameView({
             />
 
             {flagResult === 'correct' && (
-              <div style={{ color: '#10b981', fontSize: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                ✓ Hệ thống xác thực THÀNH CÔNG! (+{points}đ)
+              <div style={{ color: '#10b981', fontSize: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold' }}>
+                [OK] ✓ Hệ thống xác thực THÀNH CÔNG! (+{points}đ)
               </div>
             )}
             {flagResult === 'wrong' && (
-              <div style={{ color: '#ff2d55', fontSize: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                ✗ SAI LỆCH MÃ! Vui lòng thử lại.
+              <div style={{ color: '#ff2d55', fontSize: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold' }}>
+                [ERR] ✗ SAI LỆCH MÃ! Vui lòng thử lại.
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px' }}>
               <button
                 className="btn btn-secondary btn-sm"
                 onClick={() => {
                   setIsFlagOverlayOpen(false);
                 }}
-                style={{ fontSize: '12px', padding: '6px 12px' }}
+                style={{ fontSize: '12px', padding: '6px 16px', background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', color: '#cbd5e1' }}
               >
-                Đóng
+                HỦY
               </button>
               <button
                 className="btn btn-primary btn-sm"
                 onClick={handleFlagSubmit}
                 disabled={isSubmitting || !localFlag.trim() || labStatus === 'completed'}
-                style={{ fontSize: '12px', padding: '6px 16px', background: '#10b981', border: 'none' }}
+                style={{
+                  fontSize: '12px',
+                  padding: '6px 20px',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  border: 'none',
+                  color: '#fff',
+                  fontWeight: 'bold',
+                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+                }}
               >
-                {isSubmitting ? 'Đang gửi...' : 'Xác thực'}
+                {isSubmitting ? 'ĐANG GỬI...' : 'XÁC THỰC'}
               </button>
             </div>
           </div>

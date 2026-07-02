@@ -201,30 +201,47 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
             from { text-shadow: 0 0 5px #00f2fe, 0 0 10px #00f2fe; }
             to { text-shadow: 0 0 15px #00f2fe, 0 0 25px #00f2fe, 0 0 35px #00f2fe; }
           }
+          @keyframes blue-pulse {
+            from { box-shadow: 0 0 8px rgba(96, 165, 250, 0.4), 0 4px 0 #1e3a8a, inset 0 2px 4px rgba(255,255,255,0.3); }
+            to { box-shadow: 0 0 20px rgba(96, 165, 250, 0.85), 0 4px 0 #1e3a8a, inset 0 2px 4px rgba(255,255,255,0.3); }
+          }
+          @keyframes yellow-pulse {
+            from { box-shadow: 0 0 8px rgba(251, 191, 36, 0.4), 0 4px 0 #78350f, inset 0 2px 4px rgba(255,255,255,0.3); }
+            to { box-shadow: 0 0 20px rgba(251, 191, 36, 0.85), 0 4px 0 #78350f, inset 0 2px 4px rgba(255,255,255,0.3); }
+          }
+          @keyframes red-pulse {
+            from { box-shadow: 0 0 8px rgba(248, 113, 113, 0.4), 0 4px 0 #991b1b, inset 0 2px 4px rgba(255,255,255,0.3); }
+            to { box-shadow: 0 0 20px rgba(248, 113, 113, 0.85), 0 4px 0 #991b1b, inset 0 2px 4px rgba(255,255,255,0.3); }
+          }
           .marquee-glowing {
             animation: neon-glow 1.5s ease-in-out infinite alternate;
           }
           .arcade-btn {
             border: none;
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
             cursor: pointer;
             transition: all 0.1s ease;
             position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 8px;
-            font-weight: 900;
             color: #ffffff;
             text-transform: uppercase;
             font-family: var(--font-sans);
             text-shadow: 0 1px 2px rgba(0,0,0,0.6);
             box-sizing: border-box;
           }
+          .btn-blue {
+            animation: blue-pulse 1.2s ease-in-out infinite alternate;
+          }
+          .btn-yellow {
+            animation: yellow-pulse 1.2s ease-in-out infinite alternate;
+          }
+          .btn-red {
+            animation: red-pulse 1.2s ease-in-out infinite alternate;
+          }
           .arcade-btn:active {
-            transform: translateY(3px);
+            transform: translateY(3px) !important;
+            box-shadow: 0 1px 0 rgba(0,0,0,0.6) !important;
           }
         `}</style>
 
@@ -279,6 +296,23 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
               border: '1px solid rgba(56,189,248,0.2)'
             }}>
               SCORE: {lab.points}
+            </div>
+
+            {/* Digital Warning Display */}
+            <div style={{
+              background: '#0c0c0c',
+              padding: '3px 10px',
+              borderRadius: '4px',
+              fontSize: '9px',
+              fontFamily: '"Courier New", Courier, monospace',
+              color: '#ef4444',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              letterSpacing: '1px',
+              textTransform: 'uppercase',
+              fontWeight: 'bold',
+              textShadow: '0 0 6px rgba(239, 68, 68, 0.5)',
+            }}>
+              ĐÃ PHÁT HIỆN 1 LỖI
             </div>
           </div>
 
@@ -360,42 +394,54 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
             <div style={{ display: 'flex', gap: '18px', alignItems: 'center' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                 <button
-                  className="arcade-btn"
+                  className="arcade-btn btn-blue"
                   onClick={() => alert('HƯỚNG DẪN:\n\n- Đi chuyển bằng WASD hoặc phím Mũi tên.\n- Đi lại gần các thiết bị trên bản đồ.\n- Nhấn phím E để tương tác.\n- Nhấn phím ESC để đóng bảng.')}
                   style={{
                     background: 'radial-gradient(circle, #60a5fa 0%, #1d4ed8 100%)',
-                    boxShadow: '0 4px 0 #1e3a8a, inset 0 2px 4px rgba(255,255,255,0.3)'
+                    width: '56px',
+                    height: '42px',
+                    borderRadius: '8px',
+                    fontSize: '9px',
+                    letterSpacing: '0.5px',
                   }}
                 >
-                  HD
+                  HỖ TRỢ
                 </button>
                 <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: '#94a3b8', fontWeight: 'bold' }}>HELP</span>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                 <button
-                  className="arcade-btn"
+                  className="arcade-btn btn-yellow"
                   onClick={handleRevealHint}
                   style={{
                     background: 'radial-gradient(circle, #fbbf24 0%, #b45309 100%)',
-                    boxShadow: '0 4px 0 #78350f, inset 0 2px 4px rgba(255,255,255,0.3)'
+                    width: '56px',
+                    height: '42px',
+                    borderRadius: '8px',
+                    fontSize: '9px',
+                    letterSpacing: '0.5px',
                   }}
                 >
-                  Gợi ý
+                  GỢI Ý
                 </button>
                 <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: '#94a3b8', fontWeight: 'bold' }}>HINT</span>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                 <button
-                  className="arcade-btn"
+                  className="arcade-btn btn-red"
                   onClick={() => setViewMode('standard')}
                   style={{
                     background: 'radial-gradient(circle, #f87171 0%, #dc2626 100%)',
-                    boxShadow: '0 4px 0 #991b1b, inset 0 2px 4px rgba(255,255,255,0.3)'
+                    width: '56px',
+                    height: '42px',
+                    borderRadius: '8px',
+                    fontSize: '9px',
+                    letterSpacing: '0.5px',
                   }}
                 >
-                  Thoát
+                  THOÁT
                 </button>
                 <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: '#94a3b8', fontWeight: 'bold' }}>EXIT</span>
               </div>
