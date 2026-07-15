@@ -10,14 +10,16 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class DockerService {
 
     private static final Logger log = LoggerFactory.getLogger(DockerService.class);
+    private static final long DOCKER_CHECK_TIMEOUT_SECONDS = 5;
+    private static final long DOCKER_COMMAND_TIMEOUT_SECONDS = 120;
     private boolean isDockerAvailable = false;
 
     public record ContainerInfo(String containerId, int port) {}
@@ -41,10 +43,9 @@ public class DockerService {
 
     private void checkDockerAvailability() {
         try {
-            Process process = new ProcessBuilder("docker", "ps").start();
-            int exitCode = process.waitFor();
-            isDockerAvailable = (exitCode == 0);
-            log.info("Docker daemon check: {}", isDockerAvailable ? "AVAILABLE" : "UNAVAILABLE");
+            runCommand(DOCKER_CHECK_TIMEOUT_SECONDS, "docker", "ps");
+            isDockerAvailable = true;
+            log.info("Docker daemon check: AVAILABLE");
         } catch (Exception e) {
             log.warn("Docker check failed: {}. Fallback to Simulation Mode.", e.getMessage());
             isDockerAvailable = false;
@@ -142,19 +143,37 @@ public class DockerService {
     }
 
     private String runCommand(String... command) throws IOException, InterruptedException {
+        return runCommand(DOCKER_COMMAND_TIMEOUT_SECONDS, command);
+    }
+
+    private String runCommand(long timeoutSeconds, String... command) throws IOException, InterruptedException {
         ProcessBuilder builder = new ProcessBuilder(command);
         builder.redirectErrorStream(true);
         Process process = builder.start();
 
-        StringBuilder output = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append("\n");
+        StringBuffer output = new StringBuffer();
+        Thread outputReader = new Thread(() -> {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    output.append(line).append("\n");
+                }
+            } catch (IOException e) {
+                output.append(e.getMessage()).append("\n");
             }
+        }, "docker-command-output");
+        outputReader.setDaemon(true);
+        outputReader.start();
+
+        boolean finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
+        if (!finished) {
+            process.destroyForcibly();
+            outputReader.join(TimeUnit.SECONDS.toMillis(1));
+            throw new IOException("Command timed out after " + timeoutSeconds + " seconds: " + String.join(" ", command));
         }
 
-        int exitCode = process.waitFor();
+        outputReader.join(TimeUnit.SECONDS.toMillis(1));
+        int exitCode = process.exitValue();
         if (exitCode != 0) {
             throw new IOException("Command failed with exit code " + exitCode + ". Output: " + output);
         }
