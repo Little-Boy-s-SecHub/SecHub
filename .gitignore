@@ -26,3 +26,7 @@
 *.sw?
 .DS_Store
 Thumbs.db
+
+# Local configuration files
+**/application-local.properties
+**/.env
