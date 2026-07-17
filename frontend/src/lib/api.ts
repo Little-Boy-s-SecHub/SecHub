@@ -186,6 +186,12 @@ export const api = {
     getMyAttempts: () => request<LabAttempt[]>("/labs/attempts/me"),
     getLabAttempts: (id: string) =>
       request<LabAttempt[]>(`/labs/${id}/attempts`),
+    generateWithAi: (vulnerabilitySlug: string, difficulty: string, scenario: string, customApiKey?: string) =>
+      request<Lab>("/ai/generate-lab", {
+        method: "POST",
+        headers: customApiKey ? { "X-OpenAI-Key": customApiKey } : undefined,
+        body: JSON.stringify({ vulnerabilitySlug, difficulty, scenario }),
+      }),
   },
 
   learningPaths: {

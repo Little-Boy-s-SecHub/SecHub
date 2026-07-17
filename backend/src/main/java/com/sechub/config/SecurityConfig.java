@@ -72,6 +72,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/lessons/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/labs/**").permitAll()
                 .requestMatchers("/api/sync/**").permitAll()
+                .requestMatchers("/api/ai/**").authenticated()
                 // Admin endpoints
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 // All other requests require authentication
