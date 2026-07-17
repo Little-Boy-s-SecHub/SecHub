@@ -171,13 +171,25 @@ export default function DashboardPage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [vulnsRes, pathsRes] = await Promise.all([
+        const [vulnsRes, pathsRes, labsRes] = await Promise.all([
           api.vulnerabilities.getAll(),
-          api.learningPaths.getAll()
+          api.learningPaths.getAll(),
+          api.labs.getLabs()
         ]);
 
         if (vulnsRes.success) setVulns(vulnsRes.data);
         if (pathsRes.success) setPaths(pathsRes.data);
+
+        let totalLabsCount = 14;
+        if (labsRes.success && labsRes.data) {
+          totalLabsCount = labsRes.data.length;
+        }
+
+        setStats(prev => ({
+          ...prev,
+          totalVulnerabilities: vulnsRes.data?.length || 8,
+          totalLabs: totalLabsCount,
+        }));
 
         if (isAuthenticated) {
           const [dashboardRes, attemptsRes] = await Promise.all([
@@ -189,7 +201,7 @@ export default function DashboardPage() {
             const d = dashboardRes.data;
             setStats({
               totalVulnerabilities: vulnsRes.data?.length || 8,
-              totalLabs: d.totalLabs || 14,
+              totalLabs: totalLabsCount,
               completedLabs: d.completedLabs || 0,
               totalPoints: d.totalScore || 0,
               progressPercentage: Math.round(d.progressPercentage || 0),
