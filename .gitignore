@@ -6,9 +6,13 @@
 **/build/
 
 # Local databases and locks
+**/runtime/
 **/data/*.db
 **/data/*.db.mv.db
 **/data/*.db.trace.db
+**/runtime/*.db
+**/runtime/*.db.mv.db
+**/runtime/*.db.trace.db
 **/*.mv.db
 **/*.trace.db
 
@@ -22,4 +26,3 @@
 *.sw?
 .DS_Store
 Thumbs.db
-
