@@ -32,6 +32,10 @@ public class User {
     @Column(name = "avatar_url")
     private String avatarUrl;
 
+    @Column(name = "onboarding_required", nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean onboardingRequired = false;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default

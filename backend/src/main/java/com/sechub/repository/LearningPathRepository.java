@@ -13,4 +13,7 @@ public interface LearningPathRepository extends JpaRepository<LearningPath, UUID
     List<LearningPath> findAllByOrderBySortOrderAsc();
 
     List<LearningPath> findByDifficulty(LearningPath.Difficulty difficulty);
+    List<LearningPath> findByStatusOrderBySortOrderAsc(LearningPath.PublicationStatus status);
+    List<LearningPath> findByDifficultyAndStatus(LearningPath.Difficulty difficulty, LearningPath.PublicationStatus status);
+    List<LearningPath> findByAuthorIdOrderBySortOrderAsc(UUID authorId);
 }

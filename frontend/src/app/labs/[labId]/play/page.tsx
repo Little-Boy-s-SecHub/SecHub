@@ -19,11 +19,16 @@ import {
   Gamepad2,
   LayoutGrid,
   ArrowLeft
+  ,Clock3
+  ,TimerReset
+  ,RotateCcw
+  ,Sparkles
 } from 'lucide-react';
-import { api, Lab, LabAttempt } from '@/lib/api';
+import { api, Lab, LabAttempt, LabFeedback, MentorGuidance, resolveApiUrl } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import LabSimulator from '@/components/LabSimulator';
 import LabGameView from '@/components/LabGameView';
+import LabCompletionFeedback from '@/components/LabCompletionFeedback';
 
 export default function LabPlayPage({ params }: { params: Promise<{ labId: string }> }) {
   const { labId } = use(params);
@@ -32,13 +37,24 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
 
   const [lab, setLab] = useState<Lab | null>(null);
   const [currentAttempt, setCurrentAttempt] = useState<LabAttempt | null>(null);
-  const [labStatus, setLabStatus] = useState<'idle' | 'starting' | 'running' | 'completed'>('idle');
+  const [labStatus, setLabStatus] = useState<'idle' | 'starting' | 'running' | 'completed' | 'expired'>('idle');
   const [flagValue, setFlagValue] = useState('');
   const [flagResult, setFlagResult] = useState<'correct' | 'wrong' | null>(null);
   const [revealedHints, setRevealedHints] = useState(0);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'standard' | 'game'>('standard');
+  const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const [extending, setExtending] = useState(false);
+  const [creatingSimilar, setCreatingSimilar] = useState(false);
+  const [openHintIndexes, setOpenHintIndexes] = useState<Set<number>>(new Set());
+  const [runtimeError, setRuntimeError] = useState<string | null>(null);
+  const [runtimeCheck, setRuntimeCheck] = useState(0);
+  const [completionFeedback, setCompletionFeedback] = useState<LabFeedback | null>(null);
+  const [mentor, setMentor] = useState<MentorGuidance | null>(null);
+  const [askingMentor, setAskingMentor] = useState(false);
+  const [creatingHarder, setCreatingHarder] = useState(false);
+  const labNotFound = apiError?.includes('Không tìm thấy Lab') || apiError?.includes('404');
 
   const defaultHints = [
     'Gợi ý 1: Quan sát kỹ các input fields và URL parameters.',
@@ -84,6 +100,10 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
               setLabStatus('completed');
               setCurrentAttempt(completed);
               setRevealedHints(completed.hintsUsed);
+              api.labs.getFeedback(completed.id).then(result => setCompletionFeedback(result.data)).catch(() => undefined);
+            } else if (attemptsRes.data.some(a => a.status === 'EXPIRED')) {
+              setCurrentAttempt(attemptsRes.data.find(a => a.status === 'EXPIRED') || null);
+              setLabStatus('expired');
             } else {
               setLabStatus('idle');
             }
@@ -101,17 +121,136 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
     }
   }, [labId, isAuthenticated, authLoading, router]);
 
+  useEffect(() => {
+    if (labStatus !== 'running' || !currentAttempt?.expiresAt) return;
+    const updateRemaining = () => {
+      const seconds = Math.max(0, Math.ceil((new Date(currentAttempt.expiresAt!).getTime() - Date.now()) / 1000));
+      setRemainingSeconds(seconds);
+      if (seconds === 0) setLabStatus('expired');
+    };
+    updateRemaining();
+    const timer = window.setInterval(updateRemaining, 1000);
+    return () => window.clearInterval(timer);
+  }, [currentAttempt?.expiresAt, labStatus]);
+
+  useEffect(() => {
+    if (labStatus !== 'running' || !currentAttempt) return;
+    const poll = window.setInterval(async () => {
+      try {
+        const res = await api.labs.getLabAttempts(labId);
+        const latest = res.data.find(attempt => attempt.id === currentAttempt.id);
+        if (latest?.status === 'EXPIRED' || latest?.status === 'FAILED') {
+          setCurrentAttempt(latest);
+          setLabStatus('expired');
+        }
+      } catch {
+        // Keep the current workspace during transient API failures.
+      }
+    }, 10000);
+    return () => window.clearInterval(poll);
+  }, [currentAttempt?.id, labId, labStatus]);
+
+  useEffect(() => {
+    if (labStatus !== 'running' || !lab?.generated || !currentAttempt?.runtimeUrl) return;
+    let failures = 0;
+    const checkRuntime = async () => {
+      try {
+        const response = await fetch(`${resolveApiUrl(currentAttempt.runtimeUrl!)}health`, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        failures = 0;
+        setRuntimeError(null);
+      } catch {
+        failures += 1;
+        if (failures >= 2) setRuntimeError('Ứng dụng lab tạm thời không phản hồi.');
+      }
+    };
+    checkRuntime();
+    const timer = window.setInterval(checkRuntime, 5000);
+    return () => window.clearInterval(timer);
+  }, [currentAttempt?.runtimeUrl, lab?.generated, labStatus, runtimeCheck]);
+
+  const handleExtendTime = async () => {
+    if (!currentAttempt) return;
+    setExtending(true);
+    try {
+      const res = await api.labs.extendTime(currentAttempt.id);
+      if (res.success) setCurrentAttempt(res.data);
+    } catch (e: any) {
+      alert(e.message || 'Không thể gia hạn phiên lab.');
+    } finally {
+      setExtending(false);
+    }
+  };
+
+  const handleRestartLab = async () => {
+    setLabStatus('starting');
+    try {
+      const res = await api.labs.startLab(labId);
+      setCurrentAttempt(res.data);
+      setRevealedHints(0);
+      setFlagValue('');
+      setFlagResult(null);
+      setCompletionFeedback(null);
+      setLabStatus('running');
+    } catch (e: any) {
+      setLabStatus('expired');
+      alert(e.message || 'Không thể khởi động lại lab.');
+    }
+  };
+
+  const handleCreateSimilar = async () => {
+    if (!lab) return;
+    setCreatingSimilar(true);
+    try {
+      const res = await api.labs.generateWithAi(
+        lab.vulnerabilitySlug,
+        lab.difficulty,
+        `Tạo một biến thể mới tương tự lab "${lab.title}", nhưng đổi bối cảnh và đường khai thác.`
+      );
+      router.push(`/labs/${res.data.id}`);
+    } catch (e: any) {
+      alert(e.message || 'Không thể tạo lab tương tự.');
+    } finally {
+      setCreatingSimilar(false);
+    }
+  };
+
   const handleRevealHint = async () => {
     if (!currentAttempt) return;
+    if (!mentor) {
+      await handleAskMentor();
+      return;
+    }
     try {
       const res = await api.labs.useHint(currentAttempt.id);
       if (res.success) {
         setRevealedHints(res.data.hintsUsed);
         setCurrentAttempt(res.data);
+        setMentor(null);
+        setOpenHintIndexes(prev => new Set(prev).add(res.data.hintsUsed - 1));
       }
     } catch (e: any) {
       alert(e.message || 'Không thể tải gợi ý.');
     }
+  };
+
+  const handleAskMentor = async () => {
+    if (!currentAttempt) return;
+    setAskingMentor(true);
+    try {
+      const guidance = (await api.labs.getMentor(currentAttempt.id)).data;
+      setMentor(guidance);
+      if (viewMode === 'game') window.alert(`AI Mentor hỏi bạn:\n\n${guidance.question}\n\nHãy suy nghĩ trước, sau đó bấm GỢI Ý lần nữa nếu vẫn cần.`);
+    }
+    catch (e: any) { setApiError(e.message || 'Mentor chưa thể phản hồi.'); }
+    finally { setAskingMentor(false); }
+  };
+
+  const handleCreateHarder = async () => {
+    if (!currentAttempt) return;
+    setCreatingHarder(true);
+    try { router.push(`/labs/${(await api.growth.createHarderVariant(currentAttempt.id)).data.id}`); }
+    catch (e: any) { setApiError(e.message || 'Không thể tạo bản khó hơn.'); setCreatingHarder(false); }
   };
 
   const handleSimulatedSuccess = (foundFlag: string) => {
@@ -127,6 +266,14 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
       if (res.success && res.data.status === 'COMPLETED') {
         setFlagResult('correct');
         setLabStatus('completed');
+        setCurrentAttempt(res.data);
+        try {
+          const feedbackResult = await api.labs.getFeedback(res.data.id);
+          setCompletionFeedback(feedbackResult.data);
+        } catch (feedbackError) {
+          console.error('Failed to load completion feedback:', feedbackError);
+        }
+        setViewMode('standard');
         if (typeof customFlag === 'string') {
           setFlagValue(customFlag);
         }
@@ -142,7 +289,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
     return (
       <div className="animate-pulse" style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '40px', minHeight: '100vh', background: 'var(--bg-neutral-primary)' }}>
         <div style={{ height: '40px', background: 'var(--bg-neutral-secondary)', borderRadius: '8px', width: '30%' }}></div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        <div className="lab-loading-grid">
           <div style={{ height: '500px', background: 'var(--bg-neutral-secondary)', borderRadius: '12px' }}></div>
           <div style={{ height: '500px', background: 'var(--bg-neutral-secondary)', borderRadius: '12px' }}></div>
         </div>
@@ -155,9 +302,18 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--bg-neutral-primary)', padding: '20px' }}>
         <div className="card" style={{ textAlign: 'center', padding: '40px', maxWidth: '500px', margin: '0 auto' }}>
           <AlertCircle size={48} style={{ color: 'var(--fg-danger)', margin: '0 auto 16px' }} />
-          <h3 style={{ fontSize: '1.25rem', marginBottom: '8px' }}>Lỗi tải trang</h3>
-          <p style={{ color: 'var(--text-body-subtle)', marginBottom: '24px' }}>{apiError || 'Không tìm thấy thông tin phòng Lab.'}</p>
-          <Link href="/labs" className="btn btn-secondary">Quay lại danh sách</Link>
+          <h3 style={{ fontSize: '1.25rem', marginBottom: '8px' }}>
+            {labNotFound ? 'Bài lab không còn tồn tại' : 'Lỗi tải trang'}
+          </h3>
+          <p style={{ color: 'var(--text-body-subtle)', marginBottom: '24px' }}>
+            {labNotFound
+              ? 'Lab AI này đã bị xoá hoặc liên kết bạn mở đã cũ. Container cũ không còn được sử dụng.'
+              : apiError || 'Không tìm thấy thông tin phòng Lab.'}
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <Link href="/labs" className="btn btn-primary">Chọn bài lab khác</Link>
+            <Link href="/learning" className="btn btn-secondary">Quay lại bài học</Link>
+          </div>
         </div>
       </div>
     );
@@ -180,7 +336,31 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
     );
   }
 
+  if (labStatus === 'expired') {
+    return (
+      <div style={{ display: 'grid', placeItems: 'center', minHeight: '100vh', background: 'var(--bg-neutral-primary)', padding: '24px' }}>
+        <div className="card" style={{ width: '100%', maxWidth: '620px', padding: '40px', textAlign: 'center' }}>
+          <Clock3 size={52} style={{ color: 'var(--fg-danger)', margin: '0 auto 18px' }} />
+          <h2 style={{ marginBottom: '10px' }}>Phiên lab đã hết 60 phút</h2>
+          <p style={{ color: 'var(--text-body-subtle)', lineHeight: 1.65, marginBottom: '26px' }}>
+            Container đã được dừng tự động. Bạn có thể làm lại đúng bài này hoặc tạo một biến thể có cùng loại lỗ hổng.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <button className="btn btn-primary" onClick={handleRestartLab} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
+              <RotateCcw size={16} /> Làm lại bài này
+            </button>
+            <button className="btn btn-secondary" onClick={handleCreateSimilar} disabled={creatingSimilar} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
+              <Sparkles size={16} /> {creatingSimilar ? 'Đang tạo...' : 'Tạo lab tương tự'}
+            </button>
+            <Link href="/labs" className="btn btn-secondary">Về danh sách</Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const isSimulated = currentAttempt?.containerId?.startsWith('sim-');
+  const activeRuntimeUrl = currentAttempt?.runtimeUrl ? resolveApiUrl(currentAttempt.runtimeUrl) : undefined;
 
   if (viewMode === 'game') {
     return (
@@ -333,7 +513,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
               vulnerabilityName={lab.vulnerabilityName}
               isSimulated={isSimulated}
               dockerPort={lab.dockerPort}
-              containerPort={currentAttempt?.containerPort}
+              runtimeUrl={activeRuntimeUrl}
               apiError={apiError}
               onSimulatedSuccess={handleSimulatedSuccess}
             />
@@ -479,7 +659,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
     <div style={{ color: 'var(--text-body)', minHeight: '100vh', background: 'var(--bg-neutral-primary)', fontFamily: 'var(--font-sans), sans-serif' }}>
       
       {/* Workspace Header */}
-      <div style={headerStyle}>
+      <div style={headerStyle} className="lab-workspace-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <Link 
             href={`/labs/${labId}`} 
@@ -513,6 +693,15 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
 
         {/* Right Info & Switch */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontVariantNumeric: 'tabular-nums', color: remainingSeconds <= 600 ? 'var(--fg-danger)' : 'var(--text-heading)', fontSize: '13px', fontWeight: 700 }}>
+            <Clock3 size={15} />
+            {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}
+            {remainingSeconds > 0 && remainingSeconds <= 600 && (currentAttempt?.extensionCount || 0) < 1 && (
+              <button className="btn btn-secondary btn-sm" onClick={handleExtendTime} disabled={extending} title="Gia hạn thêm 30 phút">
+                <TimerReset size={14} /> {extending ? 'Đang xin...' : '+30 phút'}
+              </button>
+            )}
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--fg-brand)', fontSize: '13px', fontWeight: 600 }}>
             <Trophy size={14} /> {lab.points} điểm
           </div>
@@ -569,15 +758,20 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
       </div>
 
       {/* Main Workspace Layout */}
-      <div style={{ padding: '0 24px 24px 24px' }}>
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: '1fr 380px', 
-          gap: '20px',
-        }}>
+      <div className="lab-workspace-body">
+        {completionFeedback && currentAttempt && <LabCompletionFeedback feedback={completionFeedback} attempt={currentAttempt} onHarder={handleCreateHarder} creatingHarder={creatingHarder} />}
+        <div className="lab-workspace-grid">
           
           {/* Left Side: Vulnerable Application (Playground) - Hero component */}
           <div>
+            {runtimeError && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', marginBottom: '8px', border: '1px solid rgba(190,55,55,.25)', borderRadius: '6px', background: 'rgba(190,55,55,.06)', color: 'var(--fg-danger)', fontSize: '12px' }}>
+                <AlertCircle size={15} />
+                <span style={{ flex: 1 }}>{runtimeError}</span>
+                <button className="btn btn-secondary btn-sm" onClick={() => setRuntimeCheck(value => value + 1)}>Thử lại</button>
+                <Link className="btn btn-secondary btn-sm" href={`/labs/${labId}`}>Quay về lab</Link>
+              </div>
+            )}
             {isSimulated ? (
               <LabSimulator 
                 dockerPort={lab.dockerPort} 
@@ -600,11 +794,11 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
                     <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#27c93f', display: 'inline-block' }}></span>
                   </div>
                   <div style={{ background: 'var(--bg-neutral-secondary-medium)', border: '1px solid var(--border-default-medium)', borderRadius: '4px', padding: '2px 12px', fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-body-subtle)', flex: 1, textAlign: 'center', maxWidth: '500px', margin: '0 auto' }}>
-                    http://localhost:{currentAttempt?.containerPort}
+                    {activeRuntimeUrl || 'Runtime chưa sẵn sàng'}
                   </div>
                 </div>
                 <iframe 
-                  src={`http://localhost:${currentAttempt?.containerPort}`} 
+                  src={activeRuntimeUrl}
                   style={{ width: '100%', height: '560px', border: 'none' }}
                 />
               </div>
@@ -616,6 +810,11 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
             
             {/* Sidebar main view */}
             {/* Objectives */}
+            <div className="card">
+              <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, marginBottom: '8px' }}>Thông tin bài lab</h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-body-subtle)', lineHeight: 1.65, margin: 0 }}>{lab.description}</p>
+            </div>
+
             <div className="card">
               <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Target size={16} style={{ color: 'var(--fg-brand)' }} /> Nhiệm vụ bài thực hành
@@ -649,16 +848,23 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {hints.map((hint, i) => (
-                  <div key={i} className={`hint-item ${i < revealedHints ? 'open' : ''}`}>
+                  <div key={i} className={`hint-item ${openHintIndexes.has(i) ? 'open' : ''}`}>
                     <button
                       className="hint-trigger"
                       onClick={() => {
-                        if (i < revealedHints) return;
+                        if (i < revealedHints) {
+                          setOpenHintIndexes(prev => {
+                            const next = new Set(prev);
+                            if (next.has(i)) next.delete(i); else next.add(i);
+                            return next;
+                          });
+                          return;
+                        }
                         if (i === revealedHints) handleRevealHint();
                       }}
                       style={{
                         opacity: i <= revealedHints ? 1 : 0.4,
-                        pointerEvents: (i === revealedHints && labStatus === 'running') ? 'auto' : 'none',
+                        pointerEvents: (i < revealedHints || (i === revealedHints && labStatus === 'running')) ? 'auto' : 'none',
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
@@ -680,10 +886,10 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
                         Gợi ý {i + 1}
                       </span>
                       <span>
-                        {i < revealedHints ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                        {i < revealedHints && openHintIndexes.has(i) ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
                       </span>
                     </button>
-                    {i < revealedHints && (
+                    {i < revealedHints && openHintIndexes.has(i) && (
                       <div style={{ background: 'var(--bg-neutral-secondary-light)', border: '1px solid var(--border-default)', borderTop: 'none', borderRadius: '0 0 6px 6px', padding: '12px 14px' }}>
                         <p style={{ fontSize: '12.5px', color: 'var(--text-body)', lineHeight: 1.6, margin: 0 }}>{hint}</p>
                       </div>
@@ -692,13 +898,20 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
                 ))}
               </div>
 
+              {labStatus === 'running' && <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border-default)' }}>
+                <button className="btn btn-secondary btn-sm" onClick={handleAskMentor} disabled={askingMentor} style={{ width: '100%' }}>
+                  <Sparkles size={14} /> {askingMentor ? 'Mentor đang suy nghĩ...' : 'Hỏi AI mentor (không trừ điểm)'}
+                </button>
+                {mentor && <div style={{ marginTop: '9px', padding: '11px 12px', borderLeft: '3px solid var(--border-brand)', background: 'var(--bg-brand-softer)', fontSize: '12.5px', lineHeight: 1.6 }}><strong>Câu hỏi dẫn dắt:</strong> {mentor.question}</div>}
+              </div>}
+
               {revealedHints < hints.length && labStatus === 'running' && (
                 <button
                   className="btn btn-secondary btn-sm"
                   onClick={handleRevealHint}
                   style={{ marginTop: '10px', width: '100%', padding: '8px' }}
                 >
-                  Mở gợi ý tiếp theo (-{lab.points / 10} điểm)
+                  {mentor ? `Mở gợi ý tiếp theo (-${lab.points / 10} điểm)` : 'Nhận câu hỏi từ AI mentor trước'}
                 </button>
               )}
             </div>

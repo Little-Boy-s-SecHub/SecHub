@@ -13,10 +13,12 @@ public record LabDto(
     String description,
     String difficulty,
     String dockerImage,
+    boolean generated,
     Integer dockerPort,
     String hintsJson,
     Integer estimatedMinutes,
-    Integer points
+    Integer points,
+    String status
 ) {
     public static LabDto fromEntity(Lab lab) {
         return new LabDto(
@@ -28,10 +30,12 @@ public record LabDto(
             lab.getDescription(),
             lab.getDifficulty().name(),
             lab.getDockerImage(),
+            lab.getArtifactPath() != null && !lab.getArtifactPath().isBlank(),
             lab.getDockerPort(),
             lab.getHintsJson(),
             lab.getEstimatedMinutes(),
-            lab.getPoints()
+            lab.getPoints(),
+            lab.getStatus().name()
         );
     }
 }

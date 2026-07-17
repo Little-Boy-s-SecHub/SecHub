@@ -37,6 +37,15 @@ public class LearningPath {
     @Builder.Default
     private Integer sortOrder = 0;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20, columnDefinition = "varchar(20) default 'PUBLISHED'")
+    @Builder.Default
+    private PublicationStatus status = PublicationStatus.PUBLISHED;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "author_id")
+    private User author;
+
     @OneToMany(mappedBy = "learningPath", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @OrderBy("sortOrder ASC")
     @Builder.Default
@@ -45,4 +54,6 @@ public class LearningPath {
     public enum Difficulty {
         BEGINNER, INTERMEDIATE, ADVANCED
     }
+
+    public enum PublicationStatus { DRAFT, PUBLISHED }
 }

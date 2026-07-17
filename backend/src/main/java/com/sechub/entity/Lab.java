@@ -2,7 +2,9 @@ package com.sechub.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -35,6 +37,9 @@ public class Lab {
     @Column(name = "docker_image", length = 300)
     private String dockerImage;
 
+    @Column(name = "artifact_path", length = 1000)
+    private String artifactPath;
+
     @Column(name = "docker_port")
     private Integer dockerPort;
 
@@ -51,4 +56,17 @@ public class Lab {
     @Column
     @Builder.Default
     private Integer points = 100;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20, columnDefinition = "varchar(20) default 'PUBLISHED'")
+    @Builder.Default
+    private LearningPath.PublicationStatus status = LearningPath.PublicationStatus.PUBLISHED;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "author_id")
+    private User author;
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
 }

@@ -10,6 +10,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -52,23 +54,44 @@ public class DockerService {
         }
     }
 
-    public ContainerInfo startContainer(String imageName, int targetPort, UUID attemptId) {
+    public ContainerInfo startContainer(String imageName, int targetPort, UUID attemptId, String artifactPath) {
         String containerName = "sechub-attempt-" + attemptId;
         int hostPort = findFreePort();
+        boolean generatedLab = artifactPath != null && !artifactPath.isBlank();
 
         if (!isDockerAvailable) {
+            if (generatedLab) {
+                throw new IllegalStateException("Docker chưa sẵn sàng. Hãy khởi động Docker Desktop để chạy lab được tạo.");
+            }
             log.info("Simulating container startup for {} on port {}", imageName, hostPort);
             return new ContainerInfo("sim-" + UUID.randomUUID(), hostPort);
         }
 
         try {
-            log.info("Pulling docker image: {}", imageName);
-            runCommand("docker", "pull", imageName);
+            if (generatedLab) {
+                Path buildContext = Path.of(artifactPath).toAbsolutePath().normalize();
+                if (!Files.isDirectory(buildContext) || !Files.isRegularFile(buildContext.resolve("Dockerfile"))) {
+                    throw new IOException("Generated lab artifact is missing: " + buildContext);
+                }
+                log.info("Building generated lab image {}", imageName);
+                runCommand("docker", "build", "--pull", "-t", imageName, buildContext.toString());
+            } else {
+                log.info("Pulling docker image: {}", imageName);
+                runCommand("docker", "pull", imageName);
+            }
 
             log.info("Starting docker container: {} -> Host Port: {}", containerName, hostPort);
             List<String> command = List.of(
                 "docker", "run", "-d",
                 "--name", containerName,
+                "--label", "sechub.managed=true",
+                "--read-only",
+                "--tmpfs", "/tmp:rw,noexec,nosuid,size=16m",
+                "--security-opt", "no-new-privileges",
+                "--cap-drop", "ALL",
+                "--memory", "128m",
+                "--cpus", "0.5",
+                "--pids-limit", "64",
                 "-p", hostPort + ":" + targetPort,
                 imageName
             );
@@ -78,11 +101,17 @@ public class DockerService {
                 throw new RuntimeException("Docker run returned empty container ID");
             }
 
+            if (generatedLab) {
+                waitForHealthy(containerId);
+            }
+
             log.info("Container started successfully. ID: {}, Port: {}", containerId.substring(0, Math.min(12, containerId.length())), hostPort);
             return new ContainerInfo(containerId, hostPort);
         } catch (Exception e) {
+            if (generatedLab) {
+                throw new IllegalStateException("Không thể build/chạy generated lab: " + e.getMessage(), e);
+            }
             log.error("Failed to start Docker container for {}. Falling back to Simulation Mode.", imageName, e);
-            // Fallback to simulation mode on error
             return new ContainerInfo("sim-" + UUID.randomUUID(), hostPort);
         }
     }
@@ -108,6 +137,18 @@ public class DockerService {
             runCommand("docker", "rm", containerId);
         } catch (Exception e) {
             log.error("Failed to stop/remove Docker container: {}", containerId, e);
+        }
+    }
+
+    public boolean isContainerRunning(String containerId) {
+        if (containerId == null || containerId.isBlank()) return false;
+        if (containerId.startsWith("sim-")) return true;
+        if (!isDockerAvailable) return false;
+        try {
+            return "true".equals(runCommand(DOCKER_CHECK_TIMEOUT_SECONDS, "docker", "inspect", "--format",
+                    "{{.State.Running}}", containerId).trim());
+        } catch (Exception e) {
+            return false;
         }
     }
 
@@ -140,6 +181,19 @@ public class DockerService {
             log.warn("Failed to find free port automatically, defaulting to 18080", e);
             return 10000 + (int)(Math.random() * 10000);
         }
+    }
+
+    private void waitForHealthy(String containerId) throws IOException, InterruptedException {
+        for (int i = 0; i < 30; i++) {
+            String status = runCommand(DOCKER_CHECK_TIMEOUT_SECONDS, "docker", "inspect", "--format",
+                    "{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}", containerId).trim();
+            if ("healthy".equals(status) || "running".equals(status)) return;
+            if ("unhealthy".equals(status) || "exited".equals(status) || "dead".equals(status)) {
+                throw new IOException("Container entered state: " + status);
+            }
+            Thread.sleep(500);
+        }
+        throw new IOException("Container health check timed out");
     }
 
     private String runCommand(String... command) throws IOException, InterruptedException {

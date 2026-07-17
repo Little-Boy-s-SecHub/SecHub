@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, BookOpen, ShieldAlert, FlaskConical } from 'lucide-react';
+import { Home, BookOpen, ShieldAlert, FlaskConical, BrainCircuit, PenTool } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 const navItems = [
   {
@@ -16,6 +17,7 @@ const navItems = [
     items: [
       { href: '/learning', icon: BookOpen, label: 'Lộ trình học', badge: '3' },
       { href: '/vulnerabilities', icon: ShieldAlert, label: 'Lỗ hổng bảo mật', badge: '8' },
+      { href: '/review', icon: BrainCircuit, label: 'Ôn tập', badge: null },
     ],
   },
   {
@@ -28,6 +30,16 @@ const navItems = [
 
 export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const visibleSections = user?.role === 'INSTRUCTOR' || user?.role === 'ADMIN'
+    ? [...navItems, { section: 'Sáng tạo', items: [{ href: '/author', icon: PenTool, label: 'Author Studio', badge: null }] }]
+    : navItems;
+
+  const handleNavigate = () => {
+    if (window.matchMedia('(max-width: 768px)').matches) {
+      onClose();
+    }
+  };
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
@@ -53,7 +65,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
 
         {/* Navigation */}
         <nav className="sidebar-nav">
-          {navItems.map((section) => (
+          {visibleSections.map((section) => (
             <div key={section.section} className="sidebar-section">
               <div className="sidebar-section-title">{section.section}</div>
               {section.items.map((item) => (
@@ -61,7 +73,8 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                   key={item.href}
                   href={item.href}
                   className={`sidebar-link ${isActive(item.href) ? 'active' : ''}`}
-                  onClick={onClose}
+                  onClick={handleNavigate}
+                  aria-current={isActive(item.href) ? 'page' : undefined}
                 >
                   <span className="sidebar-link-icon" style={{ display: 'flex', alignItems: 'center' }}>
                     <item.icon size={18} />

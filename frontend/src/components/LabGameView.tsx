@@ -15,7 +15,7 @@ interface LabGameViewProps {
   vulnerabilityName: string;
   isSimulated?: boolean;
   dockerPort?: number;
-  containerPort?: number;
+  runtimeUrl?: string;
   apiError?: string | null;
   onSimulatedSuccess?: (flag: string) => void;
 }
@@ -42,7 +42,7 @@ export default function LabGameView({
   vulnerabilityName,
   isSimulated,
   dockerPort,
-  containerPort,
+  runtimeUrl,
   apiError,
   onSimulatedSuccess
 }: LabGameViewProps) {
@@ -95,39 +95,47 @@ export default function LabGameView({
     { x: 360, y: 300, width: 80, height: 40, label: 'Bàn Console Dưới' },
   ];
 
-  // Base mentors array based on hints length
-  const baseMentors = [
-    {
-      x: 228,
-      y: 200,
+  // Hint stations are distributed in rows so every LabSpec maps to the game automatically.
+  const mentorColors = ['#00a3ff', '#ff2d55', '#af52de', '#10b981', '#f59e0b', '#06b6d4', '#f43f5e', '#8b5cf6'];
+  const mentorPosition = (hintIndex: number) => {
+    if (hints.length === 1) return { x: 388, y: 205 };
+    if (hintIndex === 0) return { x: 228, y: 205 };
+    if (hintIndex === hints.length - 1) return { x: 548, y: 205 };
+
+    const middleCount = hints.length - 2;
+    const middleIndex = hintIndex - 1;
+    const rowCount = Math.ceil(middleCount / 4);
+    let consumed = 0;
+    for (let row = 0; row < rowCount; row++) {
+      const remaining = middleCount - consumed;
+      const remainingRows = rowCount - row;
+      const itemsInRow = Math.ceil(remaining / remainingRows);
+      if (middleIndex < consumed + itemsInRow) {
+        const column = middleIndex - consumed;
+        const horizontalGap = 600 / (itemsInRow + 1);
+        return {
+          x: 88 + horizontalGap * (column + 1),
+          y: rowCount === 1 ? 355 : 285 + row * 90,
+        };
+      }
+      consumed += itemsInRow;
+    }
+    return { x: 388, y: 355 };
+  };
+
+  const baseMentors = hints.map((_, hintIndex) => {
+    const position = mentorPosition(hintIndex);
+    return {
+      x: position.x,
+      y: position.y,
       width: 24,
       height: 24,
-      name: '2. Gợi ý 1',
+      name: `${hintIndex + 2}. Gợi ý ${hintIndex + 1}`,
       avatar: '',
-      color: '#00a3ff',
-      hintIndex: 0,
-    },
-    {
-      x: 548,
-      y: 200,
-      width: 24,
-      height: 24,
-      name: '3. Gợi ý 2',
-      avatar: '',
-      color: '#ff2d55',
-      hintIndex: 1,
-    },
-    {
-      x: 388,
-      y: 360,
-      width: 24,
-      height: 24,
-      name: '4. Gợi ý 3',
-      avatar: '',
-      color: '#af52de',
-      hintIndex: 2,
-    },
-  ].slice(0, hints.length);
+      color: mentorColors[hintIndex % mentorColors.length],
+      hintIndex,
+    };
+  });
 
   // Dynamic names for interactive workflow steps (always end with practice + submit)
   // Steps: 1.Nhiệm vụ → 2..N+1.Gợi ý → N+2.Thực hành → N+3.Nộp FLAG
@@ -2036,7 +2044,7 @@ export default function LabGameView({
                 <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#27c93f', display: 'inline-block' }}></span>
               </div>
               <div style={{ background: 'var(--bg-neutral-secondary-medium)', border: '1px solid var(--border-default-medium)', borderRadius: '4px', padding: '3px 16px', fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-body-subtle)', flex: 1, textAlign: 'center', maxWidth: '400px', margin: '0 auto' }}>
-                http://localhost:{containerPort}
+                {runtimeUrl || 'Runtime chưa sẵn sàng'}
               </div>
               <button
                 onClick={() => setIsServerModalOpen(false)}
@@ -2069,7 +2077,7 @@ export default function LabGameView({
                 </div>
               ) : (
                 <iframe 
-                  src={`http://localhost:${containerPort}`} 
+                  src={runtimeUrl}
                   style={{ width: '100%', height: '100%', border: 'none' }}
                 />
               )}

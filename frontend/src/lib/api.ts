@@ -42,6 +42,7 @@ export interface LearningPath {
   estimatedHours: number;
   lessonCount?: number;
   completedLessons?: number;
+  status?: "DRAFT" | "PUBLISHED";
 }
 
 export interface Lab {
@@ -53,10 +54,12 @@ export interface Lab {
   description: string;
   difficulty: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
   dockerImage: string;
+  generated: boolean;
   dockerPort: number;
   estimatedMinutes: number;
   points: number;
   hintsJson?: string;
+  status?: "DRAFT" | "PUBLISHED";
 }
 
 export interface LabAttempt {
@@ -66,12 +69,110 @@ export interface LabAttempt {
   labTitle: string;
   containerId?: string;
   containerPort?: number;
+  runtimeUrl?: string;
   status: "STARTED" | "RUNNING" | "COMPLETED" | "FAILED" | "EXPIRED";
   startedAt: string;
   completedAt?: string;
+  expiresAt?: string;
+  extensionCount: number;
   flagSubmitted?: string;
   score: number;
   hintsUsed: number;
+}
+
+export interface LabFeedback {
+  vulnerabilityName: string;
+  summary: string;
+  whyItWorked: string;
+  vulnerableCode: string;
+  secureCode: string;
+  remediationSteps: string[];
+  lessonTakeaway: string;
+  nextLabId?: string;
+  nextLabTitle?: string;
+  nextLabDifficulty?: string;
+}
+
+export interface MentorGuidance {
+  question: string;
+  focusArea: string;
+  hintAvailable: boolean;
+  stage: number;
+}
+
+export interface GrowthOverview {
+  onboardingRequired: boolean;
+  assessmentCompleted: boolean;
+  recommendedTrack: "BEGINNER" | "WEB_DEVELOPER" | "PENTESTER";
+  assessmentScore: number;
+  xp: number;
+  level: number;
+  streak: number;
+  freezeTickets: number;
+  levelTitle: string;
+  skills: Array<{ slug: string; name: string; xp: number; level: number; completedLabs: number; averageHints: number }>;
+  badges: string[];
+  dailyMission: { title: string; description: string; actionUrl: string; minutes: number; completed: boolean };
+  weeklyChallenge: { title: string; description: string; actionUrl: string; minutes: number; completed: boolean };
+  weeklyReport: { labsCompleted: number; lessonsCompleted: number; xpGained: number; strongestSkill: string; weakSkill: string; recommendation: string };
+  notifications: string[];
+}
+
+export interface PublicProfile {
+  username: string;
+  xp: number;
+  level: number;
+  levelTitle: string;
+  completedLabs: number;
+  skills: GrowthOverview["skills"];
+  badges: string[];
+  shareText: string;
+}
+
+export interface LeaderboardEntry {
+  username: string;
+  track: "BEGINNER" | "WEB_DEVELOPER" | "PENTESTER";
+  weeklyXp: number;
+  labsCompleted: number;
+  lessonsCompleted: number;
+  strongestSkill: string;
+}
+
+export interface Flashcard {
+  id: string;
+  lessonId: string;
+  lessonTitle: string;
+  type: "CODE_REVIEW" | "PAYLOAD" | "MULTIPLE_CHOICE";
+  question: string;
+  code?: string;
+  choices: string[];
+  explanation?: string;
+  vulnerabilitySlug?: string;
+  nextReviewAt: string;
+  repetitions: number;
+  correctCount: number;
+  wrongCount: number;
+}
+
+export interface ReviewDashboard {
+  dueCount: number;
+  totalCards: number;
+  completedToday: number;
+  cards: Flashcard[];
+}
+
+export interface ResumeLearning {
+  type: "LESSON" | "LAB";
+  url: string;
+  title: string;
+  subtitle: string;
+  progress?: number;
+  scrollY?: number;
+  lessonId?: string;
+  labId?: string;
+  attemptId?: string;
+  hintsUsed?: number;
+  updatedAt: string;
 }
 
 async function request<T>(
@@ -117,6 +218,10 @@ async function request<T>(
   }
 
   return json as ApiResponse<T>;
+}
+
+export function resolveApiUrl(path: string): string {
+  return new URL(path, API_BASE_URL).toString();
 }
 
 export const api = {
@@ -168,6 +273,7 @@ export const api = {
     getAll: () => request<Lab[]>("/labs"),
     getLabs: () => request<Lab[]>("/labs"),
     getById: (id: string) => request<Lab>(`/labs/${id}`),
+    deleteGenerated: (id: string) => request<void>(`/labs/${id}`, { method: "DELETE" }),
     startLab: (id: string) =>
       request<LabAttempt>(`/labs/${id}/start`, { method: "POST" }),
     stopLab: (attemptId: string) =>
@@ -183,13 +289,20 @@ export const api = {
       request<LabAttempt>(`/labs/attempts/${attemptId}/hint`, {
         method: "POST",
       }),
+    extendTime: (attemptId: string) =>
+      request<LabAttempt>(`/labs/attempts/${attemptId}/extend`, {
+        method: "POST",
+      }),
     getMyAttempts: () => request<LabAttempt[]>("/labs/attempts/me"),
     getLabAttempts: (id: string) =>
       request<LabAttempt[]>(`/labs/${id}/attempts`),
-    generateWithAi: (vulnerabilitySlug: string, difficulty: string, scenario: string, customApiKey?: string) =>
+    getFeedback: (attemptId: string) =>
+      request<LabFeedback>(`/labs/attempts/${attemptId}/feedback`),
+    getMentor: (attemptId: string) =>
+      request<MentorGuidance>(`/labs/attempts/${attemptId}/mentor`),
+    generateWithAi: (vulnerabilitySlug: string, difficulty: string, scenario: string) =>
       request<Lab>("/ai/generate-lab", {
         method: "POST",
-        headers: customApiKey ? { "X-OpenAI-Key": customApiKey } : undefined,
         body: JSON.stringify({ vulnerabilitySlug, difficulty, scenario }),
       }),
   },
@@ -207,6 +320,12 @@ export const api = {
   users: {
     getDashboard: () => request<any>("/users/me/dashboard"),
     getActivities: () => request<any[]>("/users/me/activities"),
+    getResume: () => request<ResumeLearning | null>("/users/me/resume"),
+    saveLearningState: (lessonId: string, scrollProgress: number, scrollY: number) =>
+      request<ResumeLearning>("/users/me/learning-state", {
+        method: "PUT",
+        body: JSON.stringify({ lessonId, scrollProgress, scrollY }),
+      }),
   },
 
   progress: {
@@ -216,5 +335,35 @@ export const api = {
       request<any>(`/progress/lessons/${lessonId}/complete`, {
         method: "POST",
       }),
+  },
+  review: {
+    getDashboard: () => request<ReviewDashboard>("/review"),
+    answer: (id: string, answer: string, rating: "AGAIN" | "HARD" | "GOOD" | "EASY") =>
+      request<{ correct: boolean; correctAnswer: string; explanation: string; nextReviewAt: string }>(`/review/${id}/answer`, {
+        method: "POST",
+        body: JSON.stringify({ answer, rating }),
+      }),
+    getDailyLab: () => request<Lab>("/review/daily-lab", { method: "POST" }),
+  },
+  growth: {
+    getOverview: () => request<GrowthOverview>("/growth"),
+    submitAssessment: (answers: number[]) => request<GrowthOverview>("/growth/assessment", {
+      method: "POST",
+      body: JSON.stringify({ answers }),
+    }),
+    getWeeklyLab: () => request<Lab>("/growth/weekly-lab", { method: "POST" }),
+    createHarderVariant: (attemptId: string) => request<Lab>(`/growth/harder/${attemptId}`, { method: "POST" }),
+    getPublicProfile: (username: string) => request<PublicProfile>(`/growth/public/${username}`),
+    getLeaderboard: (track?: string) => request<LeaderboardEntry[]>(`/growth/leaderboard${track ? `?track=${encodeURIComponent(track)}` : ''}`),
+  },
+  author: {
+    getWorkspace: () => request<{ paths: LearningPath[]; labs: Lab[] }>("/author"),
+    createPath: (body: { title: string; description: string; difficulty: string; estimatedHours: number }) => request<LearningPath>("/author/paths", { method: "POST", body: JSON.stringify(body) }),
+    addLesson: (pathId: string, body: { title: string; contentMarkdown: string; learningObjective: string; estimatedMinutes: number; vulnerabilityId?: string }) => request<any>(`/author/paths/${pathId}/lessons`, { method: "POST", body: JSON.stringify(body) }),
+    publishPath: (id: string) => request<void>(`/author/paths/${id}/publish`, { method: "POST" }),
+    createLab: (body: { vulnerabilitySlug: string; difficulty: string; title: string; scenario: string }) => request<Lab>("/author/labs", { method: "POST", body: JSON.stringify(body) }),
+    publishLab: (id: string) => request<void>(`/author/labs/${id}/publish`, { method: "POST" }),
+    deletePath: (id: string) => request<void>(`/author/paths/${id}`, { method: "DELETE" }),
+    deleteLab: (id: string) => request<void>(`/author/labs/${id}`, { method: "DELETE" }),
   },
 };

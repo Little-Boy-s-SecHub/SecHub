@@ -4,6 +4,7 @@ import com.sechub.dto.UserProgressDto;
 import com.sechub.entity.Lesson;
 import com.sechub.entity.User;
 import com.sechub.entity.UserProgress;
+import com.sechub.entity.LearningPath;
 import com.sechub.exception.ResourceNotFoundException;
 import com.sechub.repository.LessonRepository;
 import com.sechub.repository.UserProgressRepository;
@@ -46,6 +47,9 @@ public class ProgressService {
         User user = userService.findByUsername(username);
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("Bài học", "id", lessonId));
+        if (lesson.getLearningPath().getStatus() != LearningPath.PublicationStatus.PUBLISHED) {
+            throw new ResourceNotFoundException("Bài học", "id", lessonId);
+        }
 
         UserProgress progress = progressRepository
                 .findByUserIdAndLessonId(user.getId(), lessonId)
@@ -71,6 +75,7 @@ public class ProgressService {
     public List<UserProgressDto> getProgressByPath(UUID pathId, String username) {
         User user = userService.findByUsername(username);
         List<Lesson> lessons = lessonRepository.findByLearningPathIdOrderBySortOrderAsc(pathId);
+        lessons = lessons.stream().filter(lesson -> lesson.getLearningPath().getStatus() == LearningPath.PublicationStatus.PUBLISHED).toList();
 
         return lessons.stream()
                 .map(lesson -> {

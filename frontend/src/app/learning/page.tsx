@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { BookOpen, Clock, CheckCircle2 } from 'lucide-react';
 import { api, LearningPath } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import PageBackLink from '@/components/PageBackLink';
 
 export default function LearningPage() {
   const { isAuthenticated } = useAuth();
@@ -30,6 +31,7 @@ export default function LearningPage() {
 
   return (
     <div>
+      <PageBackLink href="/" label="Quay lại Dashboard" />
       <div className="section-header">
         <h1 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <BookOpen size={28} style={{ color: 'var(--fg-brand)' }} /> Lộ trình học

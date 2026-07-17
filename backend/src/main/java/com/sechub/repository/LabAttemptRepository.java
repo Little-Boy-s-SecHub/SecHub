@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.LocalDateTime;
 
 @Repository
 public interface LabAttemptRepository extends JpaRepository<LabAttempt, UUID> {
@@ -26,4 +27,13 @@ public interface LabAttemptRepository extends JpaRepository<LabAttempt, UUID> {
     long countCompletedLabsByUserId(@Param("userId") UUID userId);
 
     List<LabAttempt> findByUserIdAndStatus(UUID userId, LabAttempt.Status status);
+
+    List<LabAttempt> findByStatus(LabAttempt.Status status);
+
+    List<LabAttempt> findByStatusAndExpiresAtBefore(LabAttempt.Status status, LocalDateTime expiresAt);
+    List<LabAttempt> findByStatusAndCompletedAtAfter(LabAttempt.Status status, LocalDateTime completedAt);
+
+    Optional<LabAttempt> findByRuntimeToken(String runtimeToken);
+
+    List<LabAttempt> findByLabId(UUID labId);
 }

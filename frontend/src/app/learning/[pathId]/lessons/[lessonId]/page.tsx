@@ -3,8 +3,8 @@
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, BookOpen, CheckCircle, Clock, ChevronRight, PlayCircle, ShieldAlert } from 'lucide-react';
-import { api } from '@/lib/api';
+import { ArrowLeft, BookOpen, CheckCircle, Clock, ChevronRight, PlayCircle, ShieldAlert, Sparkles, LoaderCircle, Target } from 'lucide-react';
+import { api, Lab, Vulnerability } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { marked } from 'marked';
 
@@ -16,6 +16,9 @@ interface Lesson {
   sortOrder: number;
   vulnerabilityId?: string;
   vulnerabilityName?: string;
+  vulnerabilitySlug?: string;
+  learningObjective?: string;
+  estimatedMinutes?: number;
   completed?: boolean;
 }
 
@@ -24,6 +27,26 @@ interface LearningPath {
   title: string;
   description: string;
   difficulty: string;
+}
+
+const LESSON_VULNERABILITY_RULES: Array<{ terms: string[]; slug: string }> = [
+  { terms: ['sql injection', 'sqli'], slug: 'sql-injection' },
+  { terms: ['cross-site scripting', 'xss'], slug: 'xss' },
+  { terms: ['clickjacking', 'cross-site request forgery', 'csrf'], slug: 'csrf' },
+  { terms: ['bfla', 'broken function level', 'broken access control', 'directory traversal', 'idor', 'object reference'], slug: 'idor' },
+  { terms: ['open redirect', 'server-side request forgery', 'ssrf'], slug: 'ssrf' },
+  { terms: ['command injection', 'os command'], slug: 'command-injection' },
+  { terms: ['file upload', 'path traversal'], slug: 'file-upload' },
+  { terms: ['privilege escalation', 'authentication bypass', 'auth bypass'], slug: 'auth-bypass' },
+];
+
+function resolveLessonVulnerability(lesson: Lesson, vulnerabilities: Vulnerability[]) {
+  const linked = vulnerabilities.find(item => item.id === lesson.vulnerabilityId);
+  if (linked) return linked;
+
+  const searchable = `${lesson.title} ${lesson.contentMarkdown.slice(0, 1800)}`.toLowerCase();
+  const rule = LESSON_VULNERABILITY_RULES.find(item => item.terms.some(term => searchable.includes(term)));
+  return vulnerabilities.find(item => item.slug === rule?.slug) || null;
 }
 
 export default function LessonDetailPage({ params }: { params: Promise<{ pathId: string; lessonId: string }> }) {
@@ -37,14 +60,19 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [htmlContent, setHtmlContent] = useState<string>('');
+  const [defaultLab, setDefaultLab] = useState<Lab | null>(null);
+  const [practiceVulnerability, setPracticeVulnerability] = useState<Vulnerability | null>(null);
+  const [generatingLab, setGeneratingLab] = useState(false);
+  const [labError, setLabError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadData() {
       try {
-        const [lessonRes, pathRes, lessonsRes] = await Promise.all([
+        const [lessonRes, pathRes, lessonsRes, vulnerabilitiesRes] = await Promise.all([
           api.lessons.getById(lessonId),
           api.learningPaths.getById(pathId),
-          api.learningPaths.getLessons(pathId)
+          api.learningPaths.getLessons(pathId),
+          api.vulnerabilities.getAll()
         ]);
 
         if (lessonRes.success && lessonRes.data) {
@@ -52,6 +80,18 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
           // Parse markdown to HTML asynchronously
           const parsed = await marked.parse(lessonRes.data.contentMarkdown);
           setHtmlContent(parsed);
+          const resolvedVulnerability = resolveLessonVulnerability(
+            lessonRes.data,
+            vulnerabilitiesRes.success ? vulnerabilitiesRes.data : []
+          );
+          setPracticeVulnerability(resolvedVulnerability);
+          setDefaultLab(null);
+          if (resolvedVulnerability) {
+            const labsRes = await api.vulnerabilities.getLabs(resolvedVulnerability.id);
+            if (labsRes.success) {
+              setDefaultLab(labsRes.data.find((lab: Lab) => !lab.generated) || null);
+            }
+          }
         } else {
           setError('Không tìm thấy thông tin bài học.');
           setLoading(false);
@@ -87,6 +127,40 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
     loadData();
   }, [pathId, lessonId, isAuthenticated]);
 
+  useEffect(() => {
+    if (!isAuthenticated || !lesson || !htmlContent) return;
+    let saveTimer: number | undefined;
+    let lastSavedY = -1;
+    const savePosition = () => {
+      const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      const scrollY = Math.round(window.scrollY);
+      if (Math.abs(scrollY - lastSavedY) < 40) return;
+      lastSavedY = scrollY;
+      const progress = Math.round(Math.min(100, (scrollY / maxScroll) * 100));
+      api.users.saveLearningState(lesson.id, progress, scrollY).catch(() => undefined);
+    };
+    const onScroll = () => {
+      window.clearTimeout(saveTimer);
+      saveTimer = window.setTimeout(savePosition, 1500);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    const shouldResume = new URLSearchParams(window.location.search).get('resume') === '1';
+    if (shouldResume) {
+      api.users.getResume().then(response => {
+        if (response.data?.type === 'LESSON' && response.data.lessonId === lesson.id) {
+          window.setTimeout(() => window.scrollTo({ top: response.data?.scrollY || 0, behavior: 'smooth' }), 120);
+        }
+      }).catch(() => undefined);
+    } else {
+      savePosition();
+    }
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.clearTimeout(saveTimer);
+      savePosition();
+    };
+  }, [isAuthenticated, lesson, htmlContent]);
+
   const handleComplete = async () => {
     if (!isAuthenticated) {
       router.push('/login');
@@ -103,6 +177,45 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
       }
     } catch (e: any) {
       alert(e.message || 'Lỗi khi cập nhật tiến độ bài học.');
+    }
+  };
+
+  const handleGenerateLessonLab = async () => {
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+    if (!lesson || !practiceVulnerability?.slug || generatingLab) {
+      setLabError('Chưa xác định được loại lỗ hổng phù hợp cho bài học này.');
+      return;
+    }
+
+    setGeneratingLab(true);
+    setLabError(null);
+    try {
+      const plainContent = lesson.contentMarkdown
+        .replace(/```[\s\S]*?```/g, ' ')
+        .replace(/[#*_>`\[\]()!-]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const scenario = [
+        `LESSON TITLE: ${lesson.title}`,
+        `LEARNING PATH: ${path?.title || ''}`,
+        `LESSON CONTENT: ${plainContent.slice(0, 700)}`,
+        'REQUIREMENT: Kịch bản, mục tiêu và gợi ý phải bám sát kiến thức trong bài học này.'
+      ].join('\n');
+      const result = await api.labs.generateWithAi(
+        practiceVulnerability.slug,
+        path?.difficulty || 'BEGINNER',
+        scenario
+      );
+      if (result.success && result.data) {
+        router.push(`/labs/${result.data.id}`);
+      }
+    } catch (e: any) {
+      setLabError(e.message || 'Không thể tạo bài lab từ nội dung bài học.');
+    } finally {
+      setGeneratingLab(false);
     }
   };
 
@@ -234,7 +347,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
       </div>
 
       {/* Main Workspace Layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '24px', alignItems: 'flex-start', width: '100%' }}>
+      <div className="lesson-detail-layout">
         
         {/* Left Side: Lesson content doc reader */}
         <div className="card" style={{ padding: '32px', minWidth: 0 }}>
@@ -242,6 +355,11 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
             <Link href={`/learning/${pathId}`} style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--fg-brand)', fontWeight: 600 }}>
               <ArrowLeft size={14} /> Quay lại Lộ trình học
             </Link>
+          </div>
+
+          <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', marginBottom: '22px', padding: '13px 15px', borderBlock: '1px solid var(--border-default)', color: 'var(--text-body)', fontSize: '13px' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}><Target size={15} style={{ color: 'var(--fg-brand)' }} /><strong>Mục tiêu:</strong> {lesson.learningObjective || `Hiểu và nhận diện ${lesson.title}`}</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}><Clock size={15} /><strong>{lesson.estimatedMinutes || 12} phút</strong></span>
           </div>
 
           {/* Rendered HTML */}
@@ -276,24 +394,39 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
         </div>
 
         {/* Right Side: Sidebar info & Practical actions */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', position: 'sticky', top: '24px' }}>
+        <div className="lesson-detail-sidebar">
           
           {/* Practice Kiosk / Lab integration */}
-          {lesson.vulnerabilityId && (
-            <div className="card" style={{ border: '2px solid var(--border-brand)', background: 'var(--bg-brand-softer)' }}>
+          <div className="card" style={{ border: '2px solid var(--border-brand)', background: 'var(--bg-brand-softer)' }}>
               <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 12px 0', color: 'var(--fg-brand)' }}>
                 <PlayCircle size={18} /> Thực hành thực tế
               </h3>
               <p style={{ fontSize: '13px', color: 'var(--text-body)', lineHeight: 1.55, margin: '0 0 16px 0' }}>
-                Bài học này liên kết với bài thực hành về lỗ hổng <strong>{lesson.vulnerabilityName}</strong>. Hãy chạy máy ảo để áp dụng kiến thức vừa học!
+                Chọn lab có sẵn hoặc tạo một kịch bản mới bám sát bài <strong>{lesson.title}</strong>.
               </p>
-              <Link href={`/labs/${lesson.vulnerabilityId}`} style={{ textDecoration: 'none' }}>
-                <div className="btn btn-primary" style={{ width: '100%', textAlign: 'center', background: 'var(--bg-brand)', border: 'none', color: '#fff' }}>
-                  Chạy bài Lab thực hành
+              {practiceVulnerability && (
+                <div className="lesson-lab-match">
+                  Nhóm thực hành: {practiceVulnerability.name}
                 </div>
-              </Link>
+              )}
+              <div className="lesson-lab-actions">
+                {defaultLab && (
+                  <Link href={`/labs/${defaultLab.id}`} className="btn btn-primary lesson-lab-button">
+                    <PlayCircle size={16} /> Làm lab mặc định
+                  </Link>
+                )}
+                <button className="btn btn-secondary lesson-lab-button" onClick={handleGenerateLessonLab} disabled={generatingLab || !practiceVulnerability}>
+                  {generatingLab ? <LoaderCircle size={16} className="spin" /> : <Sparkles size={16} />}
+                  {generatingLab ? 'Đang tạo kịch bản...' : 'AI tạo lab theo bài học'}
+                </button>
+              </div>
+              {!defaultLab && (
+                <p style={{ fontSize: '12px', color: 'var(--text-body-subtle)', margin: '10px 0 0' }}>
+                  Chưa có lab hệ thống cho bài này. Bạn vẫn có thể tạo lab thực hành bằng AI.
+                </p>
+              )}
+              {labError && <div className="lesson-lab-error">{labError}</div>}
             </div>
-          )}
 
           {/* Table of contents of the Learning Path */}
           <div className="card">

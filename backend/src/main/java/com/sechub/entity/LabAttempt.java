@@ -33,6 +33,9 @@ public class LabAttempt {
     @Column(name = "container_port")
     private Integer containerPort;
 
+    @Column(name = "runtime_token", unique = true, length = 64)
+    private String runtimeToken;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
@@ -45,6 +48,13 @@ public class LabAttempt {
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
+    @Column(name = "expires_at")
+    private LocalDateTime expiresAt;
+
+    @Column(name = "extension_count")
+    @Builder.Default
+    private Integer extensionCount = 0;
+
     @Column(name = "flag_submitted", length = 500)
     private String flagSubmitted;
 
@@ -55,6 +65,10 @@ public class LabAttempt {
     @Column(name = "hints_used")
     @Builder.Default
     private Integer hintsUsed = 0;
+
+    @Column(name = "mentor_prompted", nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean mentorPrompted = false;
 
     public enum Status {
         STARTED, RUNNING, COMPLETED, FAILED, EXPIRED

@@ -51,6 +51,7 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'standard' | 'game'>('standard');
+  const labNotFound = apiError?.includes('Không tìm thấy Lab') || apiError?.includes('404');
 
   useEffect(() => {
     async function loadLabData() {
@@ -95,11 +96,16 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
     return (
       <div className="card" style={{ textAlign: 'center', padding: 'var(--space-6)' }}>
         <AlertCircle size={48} style={{ color: 'var(--fg-danger)', margin: '0 auto var(--space-2)' }} />
-        <h3>Lỗi tải dữ liệu</h3>
-        <p style={{ margin: 'var(--space-1) auto' }}>{apiError || 'Không tìm thấy bài lab yêu cầu.'}</p>
-        <Link href="/labs" className="btn btn-secondary" style={{ display: 'inline-flex', marginTop: 'var(--space-2)' }}>
-          Quay lại phòng Lab
-        </Link>
+        <h3>{labNotFound ? 'Bài lab không còn tồn tại' : 'Lỗi tải dữ liệu'}</h3>
+        <p style={{ margin: 'var(--space-1) auto', maxWidth: '520px' }}>
+          {labNotFound
+            ? 'Lab AI này có thể đã được xoá. Phiên và container liên quan cũng đã được dọn dẹp nên liên kết cũ không thể mở lại.'
+            : apiError || 'Không tìm thấy bài lab yêu cầu.'}
+        </p>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap', marginTop: 'var(--space-2)' }}>
+          <Link href="/labs" className="btn btn-primary">Chọn bài lab khác</Link>
+          <Link href="/learning" className="btn btn-secondary">Quay lại bài học</Link>
+        </div>
       </div>
     );
   }
@@ -205,7 +211,7 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
         <span className="breadcrumb-current">{lab.title}</span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 'var(--space-4)' }}>
+      <div className="lab-detail-layout">
         {/* Main content */}
         <div>
           {/* Lab header */}
@@ -292,7 +298,7 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
                 </div>
                 <h3 style={{ marginBottom: '8px' }}>Môi trường đang hoạt động</h3>
                 <p style={{ color: 'var(--text-body-subtle)', marginBottom: '24px', maxWidth: '480px', margin: '0 auto 24px', lineHeight: 1.6 }}>
-                  Môi trường phòng Lab đã sẵn sàng. Cổng kết nối dịch vụ ảo: <code style={{ color: 'var(--fg-brand)', background: 'var(--bg-neutral-secondary)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'var(--font-mono)' }}>http://localhost:{currentAttempt?.containerPort}</code>. 
+                  Môi trường phòng Lab đã sẵn sàng qua đường dẫn phiên được SecHub bảo vệ. 
                   Nhấn vào nút bên dưới để mở giao diện làm bài thực hành (chứa Website lỗi và Game 2D chỉ dẫn).
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>

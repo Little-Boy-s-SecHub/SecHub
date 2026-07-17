@@ -16,10 +16,12 @@ import {
   Sparkles,
   BrainCircuit,
   X,
-  AlertTriangle
+  AlertTriangle,
+  Trash2
 } from 'lucide-react';
 import { api, Lab, Vulnerability, LabAttempt } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import PageBackLink from '@/components/PageBackLink';
 
 interface CustomSelectOption {
   value: string;
@@ -167,6 +169,7 @@ function CustomSelect({
 export default function LabsPage() {
   const { isAuthenticated } = useAuth();
   const [labs, setLabs] = useState<Lab[]>([]);
+  const [deletingLabId, setDeletingLabId] = useState<string | null>(null);
   const [vulns, setVulns] = useState<Vulnerability[]>([]);
   const [myAttempts, setMyAttempts] = useState<LabAttempt[]>([]);
   const [loading, setLoading] = useState(true);
@@ -179,7 +182,6 @@ export default function LabsPage() {
   const [aiVulnSlug, setAiVulnSlug] = useState('');
   const [aiDifficulty, setAiDifficulty] = useState('BEGINNER');
   const [aiScenario, setAiScenario] = useState('');
-  const [aiApiKey, setAiApiKey] = useState('');
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiStatusLogs, setAiStatusLogs] = useState<string[]>([]);
   const [aiError, setAiError] = useState('');
@@ -228,14 +230,14 @@ export default function LabsPage() {
     };
 
     setTimeout(() => addLog('[*] Đang phân tích kịch bản tấn công của người dùng...'), 600);
-    setTimeout(() => addLog('[*] Đang kết nối tới mô hình GPT-5.6 Sol thông qua Codex CLI...'), 1200);
-    setTimeout(() => addLog('[*] Đang sinh nội dung bài lab (Title, Description, Flags, Hints)...'), 2000);
+    setTimeout(() => addLog('[*] Đang tạo LabSpec có cấu trúc bằng GPT-5.6 Sol...'), 1200);
+    setTimeout(() => addLog('[*] Đang sinh source và Docker artifact từ template an toàn...'), 2000);
 
     try {
-      const res = await api.labs.generateWithAi(aiVulnSlug, aiDifficulty, aiScenario, aiApiKey);
+      const res = await api.labs.generateWithAi(aiVulnSlug, aiDifficulty, aiScenario);
       if (res.success && res.data) {
         addLog('[+] Sinh bài lab thành công từ AI!');
-        addLog('[+] Đang lưu trữ và cấu hình bài lab vào PostgreSQL database...');
+        addLog('[+] Đã lưu metadata và source lab; sẵn sàng build khi người học bắt đầu.');
         
         setTimeout(() => {
           setLabs(prev => [res.data, ...prev]);
@@ -265,6 +267,20 @@ export default function LabsPage() {
     return 'NOT_STARTED';
   };
 
+  const handleDeleteGeneratedLab = async (lab: Lab) => {
+    if (!lab.generated || !window.confirm(`Xoá bài lab AI "${lab.title}"? Các phiên đang chạy của lab này cũng sẽ dừng.`)) return;
+    setDeletingLabId(lab.id);
+    try {
+      await api.labs.deleteGenerated(lab.id);
+      setLabs(current => current.filter(item => item.id !== lab.id));
+      setMyAttempts(current => current.filter(attempt => attempt.labId !== lab.id));
+    } catch (e: any) {
+      alert(e.message || 'Không thể xoá bài lab.');
+    } finally {
+      setDeletingLabId(null);
+    }
+  };
+
   const filteredLabs = labs.filter(lab => {
     if (filterVuln !== 'all' && lab.vulnerabilitySlug !== filterVuln) return false;
     if (filterDifficulty !== 'all' && lab.difficulty !== filterDifficulty) return false;
@@ -273,8 +289,9 @@ export default function LabsPage() {
 
   return (
     <div>
+      <PageBackLink href="/" label="Quay lại Dashboard" />
       <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
-        <div style={{ flex: '1', minWidth: '300px' }}>
+        <div style={{ flex: '1 1 300px', minWidth: 0 }}>
           <h1 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <FlaskConical size={28} style={{ color: 'var(--fg-brand)' }} /> Phòng Lab thực hành
           </h1>
@@ -364,15 +381,15 @@ export default function LabsPage() {
 
             const status = getLabStatus(lab.id);
             const statusContent = status === 'COMPLETED' ? (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--fg-success-strong)' }}>
+              <span className="lab-card-status" style={{ color: 'var(--fg-success-strong)' }}>
                 <CheckCircle2 size={14} /> Hoàn thành
               </span>
             ) : status === 'IN_PROGRESS' ? (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--fg-brand)' }}>
+              <span className="lab-card-status" style={{ color: 'var(--fg-brand)' }}>
                 <RotateCw size={14} style={{ animation: 'spin 3s linear infinite' }} /> Đang làm
               </span>
             ) : (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-body-subtle)' }}>
+              <span className="lab-card-status" style={{ color: 'var(--text-body-subtle)' }}>
                 <PlayCircle size={14} /> Chưa bắt đầu
               </span>
             );
@@ -386,12 +403,32 @@ export default function LabsPage() {
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
+                    position: 'relative',
                   }}
                 >
                   <div className="lab-card-header">
                     <span className={`badge ${diffClass}`}>{difficultyLabel}</span>
                     {statusContent}
                   </div>
+                  {lab.generated && (
+                    <div className="lab-card-generated-row">
+                      <span className="lab-generated-label" title="Lab có source và Docker artifact được tạo tự động"><Sparkles size={13} /> AI generated</span>
+                        <button
+                          type="button"
+                          title="Xoá bài lab AI"
+                          aria-label={`Xoá ${lab.title}`}
+                          disabled={deletingLabId === lab.id}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            handleDeleteGeneratedLab(lab);
+                          }}
+                          className="lab-delete-button"
+                        >
+                          {deletingLabId === lab.id ? <RotateCw size={14} className="spin" /> : <Trash2 size={14} />}
+                        </button>
+                    </div>
+                  )}
                   <div className="lab-card-title">{lab.title}</div>
                   <div className="lab-card-desc">{lab.description}</div>
                   <div className="lab-card-meta" style={{ marginTop: 'auto', paddingTop: 'var(--space-2)', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
@@ -515,7 +552,7 @@ export default function LabsPage() {
                       borderRadius: '50%',
                       animation: 'spin 1s linear infinite'
                     }}></div>
-                    <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-heading)' }}>Đang tạo lab thực hành bảo mật bằng Codex 5.6...</span>
+                    <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-heading)' }}>Đang tạo lab thực hành bằng GPT-5.6...</span>
                   </div>
                   <div style={{
                     background: '#090f1e',
@@ -611,26 +648,6 @@ export default function LabsPage() {
                     />
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-body-subtle)' }}>OPENAI API KEY (TÙY CHỌN)</label>
-                    <input
-                      type="password"
-                      value={aiApiKey}
-                      onChange={(e) => setAiApiKey(e.target.value)}
-                      placeholder="Nhập API Key của bạn (nếu máy chủ chưa cấu hình)"
-                      style={{
-                        background: 'var(--bg-neutral-secondary-soft)',
-                        border: '1px solid var(--border-default)',
-                        borderRadius: '8px',
-                        padding: '10px 14px',
-                        color: 'var(--text-heading)',
-                        fontSize: '0.875rem',
-                        fontWeight: 500,
-                        outline: 'none'
-                      }}
-                    />
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-body-subtle)' }}>Để trống nếu server đã cấu hình sẵn biến môi trường `OPENAI_API_KEY`.</span>
-                  </div>
                 </>
               )}
             </div>

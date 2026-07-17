@@ -32,6 +32,13 @@ public class Lesson {
     @Builder.Default
     private Integer sortOrder = 0;
 
+    @Column(name = "learning_objective", length = 500)
+    private String learningObjective;
+
+    @Column(name = "estimated_minutes")
+    @Builder.Default
+    private Integer estimatedMinutes = 12;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vulnerability_id")
     private Vulnerability vulnerability;

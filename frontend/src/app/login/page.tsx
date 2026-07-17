@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Shield, Lock, User, AlertCircle } from 'lucide-react';
+import PageBackLink from '@/components/PageBackLink';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -48,6 +49,7 @@ export default function LoginPage() {
         padding: 'var(--space-4)',
         boxShadow: 'var(--shadow-xl)'
       }}>
+        <PageBackLink href="/" label="Quay lại Dashboard" />
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 'var(--space-3)' }}>
           <div style={{

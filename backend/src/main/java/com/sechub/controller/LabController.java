@@ -31,6 +31,13 @@ public class LabController {
         return ResponseEntity.ok(ApiResponse.success(labService.getById(id)));
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteGeneratedLab(@PathVariable UUID id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        labService.deleteGeneratedLab(id, userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.success("Đã xoá bài lab AI", null));
+    }
+
     @PostMapping("/{id}/start")
     public ResponseEntity<ApiResponse<LabAttemptDto>> startLab(
             @PathVariable UUID id,
@@ -62,6 +69,28 @@ public class LabController {
             @AuthenticationPrincipal UserDetails userDetails) {
         LabAttemptDto attempt = labService.useHint(attemptId, userDetails.getUsername());
         return ResponseEntity.ok(ApiResponse.success("Đã sử dụng gợi ý", attempt));
+    }
+
+    @GetMapping("/attempts/{attemptId}/mentor")
+    public ResponseEntity<ApiResponse<MentorGuidanceDto>> getMentorGuidance(
+            @PathVariable UUID attemptId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(ApiResponse.success(labService.getMentorGuidance(attemptId, userDetails.getUsername())));
+    }
+
+    @PostMapping("/attempts/{attemptId}/extend")
+    public ResponseEntity<ApiResponse<LabAttemptDto>> extendLab(
+            @PathVariable UUID attemptId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        LabAttemptDto attempt = labService.extendLab(attemptId, userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.success("Đã gia hạn thêm 30 phút", attempt));
+    }
+
+    @GetMapping("/attempts/{attemptId}/feedback")
+    public ResponseEntity<ApiResponse<LabFeedbackDto>> getFeedback(
+            @PathVariable UUID attemptId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(ApiResponse.success(labService.getCompletionFeedback(attemptId, userDetails.getUsername())));
     }
 
     @GetMapping("/attempts/me")

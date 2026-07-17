@@ -44,6 +44,7 @@ public class SecurityConfig {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
+            .headers(headers -> headers.frameOptions(frame -> frame.disable()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(exceptions -> exceptions
                 .authenticationEntryPoint((request, response, authException) -> {
@@ -65,14 +66,19 @@ public class SecurityConfig {
                 // Lab attempts endpoints requiring authentication
                 .requestMatchers(HttpMethod.GET, "/api/labs/attempts/me").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/labs/*/attempts").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/labs/attempts/*/feedback").authenticated()
                 // Public endpoints
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/lab-runtime/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/vulnerabilities/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/learning-paths/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/lessons/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/labs/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/growth/public/**", "/api/growth/leaderboard").permitAll()
+                .requestMatchers("/api/lab-runtime/**").permitAll()
                 .requestMatchers("/api/sync/**").permitAll()
                 .requestMatchers("/api/ai/**").authenticated()
+                .requestMatchers("/api/author/**").hasAnyRole("INSTRUCTOR", "ADMIN")
                 // Admin endpoints
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 // All other requests require authentication

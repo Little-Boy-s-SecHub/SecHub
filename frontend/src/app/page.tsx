@@ -11,12 +11,24 @@ import {
   RotateCw, 
   Clock, 
   Trophy, 
-  Link as LinkIcon 
+  Link as LinkIcon,
+  ArrowRight,
+  MonitorPlay,
+  Flame,
+  Snowflake,
+  CalendarDays,
+  Bell,
+  TrendingUp,
+  Sparkles
+  ,Award
+  ,ShieldCheck
 } from 'lucide-react';
-import { api, Vulnerability, LearningPath, Lab, LabAttempt } from '@/lib/api';
+import { api, Vulnerability, LearningPath, Lab, LabAttempt, ResumeLearning, GrowthOverview, LeaderboardEntry } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import VulnIcon from '@/components/VulnIcon';
 import ActivityHeatmap from '@/components/ActivityHeatmap';
+import NewUserOnboarding from '@/components/NewUserOnboarding';
+import { useRouter } from 'next/navigation';
 
 function StatCard({ value, label, color }: { value: string; label: string; color: string }) {
   return (
@@ -155,9 +167,14 @@ function RecentLabCard({ attempt }: { attempt: LabAttempt }) {
 
 export default function DashboardPage() {
   const { isAuthenticated } = useAuth();
+  const router = useRouter();
   const [vulns, setVulns] = useState<Vulnerability[]>([]);
   const [paths, setPaths] = useState<LearningPath[]>([]);
   const [attempts, setAttempts] = useState<LabAttempt[]>([]);
+  const [resume, setResume] = useState<ResumeLearning | null>(null);
+  const [growth, setGrowth] = useState<GrowthOverview | null>(null);
+  const [weeklyLeaders, setWeeklyLeaders] = useState<LeaderboardEntry[]>([]);
+  const [openingWeekly, setOpeningWeekly] = useState(false);
   const [stats, setStats] = useState({
     totalVulnerabilities: 8,
     totalLabs: 14,
@@ -192,9 +209,11 @@ export default function DashboardPage() {
         }));
 
         if (isAuthenticated) {
-          const [dashboardRes, attemptsRes] = await Promise.all([
+          const [dashboardRes, attemptsRes, resumeRes, growthRes] = await Promise.all([
             api.users.getDashboard(),
-            api.labs.getMyAttempts()
+            api.labs.getMyAttempts(),
+            api.users.getResume(),
+            api.growth.getOverview()
           ]);
 
           if (dashboardRes.success && dashboardRes.data) {
@@ -211,6 +230,11 @@ export default function DashboardPage() {
           if (attemptsRes.success && attemptsRes.data) {
             setAttempts(attemptsRes.data);
           }
+          if (resumeRes.success) setResume(resumeRes.data);
+          if (growthRes.success) {
+            setGrowth(growthRes.data);
+            api.growth.getLeaderboard(growthRes.data.recommendedTrack).then(result => setWeeklyLeaders(result.data)).catch(() => undefined);
+          }
         }
       } catch (e) {
         console.error('Failed to load dashboard data:', e);
@@ -222,8 +246,67 @@ export default function DashboardPage() {
     loadData();
   }, [isAuthenticated]);
 
+  const openWeeklyChallenge = async () => {
+    setOpeningWeekly(true);
+    try { router.push(`/labs/${(await api.growth.getWeeklyLab()).data.id}`); }
+    catch (e: any) { alert(e.message || 'Chưa thể mở thử thách tuần.'); setOpeningWeekly(false); }
+  };
+
   return (
     <div>
+      {isAuthenticated && growth?.onboardingRequired && <NewUserOnboarding onComplete={setGrowth} />}
+      {isAuthenticated && resume && (
+        <section className="continue-learning">
+          <div className="continue-learning-icon">
+            {resume.type === 'LAB' ? <MonitorPlay size={22} /> : <BookOpen size={22} />}
+          </div>
+          <div className="continue-learning-copy">
+            <div className="continue-learning-kicker">{resume.type === 'LAB' ? 'Phiên thực hành đang mở' : 'Tiếp tục từ lần trước'}</div>
+            <h2>{resume.title}</h2>
+            <p>{resume.subtitle}{resume.type === 'LESSON' && typeof resume.progress === 'number' ? ` · Đã đọc ${resume.progress}%` : ''}</p>
+          </div>
+          <NextLink href={resume.url} className="btn btn-primary continue-learning-button">
+            Tiếp tục <ArrowRight size={16} />
+          </NextLink>
+        </section>
+      )}
+      {isAuthenticated && growth && !growth.onboardingRequired && (
+        <>
+        <section className="dashboard-return-grid" aria-label="Nhịp học của bạn">
+          <div className="dashboard-rhythm">
+            <div className="dashboard-rhythm-stat"><Flame size={19} /><div><strong>{growth.streak} ngày</strong><span>Chuỗi học hiện tại</span></div></div>
+            <div className="dashboard-rhythm-stat"><Snowflake size={19} /><div><strong>{growth.freezeTickets} vé</strong><span>Bảo toàn chuỗi</span></div></div>
+          </div>
+          <div className="dashboard-missions">
+            <div className="dashboard-panel-heading"><div><CalendarDays size={18} /><h2>Việc nên làm hôm nay</h2></div><span>10–15 phút</span></div>
+            <div className="dashboard-mission-row"><div><strong>{growth.dailyMission.title}</strong><p>{growth.dailyMission.description}</p></div><NextLink href={growth.dailyMission.actionUrl} className="btn btn-secondary btn-sm">{growth.dailyMission.completed ? 'Xem lại' : 'Bắt đầu'}</NextLink></div>
+            <div className="dashboard-mission-row"><div><strong>{growth.weeklyChallenge.title}</strong><p>Lab biến thể từ kỹ năng đã hoàn thành, không lặp lại đề cũ.</p></div><button className="btn btn-secondary btn-sm" onClick={openWeeklyChallenge} disabled={openingWeekly}><Sparkles size={14} /> {openingWeekly ? 'Đang tạo...' : 'Mở thử thách'}</button></div>
+          </div>
+          <div className="dashboard-insights">
+            <div className="dashboard-panel-heading"><div><TrendingUp size={18} /><h2>Báo cáo tuần</h2></div><span>+{growth.weeklyReport.xpGained} XP</span></div>
+            <div className="dashboard-weekly-numbers"><span><strong>{growth.weeklyReport.labsCompleted}</strong> lab</span><span><strong>{growth.weeklyReport.lessonsCompleted}</strong> bài học</span></div>
+            <p><b>Kỹ năng tốt:</b> {growth.weeklyReport.strongestSkill}</p><p><b>Nên học tiếp:</b> {growth.weeklyReport.weakSkill}</p><p>{growth.weeklyReport.recommendation}</p>
+          </div>
+          {growth.notifications.length > 0 && <div className="dashboard-notice"><Bell size={18} /><div><strong>Cập nhật dành cho bạn</strong><p>{growth.notifications[0]}</p></div></div>}
+        </section>
+        <section className="dashboard-competency" aria-label="Năng lực và thành tích">
+          <div className="dashboard-xp-panel">
+            <div className="dashboard-panel-heading"><div><Trophy size={18} /><h2>Cấp {growth.level} · {growth.levelTitle}</h2></div><strong>{growth.xp} XP</strong></div>
+            <div className="dashboard-xp-track"><span style={{ width: `${((growth.xp % 500) / 500) * 100}%` }} /></div>
+            <small>{500 - (growth.xp % 500)} XP tới cấp tiếp theo</small>
+            <div className="dashboard-badges"><Award size={16} />{growth.badges.length ? growth.badges.slice(0, 4).map(badge => <span key={badge}>{badge}</span>) : <span>Hoàn thành lab đầu tiên để nhận huy hiệu</span>}</div>
+          </div>
+          <div className="dashboard-skill-panel">
+            <div className="dashboard-panel-heading"><div><ShieldCheck size={18} /><h2>Bản đồ năng lực</h2></div><span>Từ kết quả lab</span></div>
+            {growth.skills.length ? growth.skills.slice(0, 5).map(skill => <div className="dashboard-skill-row" key={skill.slug}><div><strong>{skill.name}</strong><small>Cấp {skill.level} · {skill.completedLabs} lab</small></div><div><span style={{ width: `${Math.min(100, skill.xp / 5)}%` }} /></div><b>{skill.xp} XP</b></div>) : <p className="dashboard-skill-empty">SQLi, XSS, Access Control và SSRF sẽ xuất hiện khi bạn hoàn thành lab tương ứng.</p>}
+          </div>
+        </section>
+        <section className="dashboard-community" aria-label="Cộng đồng SecHub">
+          <div className="dashboard-panel-heading"><div><Trophy size={18} /><h2>Top tuần · {growth.recommendedTrack === 'BEGINNER' ? 'Người mới' : growth.recommendedTrack === 'WEB_DEVELOPER' ? 'Web Developer' : 'Pentester'}</h2></div><NextLink href={`/profile/${api.auth.getCurrentUser()?.username}`}>Hồ sơ CV của tôi</NextLink></div>
+          <div className="dashboard-community-list">{weeklyLeaders.slice(0, 5).map((entry, index) => <div key={entry.username}><span>{index + 1}</span><NextLink href={`/profile/${entry.username}`}>{entry.username}</NextLink><small>{entry.strongestSkill}</small><strong>{entry.weeklyXp} XP</strong></div>)}{weeklyLeaders.length === 0 && <p>Chưa có điểm trong nhóm tuần này. Bạn có thể là người đầu tiên.</p>}</div>
+        </section>
+        </>
+      )}
       {/* Hero Section */}
       <section className="animate-fade-in-up" style={{ marginBottom: 'var(--space-6)' }}>
         <div className="hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', alignItems: 'center' }}>

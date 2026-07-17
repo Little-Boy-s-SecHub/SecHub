@@ -5,6 +5,9 @@ import com.sechub.dto.DashboardDto;
 import com.sechub.dto.UserDto;
 import com.sechub.service.UserService;
 import com.sechub.service.ActivityService;
+import com.sechub.service.LearningStateService;
+import com.sechub.dto.LearningStateRequest;
+import com.sechub.dto.ResumeLearningDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,10 +22,23 @@ public class UserController {
 
     private final UserService userService;
     private final ActivityService activityService;
+    private final LearningStateService learningStateService;
 
-    public UserController(UserService userService, ActivityService activityService) {
+    public UserController(UserService userService, ActivityService activityService, LearningStateService learningStateService) {
         this.userService = userService;
         this.activityService = activityService;
+        this.learningStateService = learningStateService;
+    }
+
+    @GetMapping("/me/resume")
+    public ResponseEntity<ApiResponse<ResumeLearningDto>> getResume(@AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(ApiResponse.success(learningStateService.get(userDetails.getUsername())));
+    }
+
+    @PutMapping("/me/learning-state")
+    public ResponseEntity<ApiResponse<ResumeLearningDto>> saveLearningState(
+            @RequestBody LearningStateRequest request, @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(ApiResponse.success(learningStateService.save(userDetails.getUsername(), request)));
     }
 
     @GetMapping("/me")

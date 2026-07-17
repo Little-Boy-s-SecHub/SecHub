@@ -21,7 +21,7 @@ public class LearningPathService {
 
     @Transactional(readOnly = true)
     public List<LearningPathDto> getAllPaths() {
-        return learningPathRepository.findAllByOrderBySortOrderAsc()
+        return learningPathRepository.findByStatusOrderBySortOrderAsc(LearningPath.PublicationStatus.PUBLISHED)
                 .stream()
                 .map(LearningPathDto::summary)
                 .toList();
@@ -31,13 +31,16 @@ public class LearningPathService {
     public LearningPathDto getById(UUID id) {
         LearningPath lp = learningPathRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Lộ trình học", "id", id));
+        if (lp.getStatus() != LearningPath.PublicationStatus.PUBLISHED) {
+            throw new ResourceNotFoundException("Lộ trình học", "id", id);
+        }
         return LearningPathDto.fromEntity(lp);
     }
 
     @Transactional(readOnly = true)
     public List<LearningPathDto> getByDifficulty(String difficulty) {
         LearningPath.Difficulty diff = LearningPath.Difficulty.valueOf(difficulty.toUpperCase());
-        return learningPathRepository.findByDifficulty(diff)
+        return learningPathRepository.findByDifficultyAndStatus(diff, LearningPath.PublicationStatus.PUBLISHED)
                 .stream()
                 .map(LearningPathDto::summary)
                 .toList();

@@ -13,7 +13,8 @@ public record LearningPathDto(
     Integer estimatedHours,
     int sortOrder,
     int lessonCount,
-    List<LessonDto> lessons
+    List<LessonDto> lessons,
+    String status
 ) {
     public static LearningPathDto fromEntity(LearningPath lp) {
         List<LessonDto> lessonDtos = lp.getLessons() != null
@@ -28,7 +29,8 @@ public record LearningPathDto(
             lp.getEstimatedHours(),
             lp.getSortOrder(),
             lessonDtos.size(),
-            lessonDtos
+            lessonDtos,
+            lp.getStatus().name()
         );
     }
 
@@ -41,7 +43,8 @@ public record LearningPathDto(
             lp.getEstimatedHours(),
             lp.getSortOrder(),
             lp.getLessons() != null ? lp.getLessons().size() : 0,
-            null
+            null,
+            lp.getStatus().name()
         );
     }
 }

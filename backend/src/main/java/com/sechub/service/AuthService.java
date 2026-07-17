@@ -44,6 +44,7 @@ public class AuthService {
                 .email(request.email())
                 .passwordHash(passwordEncoder.encode(request.password()))
                 .role(User.Role.USER)
+                .onboardingRequired(true)
                 .build();
 
         user = userRepository.save(user);

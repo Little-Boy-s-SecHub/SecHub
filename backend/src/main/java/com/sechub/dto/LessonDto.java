@@ -11,7 +11,10 @@ public record LessonDto(
     String contentMarkdown,
     int sortOrder,
     UUID vulnerabilityId,
-    String vulnerabilityName
+    String vulnerabilityName,
+    String vulnerabilitySlug,
+    String learningObjective,
+    Integer estimatedMinutes
 ) {
     public static LessonDto fromEntity(Lesson lesson) {
         return new LessonDto(
@@ -21,7 +24,11 @@ public record LessonDto(
             lesson.getContentMarkdown(),
             lesson.getSortOrder(),
             lesson.getVulnerability() != null ? lesson.getVulnerability().getId() : null,
-            lesson.getVulnerability() != null ? lesson.getVulnerability().getName() : null
+            lesson.getVulnerability() != null ? lesson.getVulnerability().getName() : null,
+            lesson.getVulnerability() != null ? lesson.getVulnerability().getSlug() : null,
+            lesson.getLearningObjective() == null || lesson.getLearningObjective().isBlank()
+                    ? "Hiểu và nhận diện " + lesson.getTitle() : lesson.getLearningObjective(),
+            lesson.getEstimatedMinutes() == null ? 12 : lesson.getEstimatedMinutes()
         );
     }
 }

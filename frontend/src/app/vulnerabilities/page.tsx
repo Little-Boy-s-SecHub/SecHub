@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ShieldAlert } from 'lucide-react';
 import { api, Vulnerability } from '@/lib/api';
 import VulnIcon from '@/components/VulnIcon';
+import PageBackLink from '@/components/PageBackLink';
 
 export default function VulnerabilitiesPage() {
   const [vulns, setVulns] = useState<Vulnerability[]>([]);
@@ -29,6 +30,7 @@ export default function VulnerabilitiesPage() {
 
   return (
     <div>
+      <PageBackLink href="/" label="Quay lại Dashboard" />
       <div className="section-header">
         <h1 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <ShieldAlert size={28} style={{ color: 'var(--fg-brand)' }} /> Lỗ hổng bảo mật
