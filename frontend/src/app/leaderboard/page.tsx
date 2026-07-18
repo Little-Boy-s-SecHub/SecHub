@@ -225,7 +225,6 @@ export default function LeaderboardPage() {
                       fontWeight: 800,
                       fontSize: '32px',
                       color: 'var(--text-body-subtle)',
-                      opacity: 0.45,
                     }}>
                       II
                     </div>
@@ -293,7 +292,6 @@ export default function LeaderboardPage() {
                       fontWeight: 800,
                       fontSize: '32px',
                       color: 'var(--text-body-subtle)',
-                      opacity: 0.45,
                     }}>
                       II
                     </div>
@@ -368,7 +366,6 @@ export default function LeaderboardPage() {
                       fontWeight: 800,
                       fontSize: '36px',
                       color: 'var(--fg-brand)',
-                      opacity: 0.5,
                     }}>
                       I
                     </div>
@@ -439,7 +436,6 @@ export default function LeaderboardPage() {
                       fontWeight: 800,
                       fontSize: '32px',
                       color: 'var(--text-body-subtle)',
-                      opacity: 0.45,
                     }}>
                       III
                     </div>
@@ -507,7 +503,6 @@ export default function LeaderboardPage() {
                       fontWeight: 800,
                       fontSize: '32px',
                       color: 'var(--text-body-subtle)',
-                      opacity: 0.45,
                     }}>
                       III
                     </div>
