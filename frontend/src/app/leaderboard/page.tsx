@@ -43,7 +43,7 @@ export default function LeaderboardPage() {
 
   const tracks = [
     { value: '', label: t('leaderboard.allTracks') },
-    { value: 'BEGINNER', label: `${t('common.beginner')} (Beginner)` },
+    { value: 'BEGINNER', label: t('common.beginner') },
     { value: 'WEB_DEVELOPER', label: 'Web Developer' },
     { value: 'PENTESTER', label: 'Pentester' },
   ];
@@ -162,7 +162,7 @@ export default function LeaderboardPage() {
                 flexWrap: 'wrap'
               }}>
                 {/* Rank 2 */}
-                {top2 && (
+                {top2 ? (
                   <div style={{
                     display: 'flex',
                     flexDirection: 'column',
@@ -210,6 +210,74 @@ export default function LeaderboardPage() {
                     <span style={{ color: 'var(--fg-brand)', fontWeight: 800, fontSize: '14px', marginTop: '2px' }}>{top2.weeklyXp} XP</span>
                     <span style={{ fontSize: '11px', color: 'var(--text-body-subtle)', background: 'var(--bg-neutral-secondary)', padding: '2px 8px', borderRadius: '4px', marginTop: '6px', textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {top2.strongestSkill}
+                    </span>
+                    {/* Podium Pillar */}
+                    <div style={{
+                      width: '100%',
+                      height: '90px',
+                      background: 'linear-gradient(180deg, var(--bg-neutral-secondary-medium) 0%, var(--bg-neutral-tertiary) 100%)',
+                      border: '1px solid var(--border-default)',
+                      borderBottom: 'none',
+                      borderRadius: '8px 8px 0 0',
+                      marginTop: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 800,
+                      fontSize: '32px',
+                      color: 'rgba(0,0,0,0.06)'
+                    }}>
+                      II
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    width: '180px',
+                    order: 1,
+                    opacity: 0.4
+                  }}>
+                    <div style={{
+                      width: '64px',
+                      height: '64px',
+                      borderRadius: '50%',
+                      background: 'var(--bg-neutral-secondary-medium)',
+                      border: '3px solid var(--border-default)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '20px',
+                      fontWeight: 800,
+                      color: 'var(--text-body-subtle)',
+                      marginBottom: '12px',
+                      position: 'relative'
+                    }}>
+                      ?
+                      <span style={{
+                        position: 'absolute',
+                        bottom: '-6px',
+                        right: '-6px',
+                        background: 'var(--bg-neutral-tertiary)',
+                        color: 'var(--text-body-subtle)',
+                        width: '22px',
+                        height: '22px',
+                        borderRadius: '50%',
+                        fontSize: '11px',
+                        fontWeight: 900,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: '2px solid var(--bg-neutral-primary)'
+                      }}>2</span>
+                    </div>
+                    <span style={{ color: 'var(--text-body-subtle)', fontWeight: 600, fontSize: '15px' }}>
+                      {language === 'vi' ? 'Trống' : 'Empty'}
+                    </span>
+                    <span style={{ color: 'var(--text-body-subtle)', fontWeight: 500, fontSize: '13px', marginTop: '2px' }}>0 XP</span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-body-subtle)', background: 'var(--bg-neutral-secondary-soft)', padding: '2px 8px', borderRadius: '4px', marginTop: '6px', minHeight: '21px' }}>
+                      —
                     </span>
                     {/* Podium Pillar */}
                     <div style={{
@@ -308,7 +376,7 @@ export default function LeaderboardPage() {
                 )}
 
                 {/* Rank 3 */}
-                {top3 && (
+                {top3 ? (
                   <div style={{
                     display: 'flex',
                     flexDirection: 'column',
@@ -356,6 +424,74 @@ export default function LeaderboardPage() {
                     <span style={{ color: 'var(--fg-brand)', fontWeight: 800, fontSize: '14px', marginTop: '2px' }}>{top3.weeklyXp} XP</span>
                     <span style={{ fontSize: '11px', color: 'var(--text-body-subtle)', background: 'var(--bg-neutral-secondary)', padding: '2px 8px', borderRadius: '4px', marginTop: '6px', textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {top3.strongestSkill}
+                    </span>
+                    {/* Podium Pillar */}
+                    <div style={{
+                      width: '100%',
+                      height: '70px',
+                      background: 'linear-gradient(180deg, var(--bg-neutral-secondary-medium) 0%, var(--bg-neutral-tertiary) 100%)',
+                      border: '1px solid var(--border-default)',
+                      borderBottom: 'none',
+                      borderRadius: '8px 8px 0 0',
+                      marginTop: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 800,
+                      fontSize: '32px',
+                      color: 'rgba(0,0,0,0.06)'
+                    }}>
+                      III
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    width: '180px',
+                    order: 3,
+                    opacity: 0.4
+                  }}>
+                    <div style={{
+                      width: '64px',
+                      height: '64px',
+                      borderRadius: '50%',
+                      background: 'var(--bg-neutral-secondary-medium)',
+                      border: '3px solid var(--border-default)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '20px',
+                      fontWeight: 800,
+                      color: 'var(--text-body-subtle)',
+                      marginBottom: '12px',
+                      position: 'relative'
+                    }}>
+                      ?
+                      <span style={{
+                        position: 'absolute',
+                        bottom: '-6px',
+                        right: '-6px',
+                        background: 'var(--bg-neutral-tertiary)',
+                        color: 'var(--text-body-subtle)',
+                        width: '22px',
+                        height: '22px',
+                        borderRadius: '50%',
+                        fontSize: '11px',
+                        fontWeight: 900,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: '2px solid var(--bg-neutral-primary)'
+                      }}>3</span>
+                    </div>
+                    <span style={{ color: 'var(--text-body-subtle)', fontWeight: 600, fontSize: '15px' }}>
+                      {language === 'vi' ? 'Trống' : 'Empty'}
+                    </span>
+                    <span style={{ color: 'var(--text-body-subtle)', fontWeight: 500, fontSize: '13px', marginTop: '2px' }}>0 XP</span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-body-subtle)', background: 'var(--bg-neutral-secondary-soft)', padding: '2px 8px', borderRadius: '4px', marginTop: '6px', minHeight: '21px' }}>
+                      —
                     </span>
                     {/* Podium Pillar */}
                     <div style={{
