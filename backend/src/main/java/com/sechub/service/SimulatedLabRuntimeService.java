@@ -9,6 +9,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -22,6 +24,7 @@ import static org.springframework.http.HttpStatus.GONE;
 @Service
 public class SimulatedLabRuntimeService {
 
+    private static final Logger log = LoggerFactory.getLogger(SimulatedLabRuntimeService.class);
     private final ObjectMapper objectMapper;
 
     public SimulatedLabRuntimeService(ObjectMapper objectMapper) {
@@ -60,6 +63,7 @@ public class SimulatedLabRuntimeService {
         } catch (ResponseStatusException e) {
             throw e;
         } catch (Exception e) {
+            log.error("Failed to serve simulated runtime for attempt {}", attempt.getId(), e);
             throw new ResponseStatusException(GONE, "Sandbox lab nhúng không thể phản hồi", e);
         }
     }

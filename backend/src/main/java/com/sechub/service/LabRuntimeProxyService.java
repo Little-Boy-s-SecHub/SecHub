@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.net.URI;
@@ -47,6 +48,7 @@ public class LabRuntimeProxyService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
     public ResponseEntity<byte[]> proxy(String token, byte[] body, HttpServletRequest incoming) {
         LabAttempt attempt = attemptRepository.findByRuntimeToken(token)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Runtime lab không tồn tại"));
