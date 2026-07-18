@@ -33,7 +33,7 @@ public class LabArtifactService {
         this.generatedLabsRoot = Path.of(generatedRoot).toAbsolutePath().normalize();
     }
 
-    public LabArtifact create(String vulnerabilitySlug, String flag, GeneratedLabSpec spec) {
+    public LabArtifact create(String vulnerabilitySlug, String flag, GeneratedLabSpec spec, String language) {
         if (!SUPPORTED_TYPES.contains(vulnerabilitySlug)) {
             throw new BadRequestException("Loại lỗ hổng chưa có template thực thi an toàn: " + vulnerabilitySlug);
         }
@@ -55,6 +55,7 @@ public class LabArtifactService {
                     "flag", flag,
                     "title", spec.title(),
                     "scenario", spec.scenario() == null ? "" : spec.scenario(),
+                    "language", language != null ? language : "en",
                     "variant", Map.of("parameter", "ref_" + variantKey.substring(0, 3),
                             "targetId", 2 + Math.floorMod(artifactId.hashCode(), 8),
                             "account", "analyst_" + variantKey))));
@@ -139,10 +140,13 @@ public class LabArtifactService {
                 PARAM = VARIANT.get("parameter", "ref")
                 TARGET_ID = str(VARIANT.get("targetId", 7))
                 ACCOUNT = VARIANT.get("account", "analyst")
+                LANG = LAB.get("language", "en")
 
                 def page(title, body):
-                    retry = "<a class='retry' href='./'>Làm lại</a>" if "<pre>" in body else ""
-                    return ("<!doctype html><html lang='vi'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width'>"
+                    lang_attr = "vi" if LANG == "vi" else "en"
+                    retry_text = "L\u00e0m l\u1ea1i" if LANG == "vi" else "Try again"
+                    retry = "<a class='retry' href='./'>" + retry_text + "</a>" if "<pre>" in body else ""
+                    return ("<!doctype html><html lang='" + lang_attr + "'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width'>"
                             + "<title>" + html.escape(title) + "</title><style>"
                             + ":root{color-scheme:light;--ink:#191d2b;--muted:#657084;--line:#dfe4ec;--brand:#2447a8;--soft:#f5f7fb}"
                             + "*{box-sizing:border-box}body{margin:0;background:var(--soft);color:var(--ink);font:15px/1.6 Inter,ui-sans-serif,system-ui,sans-serif}"
@@ -235,17 +239,19 @@ public class LabArtifactService {
                         return self.send(404, "not found", "text/plain")
 
                     def home(self):
+                        vi = LANG == "vi"
                         forms = {
-                            "sql-injection": "<form method='post' action='/login'><div class='field'><label>Tên đăng nhập</label><input name='" + PARAM + "' autocomplete='off' placeholder='" + ACCOUNT + "'></div><div class='field'><label>Mật khẩu</label><input name='password' type='password' placeholder='Nhập mật khẩu'></div><button>Đăng nhập</button></form>",
-                            "xss": "<form action='/search'><div class='field'><label>Từ khóa</label><input name='" + PARAM + "' placeholder='Tìm trong tài liệu'></div><button>Tìm kiếm</button></form>",
-                            "csrf": "<form method='post' action='/transfer'><div class='field'><label>Người nhận</label><input name='to' value='merchant'></div><div class='field'><label>Số tiền</label><input name='amount' value='10'></div><button>Chuyển khoản</button></form>",
+                            "sql-injection": "<form method='post' action='/login'><div class='field'><label>" + ("T\u00ean \u0111\u0103ng nh\u1eadp" if vi else "Username") + "</label><input name='" + PARAM + "' autocomplete='off' placeholder='" + ACCOUNT + "'></div><div class='field'><label>" + ("M\u1eadt kh\u1ea9u" if vi else "Password") + "</label><input name='password' type='password' placeholder='" + ("Nh\u1eadp m\u1eadt kh\u1ea9u" if vi else "Enter password") + "'></div><button>" + ("\u0110\u0103ng nh\u1eadp" if vi else "Login") + "</button></form>",
+                            "xss": "<form action='/search'><div class='field'><label>" + ("T\u1eeb kh\u00f3a" if vi else "Keyword") + "</label><input name='" + PARAM + "' placeholder='" + ("T\u00ecm trong t\u00e0i li\u1ec7u" if vi else "Search documents") + "'></div><button>" + ("T\u00ecm ki\u1ebfm" if vi else "Search") + "</button></form>",
+                            "csrf": "<form method='post' action='/transfer'><div class='field'><label>" + ("Ng\u01b0\u1eddi nh\u1eadn" if vi else "Recipient") + "</label><input name='to' value='merchant'></div><div class='field'><label>" + ("S\u1ed1 ti\u1ec1n" if vi else "Amount") + "</label><input name='amount' value='10'></div><button>" + ("Chuy\u1ec3n kho\u1ea3n" if vi else "Transfer") + "</button></form>",
                             "idor": "<p>Try <a href='/api/profile?" + PARAM + "=1'>your profile</a>. Resource key: <code>" + PARAM + "</code></p>",
-                            "ssrf": "<form action='/fetch'><div class='field'><label>URL cần lấy</label><input name='" + PARAM + "' value='https://example.com'></div><button>Gửi yêu cầu</button></form>",
-                            "command-injection": "<form action='/ping'><div class='field'><label>Host hoặc địa chỉ IP</label><input name='" + PARAM + "' value='127.0.0.1'></div><button>Kiểm tra</button></form>",
-                            "file-upload": "<form method='post' action='/upload'><div class='field'><label>Tên tệp</label><input name='filename' placeholder='report.jpg'></div><div class='field'><label>Nội dung tệp</label><textarea name='content' rows='4'></textarea></div><button>Tải lên</button></form>",
-                            "auth-bypass": "<form action='/admin'><div class='field'><label>Access token</label><input name='token' placeholder='eyJ...'></div><button>Mở trang quản trị</button></form>"
+                            "ssrf": "<form action='/fetch'><div class='field'><label>" + ("URL c\u1ea7n l\u1ea5y" if vi else "URL to fetch") + "</label><input name='" + PARAM + "' value='https://example.com'></div><button>" + ("G\u1eedi y\u00eau c\u1ea7u" if vi else "Send request") + "</button></form>",
+                            "command-injection": "<form action='/ping'><div class='field'><label>" + ("Host ho\u1eb7c \u0111\u1ecba ch\u1ec9 IP" if vi else "Host or IP address") + "</label><input name='" + PARAM + "' value='127.0.0.1'></div><button>" + ("Ki\u1ec3m tra" if vi else "Check") + "</button></form>",
+                            "file-upload": "<form method='post' action='/upload'><div class='field'><label>" + ("T\u00ean t\u1ec7p" if vi else "Filename") + "</label><input name='filename' placeholder='report.jpg'></div><div class='field'><label>" + ("N\u1ed9i dung t\u1ec7p" if vi else "File content") + "</label><textarea name='content' rows='4'></textarea></div><button>" + ("T\u1ea3i l\u00ean" if vi else "Upload") + "</button></form>",
+                            "auth-bypass": "<form action='/admin'><div class='field'><label>Access token</label><input name='token' placeholder='eyJ...'></div><button>" + ("M\u1edf trang qu\u1ea3n tr\u1ecb" if vi else "Open admin panel") + "</button></form>"
                         }
-                        return page(LAB["title"], "<p class='scenario'>" + html.escape(LAB.get("scenario", "")) + "</p>" + forms[TYPE])
+                        eyebrow = "B\u00c0I TH\u1ef0C H\u00c0NH B\u1ea2O M\u1eacT" if vi else "SECURITY PRACTICE LAB"
+                        return page(LAB["title"], "<div class='eyebrow'>" + eyebrow + "</div><h1>" + html.escape(LAB["title"]) + "</h1><p class='scenario'>" + html.escape(LAB.get("scenario", "")) + "</p>" + forms[TYPE])
 
                     def log_message(self, fmt, *args):
                         pass

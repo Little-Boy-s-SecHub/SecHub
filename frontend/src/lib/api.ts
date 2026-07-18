@@ -317,10 +317,10 @@ export const api = {
       request<LabFeedback>(`/labs/attempts/${attemptId}/feedback`),
     getMentor: (attemptId: string) =>
       request<MentorGuidance>(`/labs/attempts/${attemptId}/mentor`),
-    generateWithAi: (vulnerabilitySlug: string, difficulty: string, scenario: string) =>
+    generateWithAi: (vulnerabilitySlug: string, difficulty: string, scenario: string, language?: string) =>
       request<Lab>("/ai/generate-lab", {
         method: "POST",
-        body: JSON.stringify({ vulnerabilitySlug, difficulty, scenario }),
+        body: JSON.stringify({ vulnerabilitySlug, difficulty, scenario, language: language || "en" }),
       }),
   },
 

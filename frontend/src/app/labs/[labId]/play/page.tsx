@@ -240,7 +240,8 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
         lab.difficulty,
         language === 'vi'
           ? `Tạo một biến thể mới tương tự lab "${lab.title}", nhưng đổi bối cảnh và đường khai thác.`
-          : `Create a new variant similar to lab "${lab.title}", but change the context and exploitation path.`
+          : `Create a new variant similar to lab "${lab.title}", but change the context and exploitation path.`,
+        language
       );
       router.push(`/labs/${res.data.id}/play${pathId && lessonId ? `?pathId=${pathId}&lessonId=${lessonId}` : ''}`);
     } catch (e: any) {

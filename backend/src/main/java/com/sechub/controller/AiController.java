@@ -35,12 +35,16 @@ public class AiController {
         User user = userService.findByUsername(principal.getUsername());
         String track = growthProfiles.findByUserId(user.getId()).map(GrowthProfile::getRecommendedTrack).orElse("BEGINNER");
         String adaptiveDifficulty = adaptiveDifficulty(request.difficulty(), track);
+        String lang = request.language() != null ? request.language() : "en";
         String adaptiveScenario = (request.scenario() == null ? "" : request.scenario()) + "\nLEARNER TRACK: " + track
-                + "\nADAPTATION: Điều chỉnh số bước, độ rõ của dữ liệu và mức trực tiếp của gợi ý theo trình độ này.";
+                + "\nLANGUAGE: " + lang
+                + "\nADAPTATION: Adapt the number of steps, data clarity, and hint directness to this proficiency level."
+                + "\nIMPORTANT: ALL generated content (title, description, scenario, hints) MUST be in " + (lang.equals("vi") ? "Vietnamese" : "English") + ".";
         Lab generatedLab = openAiService.generateAndSaveLab(
                 request.vulnerabilitySlug(),
                 adaptiveDifficulty,
-                adaptiveScenario
+                adaptiveScenario,
+                lang
         );
         generatedLab.setAuthor(user);
         generatedLab = openAiService.saveGeneratedLab(generatedLab);

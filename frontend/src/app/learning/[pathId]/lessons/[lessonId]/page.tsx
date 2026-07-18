@@ -277,7 +277,8 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
       const result = await api.labs.generateWithAi(
         practiceVulnerability.slug,
         path?.difficulty || 'BEGINNER',
-        scenario
+        scenario,
+        language
       );
       if (result.success && result.data) {
         router.push(`/labs/${result.data.id}/play?pathId=${pathId}&lessonId=${lessonId}`);

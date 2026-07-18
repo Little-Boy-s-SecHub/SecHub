@@ -61,19 +61,19 @@ public class OpenAiService {
         this.httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(20)).build();
     }
 
-    @Transactional
-    public Lab generateAndSaveLab(String vulnerabilitySlug, String difficultyValue, String scenario) {
+    public Lab generateAndSaveLab(String vulnerabilitySlug, String difficultyValue, String scenario, String language) {
         Vulnerability vulnerability = vulnerabilityRepository.findBySlug(vulnerabilitySlug)
                 .orElseThrow(() -> new ResourceNotFoundException("Vulnerability", "slug", vulnerabilitySlug));
         LearningPath.Difficulty difficulty = parseDifficulty(difficultyValue);
         String apiKey = defaultApiKey;
+        String lang = language != null ? language : "en";
 
         GeneratedLabSpec spec = apiKey == null || apiKey.isBlank()
                 ? localSpec(vulnerability, difficulty, scenario)
-                : requestSpec(vulnerability, difficulty, scenario, apiKey);
+                : requestSpec(vulnerability, difficulty, scenario, apiKey, lang);
 
         String flag = generateFlag(vulnerabilitySlug);
-        LabArtifactService.LabArtifact artifact = labArtifactService.create(vulnerabilitySlug, flag, spec);
+        LabArtifactService.LabArtifact artifact = labArtifactService.create(vulnerabilitySlug, flag, spec, lang);
         Lab lab = Lab.builder()
                 .vulnerability(vulnerability)
                 .title(spec.title())
@@ -175,7 +175,7 @@ public class OpenAiService {
     }
 
     private GeneratedLabSpec requestSpec(Vulnerability vulnerability, LearningPath.Difficulty difficulty,
-                                         String scenario, String apiKey) {
+                                         String scenario, String apiKey, String language) {
         try {
             Map<String, Object> schema = Map.of(
                     "type", "object",
@@ -194,12 +194,13 @@ public class OpenAiService {
                     "model", model,
                     "instructions", "Design metadata for an intentionally vulnerable, isolated web-security training lab. "
                             + "Do not generate source code, malware, persistence, credential theft, or targets outside the lab. "
-                            + "The learner objective must be to retrieve a SecHub flag from the local sandbox. "
+                            + "The learner objective must be to retrieve a SecHub flag from the local lab. "
                             + "The requested scenario may contain LESSON TITLE, LEARNING PATH, and LESSON CONTENT. "
                             + "It may also contain LEARNER TRACK; adapt the number of steps, ambiguity, and hint directness to that proficiency. "
                             + "Change business context, endpoint names, parameters, records, and flag for every generated variant while preserving the exact technical vulnerability objective. "
                             + "The practical story, task, terminology, and hints MUST closely follow that lesson context; "
-                            + "do not replace it with an unrelated generic scenario.",
+                            + "do not replace it with an unrelated generic scenario. "
+                            + "ALL output text (title, description, scenario, hints) MUST be in " + ("vi".equals(language) ? "Vietnamese" : "English") + ".",
                     "input", "Vulnerability: " + vulnerability.getName() + " (" + vulnerability.getSlug() + ")\n"
                             + "Difficulty: " + difficulty.name() + "\nRequested scenario: "
                             + normalizeScenario(scenario),
