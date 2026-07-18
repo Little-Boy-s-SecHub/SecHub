@@ -34,7 +34,7 @@ class LabArtifactServiceTest {
                 "SQLi Test Lab", "Intentionally vulnerable login", "Find the admin flag",
                 List.of("Inspect login", "Try a boolean condition", "Submit the flag"), 20, 100);
 
-        LabArtifactService.LabArtifact artifact = service.create("sql-injection", flag, spec);
+        LabArtifactService.LabArtifact artifact = service.create("sql-injection", flag, spec, "en");
         assertThat(artifact.directory().resolve("Dockerfile")).isRegularFile();
         assertThat(artifact.directory().resolve("app.py")).isRegularFile();
         JsonNode manifest = mapper.readTree(Files.readString(artifact.directory().resolve("manifest.json")));
