@@ -67,7 +67,7 @@ public class PracticeService {
         Lab lab = openAiService.generateAndSaveLab(
                 lesson.getVulnerability().getSlug(),
                 adaptiveDifficulty,
-                scenario);
+                scenario, "en");
         return new PracticeDeckDto(LocalDate.now(), List.of(), LabDto.fromEntity(lab), lessons.size());
     }
 
