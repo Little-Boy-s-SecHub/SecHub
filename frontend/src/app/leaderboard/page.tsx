@@ -156,10 +156,12 @@ export default function LeaderboardPage() {
                 display: 'flex',
                 alignItems: 'flex-end',
                 justifyContent: 'center',
-                gap: '16px',
-                margin: '32px 0 40px 0',
+                gap: '8px',
+                margin: '32px auto 40px auto',
                 padding: '0 8px',
-                flexWrap: 'wrap'
+                width: '100%',
+                maxWidth: '560px',
+                flexWrap: 'nowrap'
               }}>
                 {/* Rank 2 */}
                 {top2 ? (
@@ -167,7 +169,9 @@ export default function LeaderboardPage() {
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    width: '180px',
+                    flex: '1 1 0px',
+                    minWidth: '90px',
+                    maxWidth: '160px',
                     order: 1
                   }}>
                     <div style={{
@@ -204,11 +208,11 @@ export default function LeaderboardPage() {
                         border: '2px solid #fff'
                       }}>2</span>
                     </div>
-                    <NextLink href={`/profile/${top2.username}`} style={{ textDecoration: 'none', color: 'var(--text-heading)', fontWeight: 700, fontSize: '15px', textAlign: 'center', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <NextLink href={`/profile/${top2.username}`} style={{ textDecoration: 'none', color: 'var(--text-heading)', fontWeight: 700, fontSize: '14px', textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {top2.username}
                     </NextLink>
-                    <span style={{ color: 'var(--fg-brand)', fontWeight: 800, fontSize: '14px', marginTop: '2px' }}>{top2.weeklyXp} XP</span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-body-subtle)', background: 'var(--bg-neutral-secondary)', padding: '2px 8px', borderRadius: '4px', marginTop: '6px', textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ color: 'var(--fg-brand)', fontWeight: 800, fontSize: '13px', marginTop: '2px' }}>{top2.weeklyXp} XP</span>
+                    <span style={{ fontSize: '10px', color: 'var(--text-body-subtle)', background: 'var(--bg-neutral-secondary)', padding: '2px 6px', borderRadius: '4px', marginTop: '6px', textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {top2.strongestSkill}
                     </span>
                     {/* Podium Pillar */}
@@ -223,9 +227,10 @@ export default function LeaderboardPage() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontWeight: 800,
+                      fontWeight: 900,
                       fontSize: '32px',
-                      color: 'rgba(0,0,0,0.06)'
+                      color: 'var(--text-body-subtle)',
+                      opacity: 0.7
                     }}>
                       II
                     </div>
@@ -235,7 +240,9 @@ export default function LeaderboardPage() {
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    width: '180px',
+                    flex: '1 1 0px',
+                    minWidth: '90px',
+                    maxWidth: '160px',
                     order: 1,
                     opacity: 0.4
                   }}>
@@ -272,11 +279,11 @@ export default function LeaderboardPage() {
                         border: '2px solid var(--bg-neutral-primary)'
                       }}>2</span>
                     </div>
-                    <span style={{ color: 'var(--text-body-subtle)', fontWeight: 600, fontSize: '15px' }}>
+                    <span style={{ color: 'var(--text-body-subtle)', fontWeight: 600, fontSize: '14px', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center' }}>
                       {language === 'vi' ? 'Trống' : 'Empty'}
                     </span>
-                    <span style={{ color: 'var(--text-body-subtle)', fontWeight: 500, fontSize: '13px', marginTop: '2px' }}>0 XP</span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-body-subtle)', background: 'var(--bg-neutral-secondary-soft)', padding: '2px 8px', borderRadius: '4px', marginTop: '6px', minHeight: '21px' }}>
+                    <span style={{ color: 'var(--text-body-subtle)', fontWeight: 500, fontSize: '12px', marginTop: '2px' }}>0 XP</span>
+                    <span style={{ fontSize: '10px', color: 'var(--text-body-subtle)', background: 'var(--bg-neutral-secondary-soft)', padding: '2px 6px', borderRadius: '4px', marginTop: '6px', minHeight: '21px', textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       —
                     </span>
                     {/* Podium Pillar */}
@@ -291,9 +298,10 @@ export default function LeaderboardPage() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontWeight: 800,
+                      fontWeight: 900,
                       fontSize: '32px',
-                      color: 'rgba(0,0,0,0.06)'
+                      color: 'var(--text-body-subtle)',
+                      opacity: 0.7
                     }}>
                       II
                     </div>
@@ -306,7 +314,9 @@ export default function LeaderboardPage() {
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    width: '200px',
+                    flex: '1.1 1 0px',
+                    minWidth: '100px',
+                    maxWidth: '180px',
                     order: 2,
                     transform: 'translateY(-12px)'
                   }}>
@@ -347,11 +357,11 @@ export default function LeaderboardPage() {
                         border: '2px solid #fff'
                       }}>1</span>
                     </div>
-                    <NextLink href={`/profile/${top1.username}`} style={{ textDecoration: 'none', color: 'var(--text-heading)', fontWeight: 800, fontSize: '17px', textAlign: 'center', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <NextLink href={`/profile/${top1.username}`} style={{ textDecoration: 'none', color: 'var(--text-heading)', fontWeight: 800, fontSize: '16px', textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {top1.username}
                     </NextLink>
-                    <span style={{ color: 'var(--fg-brand)', fontWeight: 900, fontSize: '16px', marginTop: '2px' }}>{top1.weeklyXp} XP</span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-body-subtle)', background: 'var(--bg-brand-softer)', border: '1px solid var(--border-brand-subtle)', padding: '2px 8px', borderRadius: '4px', marginTop: '6px', textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ color: 'var(--fg-brand)', fontWeight: 900, fontSize: '15px', marginTop: '2px' }}>{top1.weeklyXp} XP</span>
+                    <span style={{ fontSize: '10px', color: 'var(--text-body-subtle)', background: 'var(--bg-brand-softer)', border: '1px solid var(--border-brand-subtle)', padding: '2px 6px', borderRadius: '4px', marginTop: '6px', textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {top1.strongestSkill}
                     </span>
                     {/* Podium Pillar */}
@@ -366,9 +376,10 @@ export default function LeaderboardPage() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontWeight: 800,
+                      fontWeight: 900,
                       fontSize: '36px',
-                      color: 'rgba(56, 189, 248, 0.12)'
+                      color: 'var(--fg-brand)',
+                      opacity: 0.85
                     }}>
                       I
                     </div>
@@ -381,7 +392,9 @@ export default function LeaderboardPage() {
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    width: '180px',
+                    flex: '1 1 0px',
+                    minWidth: '90px',
+                    maxWidth: '160px',
                     order: 3
                   }}>
                     <div style={{
@@ -418,11 +431,11 @@ export default function LeaderboardPage() {
                         border: '2px solid #fff'
                       }}>3</span>
                     </div>
-                    <NextLink href={`/profile/${top3.username}`} style={{ textDecoration: 'none', color: 'var(--text-heading)', fontWeight: 700, fontSize: '15px', textAlign: 'center', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <NextLink href={`/profile/${top3.username}`} style={{ textDecoration: 'none', color: 'var(--text-heading)', fontWeight: 700, fontSize: '14px', textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {top3.username}
                     </NextLink>
-                    <span style={{ color: 'var(--fg-brand)', fontWeight: 800, fontSize: '14px', marginTop: '2px' }}>{top3.weeklyXp} XP</span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-body-subtle)', background: 'var(--bg-neutral-secondary)', padding: '2px 8px', borderRadius: '4px', marginTop: '6px', textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ color: 'var(--fg-brand)', fontWeight: 800, fontSize: '13px', marginTop: '2px' }}>{top3.weeklyXp} XP</span>
+                    <span style={{ fontSize: '10px', color: 'var(--text-body-subtle)', background: 'var(--bg-neutral-secondary)', padding: '2px 6px', borderRadius: '4px', marginTop: '6px', textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {top3.strongestSkill}
                     </span>
                     {/* Podium Pillar */}
@@ -437,9 +450,10 @@ export default function LeaderboardPage() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontWeight: 800,
+                      fontWeight: 900,
                       fontSize: '32px',
-                      color: 'rgba(0,0,0,0.06)'
+                      color: 'var(--text-body-subtle)',
+                      opacity: 0.7
                     }}>
                       III
                     </div>
@@ -449,7 +463,9 @@ export default function LeaderboardPage() {
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    width: '180px',
+                    flex: '1 1 0px',
+                    minWidth: '90px',
+                    maxWidth: '160px',
                     order: 3,
                     opacity: 0.4
                   }}>
@@ -486,11 +502,11 @@ export default function LeaderboardPage() {
                         border: '2px solid var(--bg-neutral-primary)'
                       }}>3</span>
                     </div>
-                    <span style={{ color: 'var(--text-body-subtle)', fontWeight: 600, fontSize: '15px' }}>
+                    <span style={{ color: 'var(--text-body-subtle)', fontWeight: 600, fontSize: '14px', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center' }}>
                       {language === 'vi' ? 'Trống' : 'Empty'}
                     </span>
-                    <span style={{ color: 'var(--text-body-subtle)', fontWeight: 500, fontSize: '13px', marginTop: '2px' }}>0 XP</span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-body-subtle)', background: 'var(--bg-neutral-secondary-soft)', padding: '2px 8px', borderRadius: '4px', marginTop: '6px', minHeight: '21px' }}>
+                    <span style={{ color: 'var(--text-body-subtle)', fontWeight: 500, fontSize: '12px', marginTop: '2px' }}>0 XP</span>
+                    <span style={{ fontSize: '10px', color: 'var(--text-body-subtle)', background: 'var(--bg-neutral-secondary-soft)', padding: '2px 6px', borderRadius: '4px', marginTop: '6px', minHeight: '21px', textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       —
                     </span>
                     {/* Podium Pillar */}
@@ -505,9 +521,10 @@ export default function LeaderboardPage() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontWeight: 800,
+                      fontWeight: 900,
                       fontSize: '32px',
-                      color: 'rgba(0,0,0,0.06)'
+                      color: 'var(--text-body-subtle)',
+                      opacity: 0.7
                     }}>
                       III
                     </div>
