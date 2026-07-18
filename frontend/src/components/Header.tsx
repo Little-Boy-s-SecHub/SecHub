@@ -1,17 +1,18 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Menu, Search, Bell, LogOut, User as UserIcon, Shield, KeyRound, Image as ImageIcon, X, Lock, Check, Languages } from 'lucide-react';
+import { Menu, Search, Bell, LogOut, User as UserIcon, KeyRound, Image as ImageIcon, X, Lock, Check } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/context/LanguageContext';
 import Link from 'next/link';
-import { resolveApiUrl } from '@/lib/api';
+import { api, AppNotification, resolveApiUrl } from '@/lib/api';
 
 export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
   const { user, isAuthenticated, logout, updateUser } = useAuth();
   const { language, setLanguage, t } = useTranslation();
-  const [notifications, setNotifications] = useState<string[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const unreadCount = notifications.filter((notification) => !notification.read).length;
+  const notificationsEnabled = user?.notificationsEnabled !== false;
   
   // Dropdowns state
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -52,34 +53,63 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
   };
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !notificationsEnabled) {
+      const timeout = window.setTimeout(() => {
+        setNotifications([]);
+        setIsDropdownOpen(false);
+      }, 0);
+      return () => window.clearTimeout(timeout);
+    }
 
-    const fetchNotifications = async () => {
+    let isMounted = true;
+    let stream: EventSource | null = null;
+    let fallbackInterval: ReturnType<typeof setInterval> | null = null;
+
+    const loadNotifications = async () => {
       try {
-        const res = await fetch(resolveApiUrl('/growth/overview'), {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('sechub_token')}`
-          }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const apiNotifs: string[] = data.data?.notifications || [];
-          setNotifications(apiNotifs);
-          
-          const readNotifs = JSON.parse(localStorage.getItem('sechub_read_notifications') || '[]');
-          const unread = apiNotifs.filter(n => !readNotifs.includes(n));
-          setUnreadCount(unread.length);
+        const res = await api.notifications.list();
+        if (isMounted) {
+          setNotifications(res.data || []);
         }
       } catch (err) {
         console.error('Error fetching notifications:', err);
       }
     };
 
-    fetchNotifications();
+    loadNotifications();
 
-    const interval = setInterval(fetchNotifications, 10000);
-    return () => clearInterval(interval);
-  }, [isAuthenticated]);
+    const token = localStorage.getItem('sechub_token');
+    if (token) {
+      stream = new EventSource(resolveApiUrl(`/notifications/stream?access_token=${encodeURIComponent(token)}`));
+      stream.addEventListener('notification', (event) => {
+        try {
+          const incoming = JSON.parse((event as MessageEvent).data) as AppNotification;
+          setNotifications((current) => [incoming, ...current.filter((item) => item.id !== incoming.id)].slice(0, 20));
+        } catch (err) {
+          console.error('Error parsing notification event:', err);
+        }
+      });
+      stream.addEventListener('notifications-updated', () => {
+        loadNotifications();
+      });
+      stream.addEventListener('notifications-disabled', () => {
+        setNotifications([]);
+      });
+      stream.onerror = () => {
+        console.error('Notification stream disconnected');
+      };
+    } else {
+      fallbackInterval = setInterval(loadNotifications, 15000);
+    }
+
+    return () => {
+      isMounted = false;
+      stream?.close();
+      if (fallbackInterval) {
+        clearInterval(fallbackInterval);
+      }
+    };
+  }, [isAuthenticated, notificationsEnabled, user?.id]);
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
@@ -95,12 +125,21 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
   }, []);
 
   const handleBellClick = () => {
-    setIsDropdownOpen(!isDropdownOpen);
-    if (!isDropdownOpen && notifications.length > 0) {
-      const readNotifs = JSON.parse(localStorage.getItem('sechub_read_notifications') || '[]');
-      const newRead = [...new Set([...readNotifs, ...notifications])];
-      localStorage.setItem('sechub_read_notifications', JSON.stringify(newRead));
-      setUnreadCount(0);
+    const shouldOpen = !isDropdownOpen;
+    setIsDropdownOpen(shouldOpen);
+    if (shouldOpen && notificationsEnabled) {
+      const unreadIds = notifications.filter((notification) => !notification.read).map((notification) => notification.id);
+      if (unreadIds.length > 0) {
+        setNotifications((current) => current.map((notification) => (
+          unreadIds.includes(notification.id)
+            ? { ...notification, read: true, readAt: new Date().toISOString() }
+            : notification
+        )));
+        api.notifications.markRead(unreadIds).catch((err) => {
+          console.error('Error marking notifications as read:', err);
+          api.notifications.list().then((res) => setNotifications(res.data || [])).catch(() => {});
+        });
+      }
     }
   };
 
@@ -355,7 +394,7 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}
               >
                 <Bell size={20} />
-                {unreadCount > 0 && (
+                {notificationsEnabled && unreadCount > 0 && (
                   <span style={{
                     position: 'absolute',
                     top: '6px',
@@ -389,21 +428,20 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
                     justifyContent: 'space-between',
                     alignItems: 'center'
                   }}>
-                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-heading)' }}>Thông báo</span>
-                    {unreadCount > 0 && (
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-heading)' }}>{t('header.notifications')}</span>
+                    {notificationsEnabled && unreadCount > 0 && (
                       <span style={{ fontSize: '10px', background: 'var(--bg-brand-soft)', color: 'var(--fg-brand)', padding: '2px 6px', borderRadius: '10px', fontWeight: 700 }}>
-                        {unreadCount} mới
+                        {unreadCount} {language === 'vi' ? 'mới' : 'new'}
                       </span>
                     )}
                   </div>
 
                   <div style={{ maxHeight: '240px', overflowY: 'auto', padding: '4px' }}>
-                    {notifications.map((notif, index) => {
-                      const readNotifs = JSON.parse(localStorage.getItem('sechub_read_notifications') || '[]');
-                      const isUnread = !readNotifs.includes(notif);
+                    {notificationsEnabled && notifications.map((notif) => {
+                      const isUnread = !notif.read;
                       return (
                         <div 
-                          key={index}
+                          key={notif.id}
                           style={{
                             padding: '10px 12px',
                             borderRadius: '8px',
@@ -426,12 +464,21 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
                             marginTop: '5px',
                             flexShrink: 0
                           }} />
-                          <span>{notif}</span>
+                          <span>
+                            <strong style={{ display: 'block', color: isUnread ? 'var(--text-heading)' : 'inherit', marginBottom: '2px' }}>{notif.title}</strong>
+                            {notif.message}
+                          </span>
                         </div>
                       );
                     })}
 
-                    {notifications.length === 0 && (
+                    {!notificationsEnabled && (
+                      <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--text-body-subtle)', fontSize: '12.5px' }}>
+                        {language === 'vi' ? 'Thông báo đang tắt trong cài đặt hồ sơ' : 'Notifications are turned off in profile settings'}
+                      </div>
+                    )}
+
+                    {notificationsEnabled && notifications.length === 0 && (
                       <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--text-body-subtle)', fontSize: '12.5px' }}>
                         {language === 'vi' ? 'Không có thông báo mới nào' : 'No new notifications'}
                       </div>

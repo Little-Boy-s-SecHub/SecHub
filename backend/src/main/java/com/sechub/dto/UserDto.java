@@ -11,6 +11,7 @@ public record UserDto(
     String email,
     String avatarUrl,
     String role,
+    Boolean notificationsEnabled,
     LocalDateTime createdAt
 ) {
     public static UserDto fromEntity(User user) {
@@ -20,6 +21,7 @@ public record UserDto(
             user.getEmail(),
             user.getAvatarUrl(),
             user.getRole().name(),
+            !Boolean.FALSE.equals(user.getNotificationsEnabled()),
             user.getCreatedAt()
         );
     }

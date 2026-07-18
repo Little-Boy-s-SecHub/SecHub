@@ -111,4 +111,14 @@ public class UserService {
         User updated = userRepository.save(user);
         return UserDto.fromEntity(updated);
     }
+
+    @Transactional
+    public UserDto updateNotificationPreference(String username, boolean enabled) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng", "username", username));
+
+        user.setNotificationsEnabled(enabled);
+        User updated = userRepository.save(user);
+        return UserDto.fromEntity(updated);
+    }
 }

@@ -37,19 +37,22 @@ public class LabService {
     private final DockerService dockerService;
     private final ActivityService activityService;
     private final LabArtifactService labArtifactService;
+    private final NotificationService notificationService;
 
     public LabService(LabRepository labRepository,
                       LabAttemptRepository labAttemptRepository,
                       UserService userService,
                       DockerService dockerService,
                       ActivityService activityService,
-                      LabArtifactService labArtifactService) {
+                      LabArtifactService labArtifactService,
+                      NotificationService notificationService) {
         this.labRepository = labRepository;
         this.labAttemptRepository = labAttemptRepository;
         this.userService = userService;
         this.dockerService = dockerService;
         this.activityService = activityService;
         this.labArtifactService = labArtifactService;
+        this.notificationService = notificationService;
     }
 
     @Transactional(readOnly = true)
@@ -197,6 +200,9 @@ public class LabService {
         }
 
         attempt = labAttemptRepository.save(attempt);
+        if (attempt.getStatus() == LabAttempt.Status.COMPLETED) {
+            notificationService.notifyLabCompleted(attempt);
+        }
         return LabAttemptDto.fromEntity(attempt);
     }
 

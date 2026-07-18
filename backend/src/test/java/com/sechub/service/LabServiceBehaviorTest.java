@@ -21,10 +21,11 @@ import static org.mockito.Mockito.*;
 class LabServiceBehaviorTest {
     @Mock LabRepository labs; @Mock LabAttemptRepository attempts; @Mock UserService users;
     @Mock DockerService docker; @Mock ActivityService activity; @Mock LabArtifactService artifacts;
+    @Mock NotificationService notifications;
     LabService service; User user; Lab lab; LabAttempt attempt;
 
     @BeforeEach void setup() {
-        service=new LabService(labs,attempts,users,docker,activity,artifacts);
+        service=new LabService(labs,attempts,users,docker,activity,artifacts,notifications);
         user=User.builder().id(UUID.randomUUID()).username("student").email("s@test.local").build();
         Vulnerability vulnerability=Vulnerability.builder().id(UUID.randomUUID()).slug("sql-injection").name("SQL Injection").build();
         lab=Lab.builder().id(UUID.randomUUID()).vulnerability(vulnerability).title("SQLi").difficulty(LearningPath.Difficulty.BEGINNER)
@@ -49,6 +50,7 @@ class LabServiceBehaviorTest {
         attempt.setHintsUsed(3); LabAttemptDto result=service.submitFlag(attempt.getId()," SecHub{ok} ","student");
         assertThat(result.status()).isEqualTo("COMPLETED");assertThat(result.score()).isEqualTo(90);
         verify(docker).stopContainer("container-1");verify(activity).incrementActivity(user.getId());
+        verify(notifications).notifyLabCompleted(attempt);
 
         LabAttempt manyHints=LabAttempt.builder().id(UUID.randomUUID()).user(user).lab(lab).status(LabAttempt.Status.RUNNING)
                 .startedAt(LocalDateTime.now()).expiresAt(LocalDateTime.now().plusHours(1)).hintsUsed(20).build();

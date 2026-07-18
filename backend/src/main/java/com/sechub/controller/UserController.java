@@ -85,6 +85,15 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(user));
     }
 
+    @PutMapping("/me/notifications")
+    public ResponseEntity<ApiResponse<UserDto>> updateNotifications(
+            @RequestBody java.util.Map<String, Boolean> body,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Boolean enabled = body.get("enabled");
+        UserDto user = userService.updateNotificationPreference(userDetails.getUsername(), Boolean.TRUE.equals(enabled));
+        return ResponseEntity.ok(ApiResponse.success(user));
+    }
+
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<UserDto>>> getAllUsers() {

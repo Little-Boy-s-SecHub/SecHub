@@ -16,6 +16,7 @@ export interface User {
   email: string;
   role: "USER" | "INSTRUCTOR" | "ADMIN";
   avatarUrl?: string;
+  notificationsEnabled: boolean;
 }
 
 export interface AuthResponse {
@@ -118,6 +119,17 @@ export interface GrowthOverview {
   weeklyChallenge: { title: string; description: string; actionUrl: string; minutes: number; completed: boolean };
   weeklyReport: { labsCompleted: number; lessonsCompleted: number; xpGained: number; strongestSkill: string; weakSkill: string; recommendation: string };
   notifications: string[];
+}
+
+export interface AppNotification {
+  id: string;
+  type: "LAB_PUBLISHED" | "LAB_COMPLETED" | "SYSTEM";
+  title: string;
+  message: string;
+  actionUrl?: string;
+  read: boolean;
+  createdAt: string;
+  readAt?: string;
 }
 
 export interface PublicProfile {
@@ -335,6 +347,7 @@ export const api = {
   },
 
   users: {
+    getMe: () => request<User>("/users/me"),
     getDashboard: () => request<any>("/users/me/dashboard"),
     getActivities: () => request<any[]>("/users/me/activities"),
     getResume: (onlyLesson?: boolean) => request<ResumeLearning | null>(`/users/me/resume${onlyLesson ? "?onlyLesson=true" : ""}`),
@@ -343,6 +356,19 @@ export const api = {
         method: "PUT",
         body: JSON.stringify({ lessonId, scrollProgress, scrollY }),
       }),
+    updateNotifications: (enabled: boolean) =>
+      request<User>("/users/me/notifications", {
+        method: "PUT",
+        body: JSON.stringify({ enabled }),
+      }),
+  },
+
+  notifications: {
+    list: () => request<AppNotification[]>("/notifications"),
+    markRead: (ids: string[]) => request<AppNotification[]>("/notifications/read", {
+      method: "PUT",
+      body: JSON.stringify({ ids }),
+    }),
   },
 
   progress: {

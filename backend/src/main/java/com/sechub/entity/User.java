@@ -36,6 +36,10 @@ public class User {
     @Builder.Default
     private Boolean onboardingRequired = false;
 
+    @Column(name = "notifications_enabled", nullable = false, columnDefinition = "boolean default true")
+    @Builder.Default
+    private Boolean notificationsEnabled = true;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default

@@ -12,10 +12,11 @@ import java.util.UUID;
 public class AuthorService {
     private final UserService users; private final LearningPathRepository paths; private final LessonRepository lessons;
     private final LabRepository labs; private final VulnerabilityRepository vulnerabilities; private final OpenAiService ai;
-    private final LabArtifactService artifacts;
+    private final LabArtifactService artifacts; private final NotificationService notifications;
     public AuthorService(UserService users, LearningPathRepository paths, LessonRepository lessons, LabRepository labs,
-            VulnerabilityRepository vulnerabilities, OpenAiService ai, LabArtifactService artifacts) {
+            VulnerabilityRepository vulnerabilities, OpenAiService ai, LabArtifactService artifacts, NotificationService notifications) {
         this.users=users;this.paths=paths;this.lessons=lessons;this.labs=labs;this.vulnerabilities=vulnerabilities;this.ai=ai;this.artifacts=artifacts;
+        this.notifications=notifications;
     }
 
     @Transactional(readOnly=true)
@@ -57,7 +58,7 @@ public class AuthorService {
     @Transactional
     public void publishPath(String username,UUID id){LearningPath path=ownedPath(username,id);if(path.getLessons().isEmpty())throw new BadRequestException("Cần ít nhất một bài học trước khi xuất bản");path.setStatus(LearningPath.PublicationStatus.PUBLISHED);paths.save(path);}
     @Transactional
-    public void publishLab(String username,UUID id){Lab lab=ownedLab(username,id);lab.setStatus(LearningPath.PublicationStatus.PUBLISHED);labs.save(lab);}
+    public void publishLab(String username,UUID id){Lab lab=ownedLab(username,id);boolean wasPublished=lab.getStatus()==LearningPath.PublicationStatus.PUBLISHED;lab.setStatus(LearningPath.PublicationStatus.PUBLISHED);Lab saved=labs.save(lab);if(!wasPublished)notifications.notifyLabPublished(saved);}
     @Transactional
     public void deletePath(String username,UUID id){LearningPath path=ownedPath(username,id);if(path.getStatus()!=LearningPath.PublicationStatus.DRAFT)throw new BadRequestException("Chỉ có thể xoá lộ trình đang ở bản nháp");paths.delete(path);}
     @Transactional

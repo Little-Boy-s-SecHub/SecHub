@@ -15,10 +15,10 @@ describe('2D lab hint layout', () => {
     });
   });
 
-  it('keeps the first and last hint on the upper row', () => {
+  it('keeps six hints in the compact two-row cluster', () => {
     const positions = getHintPositions(6);
-    expect(positions[0]).toEqual({ x: 228, y: 212 });
-    expect(positions.at(-1)).toEqual({ x: 548, y: 212 });
+    expect(positions[0]).toEqual({ x: 298, y: 190 });
+    expect(positions.at(-1)).toEqual({ x: 508, y: 270 });
   });
 
   it('does not overlap hint characters', () => {

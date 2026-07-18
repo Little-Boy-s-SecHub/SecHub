@@ -67,29 +67,21 @@ public class GrowthService {
                 ||completed.stream().anyMatch(a->a.getCompletedAt()!=null&&a.getCompletedAt().toLocalDate().equals(LocalDate.now())&&a.getLab().getTitle().startsWith("Daily "));
         boolean weeklyDone=completed.stream().anyMatch(a->a.getCompletedAt()!=null&&a.getCompletedAt().isAfter(weekStart)&&a.getLab().getTitle().startsWith("Weekly "));
         List<String> notices = new ArrayList<>();
-        publishedLabs.stream()
+        java.util.Set<UUID> completedLabIds = completed.stream().map(a -> a.getLab().getId()).collect(java.util.stream.Collectors.toSet());
+        final String finalWeak = weak;
+        var weakLab = publishedLabs.stream()
                 .filter(l -> !l.getTitle().startsWith("Daily ") && !l.getTitle().startsWith("Weekly "))
-                .sorted(Comparator.comparing(Lab::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
-                .limit(1)
-                .forEach(l -> notices.add("Có lab mới về " + l.getVulnerability().getName() + ": " + l.getTitle()));
-
-        if (notices.isEmpty()) {
-            java.util.Set<UUID> completedLabIds = completed.stream().map(a -> a.getLab().getId()).collect(java.util.stream.Collectors.toSet());
-            final String finalWeak = weak;
-            var weakLab = publishedLabs.stream()
+                .filter(l -> l.getVulnerability().getName().toLowerCase().contains(finalWeak.toLowerCase()) || finalWeak.toLowerCase().contains(l.getVulnerability().getName().toLowerCase()))
+                .filter(l -> !completedLabIds.contains(l.getId()))
+                .findFirst();
+        if (weakLab.isPresent()) {
+            notices.add("Gợi ý cho bạn: Luyện tập lab về " + weakLab.get().getVulnerability().getName() + ": " + weakLab.get().getTitle());
+        } else {
+            publishedLabs.stream()
                     .filter(l -> !l.getTitle().startsWith("Daily ") && !l.getTitle().startsWith("Weekly "))
-                    .filter(l -> l.getVulnerability().getName().toLowerCase().contains(finalWeak.toLowerCase()) || finalWeak.toLowerCase().contains(l.getVulnerability().getName().toLowerCase()))
                     .filter(l -> !completedLabIds.contains(l.getId()))
-                    .findFirst();
-            if (weakLab.isPresent()) {
-                notices.add("Gợi ý cho bạn: Luyện tập lab về " + weakLab.get().getVulnerability().getName() + ": " + weakLab.get().getTitle());
-            } else {
-                publishedLabs.stream()
-                        .filter(l -> !l.getTitle().startsWith("Daily ") && !l.getTitle().startsWith("Weekly "))
-                        .filter(l -> !completedLabIds.contains(l.getId()))
-                        .findFirst()
-                        .ifPresent(l -> notices.add("Gợi ý học tập: Hãy thử thách bản thân với lab " + l.getVulnerability().getName() + ": " + l.getTitle()));
-            }
+                    .findFirst()
+                    .ifPresent(l -> notices.add("Gợi ý học tập: Hãy thử thách bản thân với lab " + l.getVulnerability().getName() + ": " + l.getTitle()));
         }
         return new GrowthOverviewDto(Boolean.TRUE.equals(user.getOnboardingRequired()),Boolean.TRUE.equals(profile.getAssessmentCompleted()),profile.getRecommendedTrack(),profile.getAssessmentScore(),xp,level,streak,
                 profile.getFreezeTickets(),levelTitle(level),skills,badges,

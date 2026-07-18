@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import NextLink from 'next/link';
 import { useRouter } from 'next/navigation';
-import { User, Mail, Shield, Calendar, BookOpen, Flame, Snowflake, Award, History, RotateCw, ExternalLink, Loader2, Play } from 'lucide-react';
+import { Mail, Shield, BookOpen, Flame, Snowflake, Award, History, ExternalLink, Loader2, Play, Bell } from 'lucide-react';
 import { api, GrowthOverview, LabAttempt } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/context/LanguageContext';
@@ -11,14 +11,15 @@ import PageBackLink from '@/components/PageBackLink';
 import ActivityHeatmap from '@/components/ActivityHeatmap';
 
 export default function PersonalProfilePage() {
-  const { user, isAuthenticated, loading: authLoading } = useAuth();
-  const { t, language } = useTranslation();
+  const { user, isAuthenticated, loading: authLoading, updateUser } = useAuth();
+  const { language } = useTranslation();
   const router = useRouter();
   
   const [growth, setGrowth] = useState<GrowthOverview | null>(null);
   const [attempts, setAttempts] = useState<LabAttempt[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [updatingTrack, setUpdatingTrack] = useState<boolean>(false);
+  const [updatingNotifications, setUpdatingNotifications] = useState<boolean>(false);
   const [resetting, setResetting] = useState<boolean>(false);
 
   useEffect(() => {
@@ -56,6 +57,19 @@ export default function PersonalProfilePage() {
       alert(e.message || (language === 'vi' ? 'Không thể cập nhật lộ trình.' : 'Cannot update path.'));
     } finally {
       setUpdatingTrack(false);
+    }
+  };
+
+  const changeNotificationPreference = async (enabled: boolean) => {
+    if (updatingNotifications) return;
+    setUpdatingNotifications(true);
+    try {
+      const res = await api.users.updateNotifications(enabled);
+      updateUser(res.data);
+    } catch (e: any) {
+      alert(e.message || (language === 'vi' ? 'Không thể cập nhật cài đặt thông báo.' : 'Cannot update notification settings.'));
+    } finally {
+      setUpdatingNotifications(false);
     }
   };
 
@@ -100,6 +114,7 @@ export default function PersonalProfilePage() {
   }
 
   if (!user || !growth) return null;
+  const notificationsEnabled = user.notificationsEnabled !== false;
 
   return (
     <div style={{ maxWidth: '100%' }}>
@@ -170,6 +185,38 @@ export default function PersonalProfilePage() {
           
           {/* Activity Heatmap */}
           <ActivityHeatmap noWrapper={false} />
+
+          <section className="card" style={{ padding: '24px' }}>
+            <h2 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-heading)', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Bell size={18} style={{ color: 'var(--fg-brand)' }} /> {language === 'vi' ? 'Thông báo realtime' : 'Realtime Notifications'}
+            </h2>
+            <p style={{ fontSize: '13.5px', color: 'var(--text-body-subtle)', lineHeight: 1.5, margin: '0 0 18px 0' }}>
+              {language === 'vi'
+                ? 'Nhận thông báo khi có lab mới hoặc khi tiến trình học của bạn tạo sự kiện quan trọng.'
+                : 'Receive notifications when new labs are published or your learning progress creates important events.'
+              }
+            </p>
+            <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', cursor: updatingNotifications ? 'wait' : 'pointer' }}>
+              <span>
+                <strong style={{ fontSize: '13.5px', color: 'var(--text-heading)', display: 'block' }}>
+                  {notificationsEnabled ? (language === 'vi' ? 'Đang bật thông báo' : 'Notifications enabled') : (language === 'vi' ? 'Đang tắt thông báo' : 'Notifications disabled')}
+                </strong>
+                <span style={{ fontSize: '12px', color: 'var(--text-body-subtle)' }}>
+                  {language === 'vi'
+                    ? 'Khi tắt, hệ thống sẽ không tạo hoặc gửi notification cho tài khoản này.'
+                    : 'When disabled, the system will not create or send notifications for this account.'
+                  }
+                </span>
+              </span>
+              <input
+                type="checkbox"
+                checked={notificationsEnabled}
+                disabled={updatingNotifications}
+                onChange={(event) => changeNotificationPreference(event.target.checked)}
+                style={{ width: '20px', height: '20px', flexShrink: 0, accentColor: 'var(--fg-brand)' }}
+              />
+            </label>
+          </section>
           
           {/* Recommended Track Settings */}
           <section className="card" style={{ padding: '24px' }}>

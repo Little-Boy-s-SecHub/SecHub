@@ -22,23 +22,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load from localStorage on mount
-    const savedToken = localStorage.getItem('sechub_token');
-    const savedUser = localStorage.getItem('sechub_user');
-    
-    if (savedToken && savedUser) {
-      setToken(savedToken);
-      setUser(JSON.parse(savedUser));
-    }
-    setLoading(false);
+    let mounted = true;
+
+    const loadSession = async () => {
+      const savedToken = localStorage.getItem('sechub_token');
+      const savedUser = localStorage.getItem('sechub_user');
+
+      if (savedToken && savedUser) {
+        setToken(savedToken);
+        const cachedUser = JSON.parse(savedUser);
+        setUser(cachedUser);
+        try {
+          const res = await api.users.getMe();
+          if (mounted && res.success && res.data) {
+            setUser(res.data);
+            localStorage.setItem('sechub_user', JSON.stringify(res.data));
+          }
+        } catch {
+          // The request helper dispatches sechub_logout for expired sessions.
+        }
+      }
+
+      if (mounted) {
+        setLoading(false);
+      }
+    };
+
+    loadSession();
 
     // Event listener for auto-logout (e.g. on 401 response)
     const handleAutoLogout = () => {
       setToken(null);
       setUser(null);
+      setLoading(false);
     };
     window.addEventListener('sechub_logout', handleAutoLogout);
     return () => {
+      mounted = false;
       window.removeEventListener('sechub_logout', handleAutoLogout);
     };
   }, []);
