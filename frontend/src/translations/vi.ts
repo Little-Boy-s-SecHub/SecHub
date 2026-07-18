@@ -128,7 +128,7 @@ export const vi = {
   },
   labs: {
     title: "Phòng thực hành bảo mật",
-    subtitle: "Khám phá các Docker sandbox để trực tiếp khai thác lỗ hổng bảo mật thực tế.",
+    subtitle: "Khám phá các Docker lab để trực tiếp khai thác lỗ hổng bảo mật thực tế.",
     searchPlaceholder: "Tìm kiếm lab theo tên, mô tả...",
     filterAllDiffs: "Tất cả độ khó",
     filterSolved: "Đã giải quyết",
@@ -146,7 +146,7 @@ export const vi = {
     learningObjectives: "Mục tiêu học tập",
     startPractice: "Bắt đầu thực hành ngay",
     startingSandbox: "Đang khởi tạo container Docker...",
-    sandboxUrlReady: "Sandbox của bạn đã sẵn sàng tại:",
+    sandboxUrlReady: "Lab của bạn đã sẵn sàng tại:",
     stopSandbox: "Dừng lab",
     submitFlagTitle: "Nộp Flag thử thách",
     flagPlaceholder: "SecHub{giá_trị_flag}",
@@ -243,7 +243,7 @@ export const vi = {
     certTitle: "Chứng nhận năng lực SecHub",
     certAwardedTo: "Chứng chỉ danh dự được trao cho",
     certVerificationCode: "Mã xác minh",
-    certAuthority: "Đơn vị xác thực: SecHub Security Sandbox",
+    certAuthority: "Đơn vị xác thực: SecHub Security Platform",
     printCert: "In chứng nhận"
   },
   feedback: {
@@ -272,7 +272,7 @@ export const vi = {
     trackDevTitle: "Lập trình viên An toàn (Secure Web Developer)",
     trackDevDesc: "Được thiết kế riêng cho kỹ sư phần mềm. Tập trung vào code an toàn, vá lỗi và phân tích mã nguồn.",
     trackPentesterTitle: "Chuyên viên kiểm thử (Web Pentester)",
-    trackPentesterDesc: "Phù hợp cho người đam mê tấn công. Đi sâu vào kỹ thuật khai thác nâng cao, sử dụng công cụ và vượt rào sandbox.",
+    trackPentesterDesc: "Phù hợp cho người đam mê tấn công. Đi sâu vào kỹ thuật khai thác nâng cao, sử dụng công cụ và vượt rào container.",
     startLearningButton: "Bắt đầu học ngay"
   }
 };

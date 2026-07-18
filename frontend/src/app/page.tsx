@@ -282,7 +282,7 @@ export default function DashboardPage() {
                 {resume.type === 'LAB' ? <MonitorPlay size={22} /> : <BookOpen size={22} />}
               </div>
               <div className="continue-learning-copy">
-                <div className="continue-learning-kicker">{resume.type === 'LAB' ? (language === 'vi' ? 'Phiên thực hành đang mở' : 'Active lab sandbox') : t('dashboard.continueLearning')}</div>
+                <div className="continue-learning-kicker">{resume.type === 'LAB' ? (language === 'vi' ? 'Phiên thực hành đang mở' : 'Active lab session') : t('dashboard.continueLearning')}</div>
                 <h2>{resume.title}</h2>
                 <p>{resume.subtitle}{resume.type === 'LESSON' && typeof resume.progress === 'number' ? ` · ${language === 'vi' ? 'Đã đọc' : 'Read'} ${resume.progress}%` : ''}</p>
               </div>

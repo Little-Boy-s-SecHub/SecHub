@@ -69,7 +69,7 @@ export default function LoginPage() {
           </div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '4px' }}>{language === 'vi' ? 'Đăng nhập SecHub' : 'Log in to SecHub'}</h2>
           <p style={{ fontSize: '13px', color: 'var(--text-body-subtle)', margin: '0 auto' }}>
-            {language === 'vi' ? 'Nền tảng thực hành an toàn thông tin' : 'Hands-on Web Security Sandbox'}
+            {language === 'vi' ? 'Nền tảng thực hành an toàn thông tin' : 'Hands-on Web Security Platform'}
           </p>
         </div>
 

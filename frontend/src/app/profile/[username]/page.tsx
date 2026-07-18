@@ -263,7 +263,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: 'var(--text-body-subtle)' }}>
           <div>
-            <span>{language === 'vi' ? 'Đơn vị xác thực:' : 'Authority:'} <strong>SecHub Security Sandbox</strong></span>
+            <span>{language === 'vi' ? 'Đơn vị xác thực:' : 'Authority:'} <strong>SecHub Security Platform</strong></span>
           </div>
           <div>
             <span>{language === 'vi' ? 'Mã xác minh:' : 'Verification Code:'} <code style={{ background: 'var(--bg-neutral-secondary)', padding: '2px 6px', borderRadius: '4px', fontStyle: 'normal', color: 'var(--text-heading)', fontWeight: 600 }}>SECHUB-{profile.username.toUpperCase()}-L{profile.level}</code></span>

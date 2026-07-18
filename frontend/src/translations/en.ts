@@ -45,7 +45,7 @@ export const en = {
     labs: "Lab Challenges",
     authorStudio: "Author Studio",
     version: "SecHub v1.0",
-    footerDesc: "Web Pentest Learning Sandbox"
+    footerDesc: "Web Pentest Learning Platform"
   },
   header: {
     searchPlaceholder: "Search vulnerabilities, labs, docs... (Ctrl+K)",
@@ -128,7 +128,7 @@ export const en = {
   },
   labs: {
     title: "Lab Playground",
-    subtitle: "Explore interactive Docker sandboxes to exploit real-world web vulnerabilities.",
+    subtitle: "Explore interactive Docker labs to exploit real-world web vulnerabilities.",
     searchPlaceholder: "Search labs by name, description...",
     filterAllDiffs: "All Difficulties",
     filterSolved: "Solved",
@@ -145,9 +145,9 @@ export const en = {
     technicalRequirements: "Technical Requirements",
     learningObjectives: "Learning Objectives",
     startPractice: "Start Practicing Now",
-    startingSandbox: "Starting Sandbox container...",
-    sandboxUrlReady: "Your sandbox is ready at:",
-    stopSandbox: "Stop Sandbox",
+    startingSandbox: "Starting Docker container...",
+    sandboxUrlReady: "Your lab is ready at:",
+    stopSandbox: "Stop Lab",
     submitFlagTitle: "Submit Flag",
     flagPlaceholder: "SecHub{flag_value}",
     submitFlagButton: "Submit Flag",
@@ -183,11 +183,11 @@ export const en = {
     congratsDesc: "You have mastered the core theoretical concepts. Now, solidify your knowledge with hands-on practice.",
     choosePracticeMode: "Choose your practice mode:",
     practiceDefaultLab: "Exploit default system Lab",
-    practiceAiLab: "Generate custom AI Sandbox",
+    practiceAiLab: "Generate custom AI Lab",
     closeModal: "Close",
     completeLessonButton: "Complete Lesson",
     nextLessonButton: "Next Lesson →",
-    createAiSandbox: "Generate AI Sandbox",
+    createAiSandbox: "Generate AI Lab",
     backToSyllabus: "← Back to Path"
   },
   review: {
@@ -243,7 +243,7 @@ export const en = {
     certTitle: "SecHub Capability Certificate",
     certAwardedTo: "Honorary certificate awarded to",
     certVerificationCode: "Verification code",
-    certAuthority: "Authorized by: SecHub Security Sandbox",
+    certAuthority: "Authorized by: SecHub Security Platform",
     printCert: "Print Certificate"
   },
   feedback: {
@@ -272,7 +272,7 @@ export const en = {
     trackDevTitle: "Secure Web Developer",
     trackDevDesc: "Tailored for software engineers. Focuses on secure coding practices, vulnerability mitigation, and code analysis.",
     trackPentesterTitle: "Web Pentester",
-    trackPentesterDesc: "Ideal for security enthusiasts. Focuses on advanced exploitation techniques, tool usage, and sandbox escapes.",
+    trackPentesterDesc: "Ideal for security enthusiasts. Focuses on advanced exploitation techniques, tool usage, and container escapes.",
     startLearningButton: "Start Learning Now"
   }
 };

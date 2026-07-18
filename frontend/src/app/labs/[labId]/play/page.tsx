@@ -364,7 +364,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
           <FlaskConical size={56} style={{ color: 'var(--fg-brand)', margin: '0 auto 20px' }} />
           <h2 style={{ marginBottom: '12px' }}>{language === 'vi' ? 'Môi trường Lab chưa được khởi chạy' : 'Lab Environment Not Launched'}</h2>
           <p style={{ color: 'var(--text-body-subtle)', marginBottom: '30px', lineHeight: 1.6 }}>
-            {language === 'vi' ? 'Phòng thực hành ảo chứa ứng dụng lỗi chưa được dựng lên cho bạn. Vui lòng quay lại trang thông tin chi tiết và nhấn nút "Khởi động Lab".' : 'The virtual sandbox environment containing the vulnerable app has not been spawned. Please go back to the details page and click "Start Lab".'}
+            {language === 'vi' ? 'Phòng thực hành ảo chứa ứng dụng lỗi chưa được dựng lên cho bạn. Vui lòng quay lại trang thông tin chi tiết và nhấn nút "Khởi động Lab".' : 'The virtual lab environment containing the vulnerable app has not been spawned. Please go back to the details page and click "Start Lab".'}
           </p>
           <Link href={`/labs/${labId}`} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
             <ArrowLeft size={16} /> {language === 'vi' ? 'Quay lại trang chi tiết Lab' : 'Back to Lab Details'}

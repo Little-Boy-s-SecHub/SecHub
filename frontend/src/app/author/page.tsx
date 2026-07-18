@@ -109,7 +109,7 @@ export default function AuthorStudioPage() {
       <section className="author-section">
         <div className="author-section-title">
           <div><FlaskConical /><h2>Lab challenge</h2></div>
-          <small>{language === 'vi' ? 'AI tạo sandbox và flag riêng' : 'AI generates custom sandbox and flag'}</small>
+          <small>{language === 'vi' ? 'AI tạo lab và flag riêng' : 'AI generates custom lab and flag'}</small>
         </div>
 
         <form className="author-form author-lab-form" onSubmit={e => { e.preventDefault(); run(() => api.author.createLab(labForm)) }}>

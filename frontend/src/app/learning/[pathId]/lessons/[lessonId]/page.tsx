@@ -507,8 +507,8 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
                   </h4>
                   <p style={{ fontSize: '13.5px', color: 'var(--text-body-subtle)', lineHeight: 1.6, margin: 0 }}>
                     {language === 'vi'
-                      ? 'Chưa có lab hệ thống mặc định cho bài này. Bấm nút bên phải để AI dựng môi trường sandbox riêng bám sát kịch bản lý thuyết của bài học này.'
-                      : 'No default system lab is available for this lesson. Click on the button to have AI spin up a custom sandbox aligned with this lesson theory.'
+                      ? 'Chưa có lab hệ thống mặc định cho bài này. Bấm nút bên phải để AI dựng môi trường lab riêng bám sát kịch bản lý thuyết của bài học này.'
+                      : 'No default system lab is available for this lesson. Click on the button to have AI spin up a custom lab aligned with this lesson theory.'
                     }
                   </p>
                 </div>
