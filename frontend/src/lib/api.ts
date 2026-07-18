@@ -3,6 +3,49 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ??
     ? "https://sechub-backend-production.up.railway.app/api"
     : "http://localhost:8888/api");
 
+function normalizeApiPath(path: string): string {
+  const pathname = path.startsWith("http")
+    ? new URL(path).pathname
+    : path.split("?")[0];
+  const withoutApiPrefix = pathname.startsWith("/api/")
+    ? pathname.slice("/api".length)
+    : pathname;
+  return withoutApiPrefix.startsWith("/") ? withoutApiPrefix : `/${withoutApiPrefix}`;
+}
+
+function isPublicGetPath(path: string, method: string): boolean {
+  if (method !== "GET") {
+    return false;
+  }
+
+  const normalized = normalizeApiPath(path);
+  if (normalized === "/labs" || /^\/labs\/[^/]+$/.test(normalized)) {
+    return true;
+  }
+
+  return normalized.startsWith("/vulnerabilities")
+    || normalized.startsWith("/learning-paths")
+    || normalized.startsWith("/lessons")
+    || normalized.startsWith("/growth/public")
+    || normalized === "/growth/leaderboard"
+    || normalized.startsWith("/lab-runtime");
+}
+
+function clearStoredSession() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  localStorage.removeItem("sechub_token");
+  localStorage.removeItem("sechub_refresh_token");
+  localStorage.removeItem("sechub_user");
+}
+
+export function isAuthExpiredError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  return /401|unauthorized|expired|invalid|hết hạn|không hợp lệ/i.test(message);
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   message?: string;
@@ -194,6 +237,7 @@ async function request<T>(
   options: RequestInit = {},
 ): Promise<ApiResponse<T>> {
   const url = `${API_BASE_URL}${path}`;
+  const method = (options.method ?? "GET").toUpperCase();
 
   // Get token from localStorage
   const token =
@@ -201,7 +245,7 @@ async function request<T>(
 
   const headers = new Headers(options.headers);
   headers.set("Content-Type", "application/json");
-  if (token) {
+  if (token && !isPublicGetPath(path, method)) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
@@ -221,9 +265,7 @@ async function request<T>(
   if (!response.ok) {
     if (response.status === 401) {
       if (typeof window !== "undefined") {
-        localStorage.removeItem("sechub_token");
-        localStorage.removeItem("sechub_refresh_token");
-        localStorage.removeItem("sechub_user");
+        clearStoredSession();
         window.dispatchEvent(new Event("sechub_logout"));
       }
     }

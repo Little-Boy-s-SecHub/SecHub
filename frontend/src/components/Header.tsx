@@ -5,7 +5,7 @@ import { Menu, Search, Bell, LogOut, User as UserIcon, KeyRound, Image as ImageI
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/context/LanguageContext';
 import Link from 'next/link';
-import { api, AppNotification, resolveApiUrl } from '@/lib/api';
+import { api, AppNotification, isAuthExpiredError, resolveApiUrl } from '@/lib/api';
 
 export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
   const { user, isAuthenticated, logout, updateUser } = useAuth();
@@ -72,6 +72,11 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
           setNotifications(res.data || []);
         }
       } catch (err) {
+        if (isAuthExpiredError(err)) {
+          setNotifications([]);
+          setIsDropdownOpen(false);
+          return;
+        }
         console.error('Error fetching notifications:', err);
       }
     };
@@ -94,9 +99,10 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
       });
       stream.addEventListener('notifications-disabled', () => {
         setNotifications([]);
+        stream?.close();
       });
       stream.onerror = () => {
-        console.error('Notification stream disconnected');
+        stream?.close();
       };
     } else {
       fallbackInterval = setInterval(loadNotifications, 15000);
@@ -136,6 +142,11 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
             : notification
         )));
         api.notifications.markRead(unreadIds).catch((err) => {
+          if (isAuthExpiredError(err)) {
+            setNotifications([]);
+            setIsDropdownOpen(false);
+            return;
+          }
           console.error('Error marking notifications as read:', err);
           api.notifications.list().then((res) => setNotifications(res.data || [])).catch(() => {});
         });
