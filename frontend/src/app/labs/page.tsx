@@ -189,6 +189,7 @@ export default function LabsPage() {
 
   const [filterVuln, setFilterVuln] = useState('all');
   const [filterDifficulty, setFilterDifficulty] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // AI Modal States
   const [showAiModal, setShowAiModal] = useState(false);
@@ -499,6 +500,14 @@ export default function LabsPage() {
   const filteredLabs = labs.filter(lab => {
     if (filterVuln !== 'all' && lab.vulnerabilitySlug !== filterVuln) return false;
     if (filterDifficulty !== 'all' && lab.difficulty !== filterDifficulty) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      return (
+        lab.title.toLowerCase().includes(q) ||
+        lab.description.toLowerCase().includes(q) ||
+        (lab.vulnerabilityName && lab.vulnerabilityName.toLowerCase().includes(q))
+      );
+    }
     return true;
   });
 
@@ -538,41 +547,209 @@ export default function LabsPage() {
         )}
       </div>
 
-      {/* Filters */}
+      {/* Modern Search & Filter Bar */}
       <div style={{
-        display: 'flex',
-        gap: 'var(--space-2)',
+        background: 'var(--bg-neutral-secondary)',
+        border: '1px solid var(--border-default)',
+        borderRadius: '16px',
+        padding: '16px',
         marginTop: 'var(--space-4)',
         marginBottom: 'var(--space-4)',
-        flexWrap: 'wrap',
-        alignItems: 'center'
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+        boxShadow: 'var(--shadow-sm)'
       }}>
-        <CustomSelect
-          value={filterVuln}
-          onChange={setFilterVuln}
-          options={[
-            { value: 'all', label: language === 'vi' ? 'Tất cả lỗ hổng' : 'All Vulnerabilities' },
-            ...vulns.map(v => ({ value: v.slug, label: v.name }))
-          ]}
-          placeholder={language === 'vi' ? 'Tất cả lỗ hổng' : 'All Vulnerabilities'}
-          disabled={loading}
-        />
+        <style>{`
+          .filter-search-input::placeholder {
+            color: var(--text-body-subtle) !important;
+            opacity: 0.8;
+          }
+          .filter-search-input:focus {
+            border-color: var(--fg-brand) !important;
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.15) !important;
+            background: var(--bg-neutral-primary) !important;
+          }
+          .diff-tab-btn {
+            padding: 8px 16px;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+          }
+          .diff-tab-btn:hover {
+            background: var(--bg-neutral-secondary-medium);
+            color: var(--text-heading);
+          }
+          .clear-filters-btn:hover {
+            color: var(--fg-danger) !important;
+            text-decoration: underline;
+          }
+        `}</style>
+        
+        {/* Row 1: Search & Vulnerability selector */}
+        <div style={{
+          display: 'flex',
+          gap: '12px',
+          flexWrap: 'wrap',
+          alignItems: 'center'
+        }}>
+          {/* Search Input */}
+          <div style={{ position: 'relative', flex: '1 1 300px' }}>
+            <span style={{
+              position: 'absolute',
+              left: '14px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: 'var(--text-body-subtle)',
+              display: 'flex',
+              alignItems: 'center',
+              pointerEvents: 'none'
+            }}>
+              <Search size={18} />
+            </span>
+            <input
+              type="text"
+              className="filter-search-input"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={language === 'vi' ? 'Tìm bài lab, lỗ hổng, hoặc mô tả...' : 'Search labs, vulnerabilities, or descriptions...'}
+              style={{
+                width: '100%',
+                background: 'var(--bg-neutral-secondary-soft)',
+                border: '1px solid var(--border-default)',
+                borderRadius: '10px',
+                padding: '10px 16px 10px 42px',
+                color: 'var(--text-heading)',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                outline: 'none',
+                transition: 'all 0.2s ease'
+              }}
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-body-subtle)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '2px'
+                }}
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
 
-        <CustomSelect
-          value={filterDifficulty}
-          onChange={setFilterDifficulty}
-          options={[
-            { value: 'all', label: t('labs.filterAllDiffs') },
-            { value: 'BEGINNER', label: t('common.beginner') },
-            { value: 'INTERMEDIATE', label: t('common.intermediate') },
-            { value: 'ADVANCED', label: t('common.advanced') }
-          ]}
-          placeholder={t('labs.filterAllDiffs')}
-          disabled={loading}
-        />
+          {/* Vulnerability Dropdown */}
+          <div style={{ flexShrink: 0 }}>
+            <CustomSelect
+              value={filterVuln}
+              onChange={setFilterVuln}
+              options={[
+                { value: 'all', label: language === 'vi' ? 'Tất cả lỗ hổng' : 'All Vulnerabilities' },
+                ...vulns.map(v => ({ value: v.slug, label: v.name }))
+              ]}
+              placeholder={language === 'vi' ? 'Tất cả lỗ hổng' : 'All Vulnerabilities'}
+              disabled={loading}
+            />
+          </div>
+        </div>
 
-        <div style={{ marginLeft: 'auto', fontSize: '0.875rem', color: 'var(--text-body-subtle)', display: 'flex', alignItems: 'center' }}>
-          {filteredLabs.length} {language === 'vi' ? 'bài lab' : 'labs'}
+        {/* Row 2: Difficulty Tabs & Stats */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '16px',
+          flexWrap: 'wrap',
+          borderTop: '1px solid var(--border-default-soft)',
+          paddingTop: '12px'
+        }}>
+          {/* Difficulty Button Tabs */}
+          <div style={{
+            display: 'flex',
+            background: 'var(--bg-neutral-secondary-soft)',
+            border: '1px solid var(--border-default)',
+            borderRadius: '10px',
+            padding: '4px',
+            gap: '2px'
+          }}>
+            {[
+              { value: 'all', label: language === 'vi' ? 'Tất cả độ khó' : 'All Levels' },
+              { value: 'BEGINNER', label: t('common.beginner') },
+              { value: 'INTERMEDIATE', label: t('common.intermediate') },
+              { value: 'ADVANCED', label: t('common.advanced') }
+            ].map((tab) => {
+              const isSelected = filterDifficulty === tab.value;
+              return (
+                <button
+                  key={tab.value}
+                  onClick={() => setFilterDifficulty(tab.value)}
+                  className="diff-tab-btn"
+                  style={{
+                    border: 'none',
+                    background: isSelected ? 'var(--bg-brand)' : 'transparent',
+                    color: isSelected ? '#ffffff' : 'var(--text-body)',
+                    boxShadow: isSelected ? 'var(--shadow-clay-brand-small)' : 'none',
+                    fontWeight: isSelected ? 700 : 500,
+                  }}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Action links / Lab counts */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px',
+            fontSize: '0.875rem'
+          }}>
+            {(searchQuery || filterVuln !== 'all' || filterDifficulty !== 'all') && (
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setFilterVuln('all');
+                  setFilterDifficulty('all');
+                }}
+                className="clear-filters-btn"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--fg-brand)',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontWeight: 600,
+                  fontSize: '0.8125rem',
+                  padding: 0
+                }}
+              >
+                <Trash2 size={13} /> {language === 'vi' ? 'Xoá bộ lọc' : 'Clear Filters'}
+              </button>
+            )}
+
+            <div style={{ color: 'var(--text-body-subtle)', fontWeight: 500 }}>
+              {language === 'vi' ? (
+                <span>Hiển thị <strong>{filteredLabs.length}</strong> bài lab</span>
+              ) : (
+                <span>Showing <strong>{filteredLabs.length}</strong> labs</span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
