@@ -459,7 +459,19 @@ export default function LabsPage() {
       }
     } catch (e: any) {
       console.error(e);
-      setAiError(e.message || (isVi ? 'Không thể kết nối đến máy chủ hoặc API Key không hợp lệ.' : 'Failed to reach API server or invalid API key configuration.'));
+      let errorMsg = e.message || (isVi ? 'Không thể kết nối đến máy chủ hoặc API Key không hợp lệ.' : 'Failed to reach API server or invalid API key configuration.');
+      if (errorMsg && !isVi) {
+        if (errorMsg.includes("Đã xảy ra lỗi hệ thống") || errorMsg.includes("Internal Server Error")) {
+          errorMsg = "A system error occurred. Please try again later.";
+        } else if (errorMsg.includes("Không thể tạo đặc tả lab từ OpenAI")) {
+          errorMsg = "Failed to generate lab spec from OpenAI. Please verify your prompt or try again.";
+        } else if (errorMsg.includes("Không thể tạo source cho lab")) {
+          errorMsg = "Failed to create source code templates for the generated lab.";
+        } else if (errorMsg.includes("Loại lỗ hổng chưa có template")) {
+          errorMsg = "This vulnerability category does not have a runtime template yet.";
+        }
+      }
+      setAiError(errorMsg);
       setAiGenerating(false);
     }
   };
@@ -1075,7 +1087,7 @@ export default function LabsPage() {
                     <>
                       {/* App select */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-body-subtle)' }}>1. LOẠI HÌNH ỨNG DỤNG GIẢ LẬP</label>
+                        <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-body-subtle)' }}>1. {language === 'vi' ? 'LOẠI HÌNH ỨNG DỤNG GIẢ LẬP' : 'SIMULATED APPLICATION TYPE'}</label>
                         <CustomSelect
                           value={wizardApp}
                           onChange={setWizardApp}

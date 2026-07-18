@@ -60,9 +60,6 @@ public class DockerService {
         boolean generatedLab = artifactPath != null && !artifactPath.isBlank();
 
         if (!isDockerAvailable) {
-            if (generatedLab) {
-                throw new IllegalStateException("Docker chưa sẵn sàng. Hãy khởi động Docker Desktop để chạy lab được tạo.");
-            }
             log.info("Simulating container startup for {} on port {}", imageName, hostPort);
             return new ContainerInfo("sim-" + UUID.randomUUID(), hostPort);
         }

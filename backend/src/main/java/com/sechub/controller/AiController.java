@@ -29,6 +29,7 @@ public class AiController {
     }
 
     @PostMapping("/generate-lab")
+    @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<ApiResponse<LabDto>> generateLab(@RequestBody AiGenerateLabRequest request,
             @AuthenticationPrincipal UserDetails principal) {
         User user = userService.findByUsername(principal.getUsername());
