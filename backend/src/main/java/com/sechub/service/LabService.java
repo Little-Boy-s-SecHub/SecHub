@@ -26,7 +26,8 @@ import java.util.UUID;
 public class LabService {
 
     private static final Logger log = LoggerFactory.getLogger(LabService.class);
-    private static final int LAB_DURATION_MINUTES = 60;
+    private static final int MIN_LAB_DURATION = 15;
+    private static final int MAX_LAB_DURATION = 90;
     private static final int EXTENSION_WINDOW_MINUTES = 10;
     private static final int EXTENSION_MINUTES = 30;
 
@@ -94,7 +95,7 @@ public class LabService {
         if (existing.isPresent()) {
             LabAttempt running = existing.get();
             if (running.getExpiresAt() == null) {
-                running.setExpiresAt(LocalDateTime.now().plusMinutes(LAB_DURATION_MINUTES));
+                running.setExpiresAt(LocalDateTime.now().plusMinutes(labDuration(lab)));
                 running = labAttemptRepository.save(running);
             }
             if (running.getRuntimeToken() == null || running.getRuntimeToken().isBlank()) {
@@ -110,7 +111,7 @@ public class LabService {
                 .lab(lab)
                 .status(LabAttempt.Status.STARTED)
                 .startedAt(LocalDateTime.now())
-                .expiresAt(LocalDateTime.now().plusMinutes(LAB_DURATION_MINUTES))
+                .expiresAt(LocalDateTime.now().plusMinutes(labDuration(lab)))
                 .build();
         attempt = labAttemptRepository.save(attempt);
 
@@ -465,5 +466,11 @@ public class LabService {
             labAttemptRepository.save(attempt);
             throw new BadRequestException("Phiên lab đã hết thời gian");
         }
+    }
+
+    /** Return session duration based on the lab's estimated time, clamped to a safe range. */
+    private int labDuration(Lab lab) {
+        int minutes = lab.getEstimatedMinutes() != null ? lab.getEstimatedMinutes() : 30;
+        return Math.max(MIN_LAB_DURATION, Math.min(MAX_LAB_DURATION, minutes));
     }
 }
