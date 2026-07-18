@@ -159,7 +159,7 @@ public class LabArtifactService {
                             + "form{display:flex;gap:12px;align-items:end;flex-wrap:wrap}form .field{min-width:220px;flex:1}pre{white-space:pre-wrap;background:#101522;color:#dce7ff;border-radius:7px;padding:18px;margin-top:20px}.retry{display:inline-flex;margin-top:14px;padding:9px 14px;border:1px solid var(--line);border-radius:6px;color:var(--brand);font-weight:750;text-decoration:none;background:#fff}"
                             + "@media(max-width:600px){.fields{grid-template-columns:1fr}.panel{padding:22px}.shell{margin-top:22px}}"
                             + "</style></head><body><div class='topbar'>SecHub / Isolated Training Lab</div><main class='shell'><section class='panel'>"
-                            + "<div class='eyebrow'>Bài thực hành bảo mật</div><h1>" + html.escape(title) + "</h1>" + body + retry + "</section></main></body></html>")
+                            + body + retry + "</section></main></body></html>")
 
                 class Handler(BaseHTTPRequestHandler):
                     def send(self, status, body, content_type="text/html; charset=utf-8"):
@@ -251,7 +251,7 @@ public class LabArtifactService {
                             "auth-bypass": "<form action='/admin'><div class='field'><label>Access token</label><input name='token' placeholder='eyJ...'></div><button>" + ("M\u1edf trang qu\u1ea3n tr\u1ecb" if vi else "Open admin panel") + "</button></form>"
                         }
                         eyebrow = "B\u00c0I TH\u1ef0C H\u00c0NH B\u1ea2O M\u1eacT" if vi else "SECURITY PRACTICE LAB"
-                        return page(LAB["title"], "<div class='eyebrow'>" + eyebrow + "</div><h1>" + html.escape(LAB["title"]) + "</h1><p class='scenario'>" + html.escape(LAB.get("scenario", "")) + "</p>" + forms[TYPE])
+                        return page(LAB["title"], "<div class='eyebrow'>" + eyebrow + "</div><h1>" + html.escape(LAB["title"]) + "</h1><p class='scenario'>" + html.escape(LAB.get("scenario", "")) + "</p>" + forms.get(TYPE, ""))
 
                     def log_message(self, fmt, *args):
                         pass
