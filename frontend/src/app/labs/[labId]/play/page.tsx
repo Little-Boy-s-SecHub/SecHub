@@ -374,7 +374,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
       <div style={{ display: 'grid', placeItems: 'center', minHeight: '100vh', background: 'var(--bg-neutral-primary)', padding: '24px' }}>
         <div className="card" style={{ width: '100%', maxWidth: '620px', padding: '40px', textAlign: 'center' }}>
           <Clock3 size={52} style={{ color: 'var(--fg-danger)', margin: '0 auto 18px' }} />
-          <h2 style={{ marginBottom: '10px' }}>{language === 'vi' ? 'Phiên lab đã hết 60 phút' : 'Lab Session Expired (60 mins)'}</h2>
+          <h2 style={{ marginBottom: '10px' }}>{language === 'vi' ? `Phiên lab đã hết ${lab.estimatedMinutes || 30} phút` : `Lab Session Expired (${lab.estimatedMinutes || 30} mins)`}</h2>
           <p style={{ color: 'var(--text-body-subtle)', lineHeight: 1.65, marginBottom: '26px' }}>
             {language === 'vi' ? 'Container đã được dừng tự động. Bạn có thể làm lại đúng bài này hoặc tạo một biến thể có cùng loại lỗ hổng.' : 'The container has been stopped automatically. You can restart this lab or generate a similar variant with the same vulnerability.'}
           </p>
