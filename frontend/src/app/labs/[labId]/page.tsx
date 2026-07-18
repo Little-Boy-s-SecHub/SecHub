@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { api, Lab, LabAttempt } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from '@/context/LanguageContext';
 import LabSimulator from '@/components/LabSimulator';
 import LabGameView from '@/components/LabGameView';
 
@@ -40,6 +41,7 @@ const defaultHints = [
 export default function LabDetailPage({ params }: { params: Promise<{ labId: string }> }) {
   const { labId } = use(params);
   const { isAuthenticated } = useAuth();
+  const { t, language } = useTranslation();
   const router = useRouter();
 
   const [lab, setLab] = useState<Lab | null>(null);
@@ -93,22 +95,22 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
   }, [labId, isAuthenticated]);
 
   if (loading) {
-    return <div style={{ textAlign: 'center', padding: 'var(--space-6)' }}>Đang tải thông tin Lab...</div>;
+    return <div style={{ textAlign: 'center', padding: 'var(--space-6)' }}>{t('common.loading')}</div>;
   }
 
   if (apiError || !lab) {
     return (
       <div className="card" style={{ textAlign: 'center', padding: 'var(--space-6)' }}>
         <AlertCircle size={48} style={{ color: 'var(--fg-danger)', margin: '0 auto var(--space-2)' }} />
-        <h3>{labNotFound ? 'Bài lab không còn tồn tại' : 'Lỗi tải dữ liệu'}</h3>
+        <h3>{labNotFound ? (language === 'vi' ? 'Bài lab không còn tồn tại' : 'Lab Challenge Not Found') : t('common.error')}</h3>
         <p style={{ margin: 'var(--space-1) auto', maxWidth: '520px' }}>
           {labNotFound
-            ? 'Lab AI này có thể đã được xoá. Phiên và container liên quan cũng đã được dọn dẹp nên liên kết cũ không thể mở lại.'
-            : apiError || 'Không tìm thấy bài lab yêu cầu.'}
+            ? (language === 'vi' ? 'Lab AI này có thể đã được xoá. Phiên và container liên quan cũng đã được dọn dẹp nên liên kết cũ không thể mở lại.' : 'This AI lab may have been deleted. Related sessions and containers were cleaned up so the old link cannot be reopened.')
+            : apiError || (language === 'vi' ? 'Không tìm thấy bài lab yêu cầu.' : 'The requested lab challenge was not found.')}
         </p>
         <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap', marginTop: 'var(--space-2)' }}>
-          <Link href="/labs" className="btn btn-primary">Chọn bài lab khác</Link>
-          <Link href="/learning" className="btn btn-secondary">Quay lại bài học</Link>
+          <Link href="/labs" className="btn btn-primary">{language === 'vi' ? 'Chọn bài lab khác' : 'Choose another lab'}</Link>
+          <Link href="/learning" className="btn btn-secondary">{t('lesson.backToSyllabus')}</Link>
         </div>
       </div>
     );
@@ -128,8 +130,8 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
                     lab.difficulty === 'INTERMEDIATE' ? 'badge-medium-diff' : 
                     'badge-hard';
   
-  const difficultyLabel = lab.difficulty === 'BEGINNER' ? 'Dễ' :
-                          lab.difficulty === 'INTERMEDIATE' ? 'Trung bình' : 'Khó';
+  const difficultyLabel = lab.difficulty === 'BEGINNER' ? t('common.beginner') :
+                          lab.difficulty === 'INTERMEDIATE' ? t('common.intermediate') : t('common.advanced');
 
   const handleStartLab = async () => {
     if (!isAuthenticated) {
@@ -149,11 +151,11 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
         }, 1500);
       } else {
         setLabStatus('idle');
-        alert(res.message || 'Không thể khởi động lab.');
+        alert(res.message || (language === 'vi' ? 'Không thể khởi động lab.' : 'Could not start lab.'));
       }
     } catch (e: any) {
       setLabStatus('idle');
-      alert(e.message || 'Lỗi khởi động lab.');
+      alert(e.message || (language === 'vi' ? 'Lỗi khởi động lab.' : 'Error starting lab.'));
     }
   };
 
@@ -167,7 +169,7 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
       setFlagValue('');
       setFlagResult(null);
     } catch (e: any) {
-      alert(e.message || 'Không thể dừng lab.');
+      alert(e.message || (language === 'vi' ? 'Không thể dừng lab.' : 'Could not stop lab.'));
     }
   };
 
@@ -195,7 +197,7 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
         setCurrentAttempt(res.data);
       }
     } catch (e: any) {
-      alert(e.message || 'Không thể tải gợi ý.');
+      alert(e.message || (language === 'vi' ? 'Không thể tải gợi ý.' : 'Could not load hints.'));
     }
   };
 
@@ -210,7 +212,7 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
     <div>
       {/* Breadcrumb */}
       <div className="breadcrumb">
-        <Link href="/labs">Phòng Lab</Link>
+        <Link href="/labs">{language === 'vi' ? 'Phòng Lab' : 'Labs'}</Link>
         <span className="breadcrumb-separator">/</span>
         <span className="breadcrumb-current">{lab.title}</span>
       </div>
@@ -226,10 +228,10 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
                 <LinkIcon size={13} /> {lab.vulnerabilityName}
               </span>
               <span style={{ fontSize: '13px', color: 'var(--text-body-subtle)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                <Clock size={13} /> ~{lab.estimatedMinutes} phút
+                <Clock size={13} /> ~{lab.estimatedMinutes} {t('common.minutes')}
               </span>
               <span style={{ fontSize: '13px', color: 'var(--text-body-subtle)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                <Trophy size={13} /> {lab.points} điểm
+                <Trophy size={13} /> {t('labs.pointsAward', { points: lab.points })}
               </span>
             </div>
             <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: 'var(--space-1)' }}>
@@ -241,7 +243,7 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
           {/* Lab Environment */}
           <div className="animate-fade-in-up animate-delay-1" style={{ marginBottom: 'var(--space-3)' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: 'var(--space-2)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <MonitorPlay size={20} style={{ color: 'var(--fg-brand)' }} /> Môi trường Lab
+              <MonitorPlay size={20} style={{ color: 'var(--fg-brand)' }} /> {language === 'vi' ? 'Môi trường Lab' : 'Lab Environment'}
             </h2>
 
             {labStatus === 'idle' && (
@@ -249,15 +251,15 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--space-2)' }}>
                   <FlaskConical size={48} style={{ color: 'var(--text-body-subtle)' }} />
                 </div>
-                <h3 style={{ marginBottom: 'var(--space-1)' }}>Sẵn sàng bắt đầu</h3>
+                <h3 style={{ marginBottom: 'var(--space-1)' }}>{language === 'vi' ? 'Sẵn sàng bắt đầu' : 'Ready to Start'}</h3>
                 <p style={{ color: 'var(--text-body-subtle)', margin: '0 auto var(--space-3)', maxWidth: '400px' }}>
                   {!isAuthenticated 
-                    ? 'Bạn cần đăng nhập để khởi chạy container Docker chứa ứng dụng web có lỗ hổng.'
-                    : 'Click nút bên dưới để khởi tạo Docker container chứa ứng dụng web có lỗ hổng.'
+                    ? (language === 'vi' ? 'Bạn cần đăng nhập để khởi chạy container Docker chứa ứng dụng web có lỗ hổng.' : 'You need to log in to launch the Docker container containing the vulnerable web application.')
+                    : (language === 'vi' ? 'Click nút bên dưới để khởi tạo Docker container chứa ứng dụng web có lỗ hổng.' : 'Click the button below to initialize the Docker container containing the vulnerable web application.')
                   }
                 </p>
                 <button className="btn btn-primary btn-lg" onClick={handleStartLab} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', margin: '0 auto' }}>
-                  <Play size={16} /> {!isAuthenticated ? 'Đăng nhập để khởi động' : 'Khởi động Lab'}
+                  <Play size={16} /> {!isAuthenticated ? (language === 'vi' ? 'Đăng nhập để khởi động' : 'Login to Start') : t('labs.startLabButton')}
                 </button>
               </div>
             )}
@@ -285,7 +287,7 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
                   </div>
                 </div>
                 <p style={{ color: 'var(--text-body-subtle)', fontSize: '14px' }}>
-                  Đang khởi tạo môi trường lab thực tế...
+                  {t('labDetail.startingSandbox')}
                 </p>
               </div>
             )}
@@ -300,10 +302,12 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
                     </span>
                   </span>
                 </div>
-                <h3 style={{ marginBottom: '8px' }}>Môi trường đang hoạt động</h3>
+                <h3 style={{ marginBottom: '8px' }}>{language === 'vi' ? 'Môi trường đang hoạt động' : 'Environment Active'}</h3>
                 <p style={{ color: 'var(--text-body-subtle)', marginBottom: '24px', maxWidth: '480px', margin: '0 auto 24px', lineHeight: 1.6 }}>
-                  Môi trường phòng Lab đã sẵn sàng qua đường dẫn phiên được SecHub bảo vệ. 
-                  Nhấn vào nút bên dưới để mở giao diện làm bài thực hành (chứa Website lỗi và Game 2D chỉ dẫn).
+                  {language === 'vi' 
+                    ? 'Môi trường phòng Lab đã sẵn sàng qua đường dẫn phiên được SecHub bảo vệ. Nhấn vào nút bên dưới để mở giao diện làm bài thực hành (chứa Website lỗi và Game 2D chỉ dẫn).'
+                    : 'The lab environment is ready via the SecHub protected session link. Click the button below to open the practice workspace (containing the vulnerable site and 2D Game guide).'
+                  }
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
                   <Link 
@@ -312,14 +316,14 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
                     className="btn btn-primary btn-lg" 
                     style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
                   >
-                    <Play size={16} /> Mở phòng thực hành (Mở Tab mới)
+                    <Play size={16} /> {language === 'vi' ? 'Mở phòng thực hành (Mở Tab mới)' : 'Open Lab Workspace (New Tab)'}
                   </Link>
                   <button 
                     className="btn btn-danger btn-lg" 
                     onClick={handleStopLab} 
                     style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
                   >
-                    <Square size={16} /> Dừng Lab
+                    <Square size={16} /> {t('labDetail.stopSandbox')}
                   </button>
                 </div>
               </div>
@@ -330,9 +334,12 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--space-2)' }}>
                   <CheckCircle2 size={56} style={{ color: 'var(--fg-success-strong)' }} />
                 </div>
-                <h2 style={{ color: 'var(--fg-success-strong)', marginBottom: '8px' }}>Tuyệt vời! Bạn đã hoàn thành!</h2>
+                <h2 style={{ color: 'var(--fg-success-strong)', marginBottom: '8px' }}>{t('labDetail.labCompletedCongrats')}</h2>
                 <p style={{ color: 'var(--text-body-subtle)', marginBottom: '24px', maxWidth: '480px', margin: '0 auto 24px', lineHeight: 1.6 }}>
-                  Bạn đã vượt qua thử thách này và ghi nhận +{lab.points} điểm. Bạn có thể mở lại phòng thực hành để nghiên cứu tiếp hoặc làm lại từ đầu.
+                  {language === 'vi'
+                    ? `Bạn đã vượt qua thử thách này và ghi nhận +${lab.points} điểm. Bạn có thể mở lại phòng thực hành để nghiên cứu tiếp hoặc làm lại từ đầu.`
+                    : `You solved this challenge and earned +${lab.points} XP. You can reopen the practice workspace to study further or restart.`
+                  }
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
                   <Link 
@@ -341,14 +348,14 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
                     className="btn btn-secondary btn-lg" 
                     style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
                   >
-                    <Play size={16} /> Xem lại phòng thực hành
+                    <Play size={16} /> {language === 'vi' ? 'Xem lại phòng thực hành' : 'Re-open Lab Workspace'}
                   </Link>
                   <button 
                     className="btn btn-primary btn-lg" 
                     onClick={handleStartLab} 
                     style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
                   >
-                    <RotateCw size={16} /> Tạo lại & Làm lại bài Lab
+                    <RotateCw size={16} /> {language === 'vi' ? 'Tạo lại & Làm lại bài Lab' : 'Restart Lab Challenge'}
                   </button>
                 </div>
               </div>
@@ -361,20 +368,20 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
           {/* Objectives */}
           <div className="card animate-fade-in-up animate-delay-1" style={{ marginBottom: 'var(--space-3)' }}>
             <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-2)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Target size={18} style={{ color: 'var(--fg-brand)' }} /> Mục tiêu thực hành
+              <Target size={18} style={{ color: 'var(--fg-brand)' }} /> {t('labDetail.learningObjectives')}
             </h3>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px', padding: 0, margin: 0 }}>
               <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: 'var(--text-body)' }}>
                 <span style={{ color: 'var(--fg-brand)', flexShrink: 0 }}>○</span>
-                Tìm endpoint có lỗ hổng bảo mật
+                {language === 'vi' ? 'Tìm endpoint có lỗ hổng bảo mật' : 'Find the vulnerable web endpoint'}
               </li>
               <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: 'var(--text-body)' }}>
                 <span style={{ color: 'var(--fg-brand)', flexShrink: 0 }}>○</span>
-                Khai thác thành công lỗ hổng {lab.vulnerabilityName}
+                {language === 'vi' ? `Khai thác thành công lỗ hổng ${lab.vulnerabilityName}` : `Successfully exploit the ${lab.vulnerabilityName} vulnerability`}
               </li>
               <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: 'var(--text-body)' }}>
                 <span style={{ color: 'var(--fg-brand)', flexShrink: 0 }}>○</span>
-                Lấy chuỗi FLAG ẩn trên hệ thống và gửi xác nhận
+                {language === 'vi' ? 'Lấy chuỗi FLAG ẩn trên hệ thống và gửi xác nhận' : 'Find the hidden FLAG value on the target and submit it'}
               </li>
             </ul>
           </div>
@@ -382,7 +389,7 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
           {/* Related vulnerability */}
           <div className="card animate-fade-in-up animate-delay-2">
             <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-2)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <BookOpen size={18} style={{ color: 'var(--fg-brand)' }} /> Tài liệu liên quan
+              <BookOpen size={18} style={{ color: 'var(--fg-brand)' }} /> {language === 'vi' ? 'Tài liệu liên quan' : 'Related Documents'}
             </h3>
             <Link
               href={`/vulnerabilities/${lab.vulnerabilitySlug}`}
@@ -392,7 +399,7 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
                 {lab.vulnerabilityName}
               </div>
               <div style={{ fontSize: '12px', color: 'var(--text-body-subtle)' }}>
-                Xem chi tiết lỗ hổng, cách khai thác và phòng chống →
+                {language === 'vi' ? 'Xem chi tiết lỗ hổng, cách khai thác và phòng chống →' : 'View vulnerability details, exploitation and remediation →'}
               </div>
             </Link>
           </div>

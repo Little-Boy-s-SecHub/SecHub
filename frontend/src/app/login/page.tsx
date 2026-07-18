@@ -4,11 +4,13 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from '@/context/LanguageContext';
 import { Shield, Lock, User, AlertCircle } from 'lucide-react';
 import PageBackLink from '@/components/PageBackLink';
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const { language } = useTranslation();
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -18,7 +20,7 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !password.trim()) {
-      setError('Vui lòng điền đầy đủ tên đăng nhập và mật khẩu.');
+      setError(language === 'vi' ? 'Vui lòng điền đầy đủ tên đăng nhập và mật khẩu.' : 'Please enter your username and password.');
       return;
     }
 
@@ -29,7 +31,7 @@ export default function LoginPage() {
       await login(username, password);
       router.push('/');
     } catch (err: any) {
-      setError(err.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+      setError(err.message || (language === 'vi' ? 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.' : 'Login failed. Please check your credentials.'));
     } finally {
       setLoading(false);
     }
@@ -49,7 +51,7 @@ export default function LoginPage() {
         padding: 'var(--space-4)',
         boxShadow: 'var(--shadow-xl)'
       }}>
-        <PageBackLink href="/" label="Quay lại Dashboard" />
+        <PageBackLink href="/" label={language === 'vi' ? 'Quay lại Dashboard' : 'Back to Dashboard'} />
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 'var(--space-3)' }}>
           <div style={{
@@ -65,9 +67,9 @@ export default function LoginPage() {
           }}>
             <Shield size={24} />
           </div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '4px' }}>Đăng nhập SecHub</h2>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '4px' }}>{language === 'vi' ? 'Đăng nhập SecHub' : 'Log in to SecHub'}</h2>
           <p style={{ fontSize: '13px', color: 'var(--text-body-subtle)', margin: '0 auto' }}>
-            Nền tảng thực hành an toàn thông tin
+            {language === 'vi' ? 'Nền tảng thực hành an toàn thông tin' : 'Hands-on Web Security Sandbox'}
           </p>
         </div>
 
@@ -97,7 +99,7 @@ export default function LoginPage() {
               color: 'var(--text-heading)',
               marginBottom: '6px'
             }}>
-              Tên đăng nhập
+              {language === 'vi' ? 'Tên đăng nhập' : 'Username'}
             </label>
             <div style={{ position: 'relative' }}>
               <span style={{
@@ -116,7 +118,7 @@ export default function LoginPage() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Nhập tên đăng nhập"
+                placeholder={language === 'vi' ? 'Nhập tên đăng nhập' : 'Enter your username'}
                 style={{
                   width: '100%',
                   background: 'var(--bg-neutral-secondary-medium)',
@@ -140,7 +142,7 @@ export default function LoginPage() {
               color: 'var(--text-heading)',
               marginBottom: '6px'
             }}>
-              Mật khẩu
+              {language === 'vi' ? 'Mật khẩu' : 'Password'}
             </label>
             <div style={{ position: 'relative' }}>
               <span style={{
@@ -181,7 +183,7 @@ export default function LoginPage() {
             style={{ width: '100%', marginTop: 'var(--space-1)', padding: '12px' }}
             disabled={loading}
           >
-            {loading ? 'Đang xác thực...' : 'Đăng nhập'}
+            {loading ? (language === 'vi' ? 'Đang xác thực...' : 'Authenticating...') : (language === 'vi' ? 'Đăng nhập' : 'Log In')}
           </button>
         </form>
 
@@ -192,9 +194,9 @@ export default function LoginPage() {
           fontSize: '13px',
           color: 'var(--text-body-subtle)'
         }}>
-          Chưa có tài khoản?{' '}
+          {language === 'vi' ? 'Chưa có tài khoản?' : "Don't have an account?"}{' '}
           <Link href="/register" style={{ fontWeight: 600, color: 'var(--fg-brand)' }}>
-            Đăng ký ngay
+            {language === 'vi' ? 'Đăng ký ngay' : 'Register now'}
           </Link>
         </div>
       </div>

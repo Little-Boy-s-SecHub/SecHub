@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Terminal, Shield, Play, Search, ArrowRight, User } from 'lucide-react';
+import { useTranslation } from '@/context/LanguageContext';
 
 interface LabSimulatorProps {
   dockerPort: number;
@@ -73,6 +74,7 @@ export default function LabSimulator({ dockerPort, flag, onSuccess }: LabSimulat
    1. SQL Injection Login Simulator (Port 8081)
    ============================================================================ */
 function SqliLoginSimulator({ flag, onSuccess }: { flag: string; onSuccess: (flag: string) => void }) {
+  const { t, language } = useTranslation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState<string | null>(null);
@@ -91,10 +93,10 @@ function SqliLoginSimulator({ flag, onSuccess }: { flag: string; onSuccess: (fla
 
     if (isBypassed) {
       setSuccess(true);
-      setMessage(`Đăng nhập thành công! Hệ thống SQL đã thực thi truy vấn:\n${query}`);
+      setMessage(language === 'vi' ? `Đăng nhập thành công! Hệ thống SQL đã thực thi truy vấn:\n${query}` : `Login successful! SQL engine executed query:\n${query}`);
       onSuccess(flag);
     } else {
-      setMessage(`Sai tài khoản hoặc mật khẩu.\nTruy vấn đã thực thi:\n${query}`);
+      setMessage(language === 'vi' ? `Sai tài khoản hoặc mật khẩu.\nTruy vấn đã thực thi:\n${query}` : `Invalid username or password.\nExecuted query:\n${query}`);
       setSuccess(false);
     }
   };
@@ -102,11 +104,11 @@ function SqliLoginSimulator({ flag, onSuccess }: { flag: string; onSuccess: (fla
   return (
     <div style={{ maxWidth: '360px', margin: '0 auto' }}>
       <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: 'var(--space-2)', textAlign: 'center' }}>
-        Cổng thông tin quản trị
+        {language === 'vi' ? 'Cổng thông tin quản trị' : 'Admin Portal'}
       </h3>
       <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div>
-          <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Tên đăng nhập</label>
+          <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>{t('auth.username')}</label>
           <input
             type="text"
             className="flag-input"
@@ -117,7 +119,7 @@ function SqliLoginSimulator({ flag, onSuccess }: { flag: string; onSuccess: (fla
           />
         </div>
         <div>
-          <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Mật khẩu</label>
+          <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>{t('auth.password')}</label>
           <input
             type="password"
             className="flag-input"
@@ -128,7 +130,7 @@ function SqliLoginSimulator({ flag, onSuccess }: { flag: string; onSuccess: (fla
           />
         </div>
         <button className="btn btn-primary" type="submit" style={{ width: '100%' }}>
-          Đăng nhập
+          {t('auth.login')}
         </button>
       </form>
 
@@ -142,7 +144,7 @@ function SqliLoginSimulator({ flag, onSuccess }: { flag: string; onSuccess: (fla
           fontSize: '13px'
         }}>
           <div style={{ fontWeight: 600, color: success ? 'var(--fg-success-strong)' : 'var(--fg-danger-strong)' }}>
-            {success ? 'Thành công!' : 'Lỗi'}
+            {success ? (language === 'vi' ? 'Thành công!' : 'Success!') : t('common.error')}
           </div>
           <pre style={{
             marginTop: '6px',
@@ -156,7 +158,7 @@ function SqliLoginSimulator({ flag, onSuccess }: { flag: string; onSuccess: (fla
 
           {success && (
             <div style={{ marginTop: '12px', padding: '8px', background: 'var(--bg-brand-softer)', borderRadius: '4px', border: '1px solid var(--border-brand)' }}>
-              <strong>Flag tìm thấy:</strong> <code style={{ userSelect: 'all' }}>{flag}</code>
+              <strong>{language === 'vi' ? 'Flag tìm thấy:' : 'Flag found:'}</strong> <code style={{ userSelect: 'all' }}>{flag}</code>
             </div>
           )}
         </div>
@@ -169,6 +171,7 @@ function SqliLoginSimulator({ flag, onSuccess }: { flag: string; onSuccess: (fla
    2. UNION-based SQL Injection Simulator (Port 8082)
    ============================================================================ */
 function SqliUnionSimulator({ flag, onSuccess }: { flag: string; onSuccess: (flag: string) => void }) {
+  const { t, language } = useTranslation();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [sqlError, setSqlError] = useState<string | null>(null);
@@ -226,8 +229,8 @@ function SqliUnionSimulator({ flag, onSuccess }: { flag: string; onSuccess: (fla
 
   return (
     <div>
-      <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: 'var(--space-1)' }}>Cửa hàng điện thoại SecShop</h3>
-      <p style={{ fontSize: '13px', marginBottom: 'var(--space-2)' }}>Tìm kiếm điện thoại theo tên (Lỗ hổng SQL Injection):</p>
+      <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: 'var(--space-1)' }}>{language === 'vi' ? 'Cửa hàng điện thoại SecShop' : 'SecShop Phone Store'}</h3>
+      <p style={{ fontSize: '13px', marginBottom: 'var(--space-2)' }}>{language === 'vi' ? 'Tìm kiếm điện thoại theo tên (Lỗ hổng SQL Injection):' : 'Search phones by name (SQL Injection vulnerability):'}</p>
       
       <div className="flag-input-group" style={{ marginBottom: 'var(--space-2)' }}>
         <input
@@ -239,7 +242,7 @@ function SqliUnionSimulator({ flag, onSuccess }: { flag: string; onSuccess: (fla
           style={{ width: '100%' }}
         />
         <button className="btn btn-primary" onClick={handleSearch}>
-          <Search size={16} /> Tìm
+          <Search size={16} /> {language === 'vi' ? 'Tìm' : 'Search'}
         </button>
       </div>
 
@@ -253,9 +256,9 @@ function SqliUnionSimulator({ flag, onSuccess }: { flag: string; onSuccess: (fla
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', marginTop: 'var(--space-1)' }}>
           <thead>
             <tr style={{ borderBottom: '2px solid var(--border-default)' }}>
-              <th style={{ textAlign: 'left', padding: '8px' }}>Mã sản phẩm</th>
-              <th style={{ textAlign: 'left', padding: '8px' }}>Tên sản phẩm</th>
-              <th style={{ textAlign: 'left', padding: '8px' }}>Giá tiền</th>
+              <th style={{ textAlign: 'left', padding: '8px' }}>{language === 'vi' ? 'Mã sản phẩm' : 'Product ID'}</th>
+              <th style={{ textAlign: 'left', padding: '8px' }}>{language === 'vi' ? 'Tên sản phẩm' : 'Product Name'}</th>
+              <th style={{ textAlign: 'left', padding: '8px' }}>{language === 'vi' ? 'Giá tiền' : 'Price'}</th>
             </tr>
           </thead>
           <tbody>
@@ -277,6 +280,7 @@ function SqliUnionSimulator({ flag, onSuccess }: { flag: string; onSuccess: (fla
    3. Blind SQL Injection Simulator (Port 8083)
    ============================================================================ */
 function BlindSqliSimulator({ flag, onSuccess }: { flag: string; onSuccess: (flag: string) => void }) {
+  const { t, language } = useTranslation();
   const [id, setId] = useState('');
   const [exists, setExists] = useState<boolean | null>(null);
   const [timeTaken, setTimeTaken] = useState<number | null>(null);
@@ -317,8 +321,8 @@ function BlindSqliSimulator({ flag, onSuccess }: { flag: string; onSuccess: (fla
 
   return (
     <div>
-      <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: 'var(--space-1)' }}>Hệ thống kiểm tra sản phẩm tồn kho</h3>
-      <p style={{ fontSize: '13px', marginBottom: 'var(--space-2)' }}>Nhập ID sản phẩm để kiểm tra (Blind SQL Injection):</p>
+      <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: 'var(--space-1)' }}>{language === 'vi' ? 'Hệ thống kiểm tra sản phẩm tồn kho' : 'Stock Inventory System'}</h3>
+      <p style={{ fontSize: '13px', marginBottom: 'var(--space-2)' }}>{language === 'vi' ? 'Nhập ID sản phẩm để kiểm tra (Blind SQL Injection):' : 'Enter Product ID to check (Blind SQL Injection):'}</p>
 
       <div className="flag-input-group" style={{ marginBottom: 'var(--space-2)' }}>
         <input
@@ -329,7 +333,7 @@ function BlindSqliSimulator({ flag, onSuccess }: { flag: string; onSuccess: (fla
           placeholder="1' AND SLEEP(5) --"
           style={{ width: '100%' }}
         />
-        <button className="btn btn-primary" onClick={checkProduct}>Kiểm tra</button>
+        <button className="btn btn-primary" onClick={checkProduct}>{language === 'vi' ? 'Kiểm tra' : 'Check'}</button>
       </div>
 
       {exists !== null && (
@@ -342,17 +346,17 @@ function BlindSqliSimulator({ flag, onSuccess }: { flag: string; onSuccess: (fla
         }}>
           {timeTaken !== null ? (
             <div>
-              <span style={{ color: 'var(--fg-warning-subtle)', fontWeight: 600 }}>[Time delay detected]</span> Trang web mất {timeTaken} giây để tải phản hồi.
+              <span style={{ color: 'var(--fg-warning-subtle)', fontWeight: 600 }}>[Time delay detected]</span> {language === 'vi' ? `Trang web mất ${timeTaken} giây để tải phản hồi.` : `Website took ${timeTaken} seconds to load response.`}
               <div style={{ marginTop: '8px', padding: '8px', background: 'var(--bg-brand-softer)', borderRadius: '4px' }}>
-                Nhận diện Blind Time-based SQL Injection thành công! <strong>Flag:</strong> <code>{flag}</code>
+                {language === 'vi' ? 'Nhận diện Blind Time-based SQL Injection thành công! Flag:' : 'Blind Time-based SQL Injection detected successfully! Flag:'} <code>{flag}</code>
               </div>
             </div>
           ) : (
             <div>
-              Trạng thái sản phẩm: {exists ? (
-                <span style={{ color: 'var(--fg-success-strong)', fontWeight: 600 }}>Sản phẩm TỒN TẠI trong kho.</span>
+              {language === 'vi' ? 'Trạng thái sản phẩm:' : 'Product Status:'} {exists ? (
+                <span style={{ color: 'var(--fg-success-strong)', fontWeight: 600 }}>{language === 'vi' ? 'Sản phẩm TỒN TẠI trong kho.' : 'Product EXISTS in stock.'}</span>
               ) : (
-                <span style={{ color: 'var(--fg-danger-strong)', fontWeight: 600 }}>Sản phẩm KHÔNG tồn tại.</span>
+                <span style={{ color: 'var(--fg-danger-strong)', fontWeight: 600 }}>{language === 'vi' ? 'Sản phẩm KHÔNG tồn tại.' : 'Product does NOT exist.'}</span>
               )}
             </div>
           )}
@@ -366,6 +370,7 @@ function BlindSqliSimulator({ flag, onSuccess }: { flag: string; onSuccess: (fla
    4. Cross-Site Scripting (XSS) Simulator (Port 8084)
    ============================================================================ */
 function XssSearchSimulator({ flag, onSuccess }: { flag: string; onSuccess: (flag: string) => void }) {
+  const { t, language } = useTranslation();
   const [search, setSearch] = useState('');
   const [renderedResult, setRenderedResult] = useState<string | null>(null);
   const [xssTriggered, setXssTriggered] = useState(false);
@@ -389,7 +394,7 @@ function XssSearchSimulator({ flag, onSuccess }: { flag: string; onSuccess: (fla
 
   return (
     <div>
-      <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: 'var(--space-1)' }}>Cổng tìm kiếm bài viết</h3>
+      <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: 'var(--space-1)' }}>{language === 'vi' ? 'Cổng tìm kiếm bài viết' : 'Article Search Portal'}</h3>
       
       <div className="flag-input-group" style={{ marginBottom: 'var(--space-2)' }}>
         <input
@@ -400,13 +405,13 @@ function XssSearchSimulator({ flag, onSuccess }: { flag: string; onSuccess: (fla
           placeholder="<script>alert(document.cookie)</script>"
           style={{ width: '100%' }}
         />
-        <button className="btn btn-primary" onClick={handleSearch}>Tìm kiếm</button>
+        <button className="btn btn-primary" onClick={handleSearch}>{language === 'vi' ? 'Tìm kiếm' : 'Search'}</button>
       </div>
 
       {renderedResult !== null && (
         <div style={{ marginTop: 'var(--space-2)' }}>
           <div style={{ fontSize: '13px', color: 'var(--text-body-subtle)', marginBottom: '4px' }}>
-            Kết quả tìm kiếm cho:
+            {language === 'vi' ? 'Kết quả tìm kiếm cho:' : 'Search results for:'}
           </div>
           <div style={{
             padding: '12px',
@@ -438,7 +443,7 @@ function XssSearchSimulator({ flag, onSuccess }: { flag: string; onSuccess: (fla
             {"alert(document.domain) -> target.sechub.local"}
           </div>
           <div style={{ marginTop: '12px', padding: '8px', background: 'var(--bg-brand-softer)', borderRadius: '4px' }}>
-            Khai thác XSS thành công! <strong>Flag:</strong> <code>{flag}</code>
+            {language === 'vi' ? 'Khai thác XSS thành công! Flag:' : 'XSS Exploitation successful! Flag:'} <code>{flag}</code>
           </div>
         </div>
       )}
@@ -450,6 +455,7 @@ function XssSearchSimulator({ flag, onSuccess }: { flag: string; onSuccess: (fla
    5. IDOR Profile Simulator (Port 8087)
    ============================================================================ */
 function IdorProfileSimulator({ flag, onSuccess }: { flag: string; onSuccess: (flag: string) => void }) {
+  const { t, language } = useTranslation();
   const [profileId, setProfileId] = useState('10');
   const [profileData, setProfileData] = useState<any>({
     id: '10',
@@ -490,8 +496,8 @@ function IdorProfileSimulator({ flag, onSuccess }: { flag: string; onSuccess: (f
 
   return (
     <div>
-      <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: 'var(--space-1)' }}>Bảng quản lý tài khoản người dùng</h3>
-      <p style={{ fontSize: '13px', marginBottom: 'var(--space-2)' }}>Lỗ hổng IDOR - Thử thay đổi tham số ID để xem profile người khác:</p>
+      <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: 'var(--space-1)' }}>{language === 'vi' ? 'Bảng quản lý tài khoản người dùng' : 'User Accounts Management Portal'}</h3>
+      <p style={{ fontSize: '13px', marginBottom: 'var(--space-2)' }}>{language === 'vi' ? 'Lỗ hổng IDOR - Thử thay đổi tham số ID để xem profile người khác:' : 'IDOR Vulnerability - Try changing the ID parameter to view other profiles:'}</p>
 
       <div className="flag-input-group" style={{ marginBottom: 'var(--space-2)', maxWidth: '240px' }}>
         <span style={{ fontSize: '14px', alignSelf: 'center', marginRight: '8px' }}>User ID:</span>
@@ -502,7 +508,7 @@ function IdorProfileSimulator({ flag, onSuccess }: { flag: string; onSuccess: (f
           onChange={(e) => setProfileId(e.target.value)}
           style={{ width: '80px', textAlign: 'center' }}
         />
-        <button className="btn btn-primary" onClick={loadProfile}>Tải</button>
+        <button className="btn btn-primary" onClick={loadProfile}>{language === 'vi' ? 'Tải' : 'Load'}</button>
       </div>
 
       <div style={{
@@ -518,7 +524,7 @@ function IdorProfileSimulator({ flag, onSuccess }: { flag: string; onSuccess: (f
           </div>
           <div>
             <div style={{ fontWeight: 600, color: 'var(--text-heading)' }}>{profileData.name}</div>
-            <div style={{ fontSize: '12px', color: 'var(--text-body-subtle)' }}>ID: {profileData.id} | Quyền: {profileData.role}</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-body-subtle)' }}>ID: {profileData.id} | {language === 'vi' ? 'Quyền' : 'Role'}: {profileData.role}</div>
           </div>
         </div>
         
@@ -539,6 +545,7 @@ function IdorProfileSimulator({ flag, onSuccess }: { flag: string; onSuccess: (f
    6. Command Injection Simulator (Port 8090)
    ============================================================================ */
 function CmdiPingSimulator({ flag, onSuccess }: { flag: string; onSuccess: (flag: string) => void }) {
+  const { t, language } = useTranslation();
   const [ip, setIp] = useState('');
   const [terminalOutput, setTerminalOutput] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -584,8 +591,8 @@ function CmdiPingSimulator({ flag, onSuccess }: { flag: string; onSuccess: (flag
 
   return (
     <div>
-      <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: 'var(--space-1)' }}>Cơ sở hạ tầng kiểm tra kết nối mạng (Ping diagnostic)</h3>
-      <p style={{ fontSize: '13px', marginBottom: 'var(--space-2)' }}>Nhập địa chỉ IP máy chủ để thực hiện lệnh Ping:</p>
+      <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: 'var(--space-1)' }}>{language === 'vi' ? 'Cơ sở hạ tầng kiểm tra kết nối mạng (Ping diagnostic)' : 'Network Connection Diagnostics Infrastructure (Ping)'}</h3>
+      <p style={{ fontSize: '13px', marginBottom: 'var(--space-2)' }}>{language === 'vi' ? 'Nhập địa chỉ IP máy chủ để thực hiện lệnh Ping:' : 'Enter Server IP address to run Ping command:'}</p>
 
       <div className="flag-input-group" style={{ marginBottom: 'var(--space-2)' }}>
         <input
@@ -623,12 +630,13 @@ function CmdiPingSimulator({ flag, onSuccess }: { flag: string; onSuccess: (flag
    7. General Terminal Simulator (Fallback)
    ============================================================================ */
 function GeneralTerminalSimulator({ flag, dockerPort, onSuccess }: { flag: string; dockerPort: number; onSuccess: (flag: string) => void }) {
+  const { t, language } = useTranslation();
   const [input, setInput] = useState('');
-  const [history, setHistory] = useState<string[]>([
-    'Chào mừng đến với Sandbox giả lập SecHub.',
-    'Docker Engine không chạy trên máy chủ này, hệ thống tự động tải chế độ mô phỏng.',
-    'Nhập lệnh để tương tác hoặc lấy flag trực tiếp.',
-    'Gõ "help" để xem các lệnh có sẵn.'
+  const [history, setHistory] = useState<string[]>(() => [
+    language === 'vi' ? 'Chào mừng đến với Sandbox giả lập SecHub.' : 'Welcome to the SecHub Simulation Sandbox.',
+    language === 'vi' ? 'Docker Engine không chạy trên máy chủ này, hệ thống tự động tải chế độ mô phỏng.' : 'Docker Engine is not running on this server, loading simulation mode automatically.',
+    language === 'vi' ? 'Nhập lệnh để tương tác hoặc lấy flag trực tiếp.' : 'Enter commands to interact or retrieve flags directly.',
+    language === 'vi' ? 'Gõ "help" để xem các lệnh có sẵn.' : 'Type "help" to view available commands.'
   ]);
 
   const handleCommandSubmit = (e: React.FormEvent) => {
@@ -639,18 +647,18 @@ function GeneralTerminalSimulator({ flag, dockerPort, onSuccess }: { flag: strin
     const newHistory = [...history, `sechub@sandbox:~$ ${cmd}`];
 
     if (cmd.toLowerCase() === 'help') {
-      newHistory.push('Các lệnh khả dụng:');
-      newHistory.push('  help           - Hiển thị menu này');
-      newHistory.push('  info           - Hiển thị thông tin dịch vụ đang mô phỏng');
-      newHistory.push('  exploit        - Mô phỏng tấn công lỗ hổng bảo mật');
-      newHistory.push('  getflag        - In trực tiếp flag của lab này');
-      newHistory.push('  clear          - Xóa màn hình terminal');
+      newHistory.push(language === 'vi' ? 'Các lệnh khả dụng:' : 'Available commands:');
+      newHistory.push('  help           - ' + (language === 'vi' ? 'Hiển thị menu này' : 'Display this menu'));
+      newHistory.push('  info           - ' + (language === 'vi' ? 'Hiển thị thông tin dịch vụ đang mô phỏng' : 'Show simulated service details'));
+      newHistory.push('  exploit        - ' + (language === 'vi' ? 'Mô phỏng tấn công lỗ hổng bảo mật' : 'Simulate vulnerability exploitation'));
+      newHistory.push('  getflag        - ' + (language === 'vi' ? 'In trực tiếp flag của lab này' : 'Print the flag for this challenge directly'));
+      newHistory.push('  clear          - ' + (language === 'vi' ? 'Xóa màn hình terminal' : 'Clear terminal screen'));
     } else if (cmd.toLowerCase() === 'info') {
-      newHistory.push(`Đang giả lập ứng dụng bảo mật trên port: ${dockerPort}`);
-      newHistory.push(`Trạng thái: Simulated Sandbox Container`);
+      newHistory.push(language === 'vi' ? `Đang giả lập ứng dụng bảo mật trên port: ${dockerPort}` : `Simulating security application on port: ${dockerPort}`);
+      newHistory.push(language === 'vi' ? `Trạng thái: Simulated Sandbox Container` : `Status: Simulated Sandbox Container`);
     } else if (cmd.toLowerCase() === 'exploit') {
-      newHistory.push('Đang khai thác lỗ hổng bảo mật của lab...');
-      newHistory.push('[+] Bypass bộ lọc thành công!');
+      newHistory.push(language === 'vi' ? 'Đang khai thác lỗ hổng bảo mật của lab...' : 'Exploiting vulnerability in this lab...');
+      newHistory.push(language === 'vi' ? '[+] Bypass bộ lọc thành công!' : '[+] Filter bypassed successfully!');
       newHistory.push(`[+] Flag: ${flag}`);
       onSuccess(flag);
     } else if (cmd.toLowerCase() === 'getflag') {
@@ -671,7 +679,7 @@ function GeneralTerminalSimulator({ flag, dockerPort, onSuccess }: { flag: strin
   return (
     <div>
       <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '12px', color: 'var(--text-heading)' }}>
-        Cổng kết nối Sandbox Simulator
+        {language === 'vi' ? 'Cổng kết nối Sandbox Simulator' : 'Sandbox Simulator Terminal Connection'}
       </h3>
       
       {/* High-contrast Catppuccin developer terminal mockup */}
@@ -748,7 +756,7 @@ function GeneralTerminalSimulator({ flag, dockerPort, onSuccess }: { flag: strin
                         if (flagVal) {
                           navigator.clipboard.writeText(flagVal);
                           // Show a brief visual confirmation or alert
-                          alert('Đã sao chép Flag thành công!');
+                          alert(language === 'vi' ? 'Đã sao chép Flag thành công!' : 'Flag copied successfully!');
                         }
                       }}
                       style={{
@@ -765,7 +773,7 @@ function GeneralTerminalSimulator({ flag, dockerPort, onSuccess }: { flag: strin
                       onMouseOver={(e) => { e.currentTarget.style.background = '#4ade80'; }}
                       onMouseOut={(e) => { e.currentTarget.style.background = '#22c55e'; }}
                     >
-                      Sao chép
+                      {language === 'vi' ? 'Sao chép' : 'Copy'}
                     </button>
                   </div>
                 );

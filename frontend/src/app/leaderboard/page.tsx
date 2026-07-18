@@ -5,10 +5,12 @@ import NextLink from 'next/link';
 import { Trophy, Crown, ArrowLeft, ArrowRight, Award, Shield, User, Loader2, Sparkles } from 'lucide-react';
 import { api, LeaderboardEntry, GrowthOverview } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from '@/context/LanguageContext';
 import PageBackLink from '@/components/PageBackLink';
 
 export default function LeaderboardPage() {
   const { isAuthenticated } = useAuth();
+  const { t, language } = useTranslation();
   const [track, setTrack] = useState<string>(''); // empty means ALL
   const [leaders, setLeaders] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -40,15 +42,15 @@ export default function LeaderboardPage() {
   const top3 = leaders[2] || null;
 
   const tracks = [
-    { value: '', label: 'Tất cả nhóm' },
-    { value: 'BEGINNER', label: 'Người mới (Beginner)' },
+    { value: '', label: t('leaderboard.allTracks') },
+    { value: 'BEGINNER', label: `${t('common.beginner')} (Beginner)` },
     { value: 'WEB_DEVELOPER', label: 'Web Developer' },
     { value: 'PENTESTER', label: 'Pentester' },
   ];
 
   return (
     <div>
-      <PageBackLink href="/" label="Quay lại Dashboard" />
+      <PageBackLink href="/" label={language === 'vi' ? 'Quay lại Dashboard' : 'Back to Dashboard'} />
 
       {/* Banner */}
       <div style={{
@@ -87,9 +89,9 @@ export default function LeaderboardPage() {
           <Trophy size={28} />
         </div>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-heading)', margin: '0 0 4px 0' }}>Bảng xếp hạng tuần</h1>
+          <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-heading)', margin: '0 0 4px 0' }}>{t('leaderboard.title')}</h1>
           <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-body-subtle)', lineHeight: 1.5, maxWidth: '600px' }}>
-            Đua top nhiệt huyết theo trình độ học tập để rèn luyện kỹ năng pentest. Bảng xếp hạng tự động làm mới vào mỗi Chủ nhật hàng tuần.
+            {t('leaderboard.subtitle')}
           </p>
         </div>
       </div>
@@ -129,7 +131,7 @@ export default function LeaderboardPage() {
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '300px', gap: '12px' }}>
           <Loader2 size={36} className="animate-spin" style={{ color: 'var(--fg-brand)' }} />
-          <span style={{ fontSize: '14px', color: 'var(--text-body-subtle)' }}>Đang cập nhật bảng xếp hạng...</span>
+          <span style={{ fontSize: '14px', color: 'var(--text-body-subtle)' }}>{t('common.loading')}</span>
         </div>
       ) : (
         <>
@@ -144,8 +146,8 @@ export default function LeaderboardPage() {
               fontSize: '14.5px'
             }}>
               <Trophy size={48} style={{ color: 'var(--border-default-medium)', marginBottom: '12px' }} />
-              <p style={{ margin: 0 }}>Chưa có học viên nào ghi điểm trong nhóm này tuần này.</p>
-              <p style={{ margin: '4px 0 0 0', fontSize: '13px' }}>Hãy hoàn thành một bài lab để là người dẫn đầu đầu tiên!</p>
+              <p style={{ margin: 0 }}>{t('leaderboard.noData')}</p>
+              <p style={{ margin: '4px 0 0 0', fontSize: '13px' }}>{language === 'vi' ? 'Hãy hoàn thành một bài lab để là người dẫn đầu đầu tiên!' : 'Complete a lab to be the first leader!'}</p>
             </div>
           ) : (
             <>
@@ -439,7 +441,7 @@ export default function LeaderboardPage() {
                             }}
                             className="leaderboard-link-user"
                           >
-                            {entry.username} {isCurrentUser && '(Bạn)'}
+                            {entry.username} {isCurrentUser && ` (${t('common.you')})`}
                           </NextLink>
                         </div>
                       </div>
@@ -453,7 +455,7 @@ export default function LeaderboardPage() {
                         borderRadius: '6px',
                         fontWeight: 500,
                       }}>
-                        Kỹ năng mạnh nhất: {entry.strongestSkill}
+                        {t('leaderboard.strongestSkill')}: {entry.strongestSkill}
                       </span>
 
                       <strong style={{ color: 'var(--fg-brand)', fontWeight: 800, fontSize: '14.5px', minWidth: '60px', textAlign: 'right' }}>

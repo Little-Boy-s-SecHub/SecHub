@@ -5,11 +5,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, BookOpen, ShieldAlert, FlaskConical, BrainCircuit, PenTool, Trophy } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from '@/context/LanguageContext';
 import { api } from '@/lib/api';
 
 export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { t } = useTranslation();
   
   const [counts, setCounts] = useState({
     paths: 3,
@@ -33,30 +35,30 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
 
   const navItems = [
     {
-      section: 'Tổng quan',
+      section: t('sidebar.overview'),
       items: [
-        { href: '/', icon: Home, label: 'Dashboard', badge: null },
-        { href: '/leaderboard', icon: Trophy, label: 'Bảng xếp hạng', badge: null },
+        { href: '/', icon: Home, label: t('sidebar.dashboard'), badge: null },
+        { href: '/leaderboard', icon: Trophy, label: t('sidebar.leaderboard'), badge: null },
       ],
     },
     {
-      section: 'Học tập',
+      section: t('sidebar.learning'),
       items: [
-        { href: '/learning', icon: BookOpen, label: 'Lộ trình học', badge: String(counts.paths) },
-        { href: '/vulnerabilities', icon: ShieldAlert, label: 'Lỗ hổng bảo mật', badge: String(counts.vulns) },
-        { href: '/review', icon: BrainCircuit, label: 'Ôn tập', badge: null },
+        { href: '/learning', icon: BookOpen, label: t('sidebar.learningPaths'), badge: String(counts.paths) },
+        { href: '/vulnerabilities', icon: ShieldAlert, label: t('sidebar.vulnerabilities'), badge: String(counts.vulns) },
+        { href: '/review', icon: BrainCircuit, label: t('sidebar.review'), badge: null },
       ],
     },
     {
-      section: 'Thực hành',
+      section: t('sidebar.practice'),
       items: [
-        { href: '/labs', icon: FlaskConical, label: 'Phòng Lab', badge: String(counts.labs) },
+        { href: '/labs', icon: FlaskConical, label: t('sidebar.labs'), badge: String(counts.labs) },
       ],
     },
   ];
 
   const visibleSections = user?.role === 'INSTRUCTOR' || user?.role === 'ADMIN'
-    ? [...navItems, { section: 'Sáng tạo', items: [{ href: '/author', icon: PenTool, label: 'Author Studio', badge: null }] }]
+    ? [...navItems, { section: t('sidebar.creator'), items: [{ href: '/author', icon: PenTool, label: t('sidebar.authorStudio'), badge: null }] }]
     : navItems;
 
   const handleNavigate = () => {
@@ -117,10 +119,10 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
         <div className="sidebar-footer">
           <div className="sidebar-footer-card">
             <div style={{ fontSize: '0.75rem', color: 'var(--text-body-subtle)', marginBottom: '4px' }}>
-              SecHub v1.0
+              {t('sidebar.version')}
             </div>
             <div style={{ fontSize: '0.6875rem', color: 'var(--text-body-subtle)' }}>
-              Nền tảng học Pentest Web
+              {t('sidebar.footerDesc')}
             </div>
           </div>
         </div>

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, BookOpen, CheckCircle, Clock, ChevronRight, PlayCircle, ShieldAlert, Sparkles, LoaderCircle, Target } from 'lucide-react';
 import { api, Lab, Vulnerability } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from '@/context/LanguageContext';
 import { marked } from 'marked';
 
 interface Lesson {
@@ -111,6 +112,7 @@ function resolveLessonVulnerability(lesson: Lesson, vulnerabilities: Vulnerabili
 export default function LessonDetailPage({ params }: { params: Promise<{ pathId: string; lessonId: string }> }) {
   const { pathId, lessonId } = use(params);
   const { isAuthenticated } = useAuth();
+  const { t, language } = useTranslation();
   const router = useRouter();
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
@@ -153,7 +155,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
             }
           }
         } else {
-          setError('Không tìm thấy thông tin bài học.');
+          setError(language === 'vi' ? 'Không tìm thấy thông tin bài học.' : 'Lesson information not found.');
           setLoading(false);
           return;
         }
@@ -178,14 +180,14 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
         }
         setAllLessons(fetchedLessons);
       } catch (e: any) {
-        setError(e.message || 'Lỗi khi tải dữ liệu bài học.');
+        setError(e.message || (language === 'vi' ? 'Lỗi khi tải dữ liệu bài học.' : 'Error loading lesson data.'));
       } finally {
         setLoading(false);
       }
     }
 
     loadData();
-  }, [pathId, lessonId, isAuthenticated]);
+  }, [pathId, lessonId, isAuthenticated, language]);
 
   useEffect(() => {
     if (!isAuthenticated || !lesson || !htmlContent) return;
@@ -237,7 +239,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
         setShowCongrats(true);
       }
     } catch (e: any) {
-      alert(e.message || 'Lỗi khi cập nhật tiến độ bài học.');
+      alert(e.message || (language === 'vi' ? 'Lỗi khi cập nhật tiến độ bài học.' : 'Failed to update lesson progress.'));
     }
   };
 
@@ -247,7 +249,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
       return;
     }
     if (!lesson || !practiceVulnerability?.slug || generatingLab) {
-      setLabError('Chưa xác định được loại lỗ hổng phù hợp cho bài học này.');
+      setLabError(language === 'vi' ? 'Chưa xác định được loại lỗ hổng phù hợp cho bài học này.' : 'Vulnerability type not determined for this lesson.');
       return;
     }
 
@@ -263,7 +265,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
         `LESSON TITLE: ${lesson.title}`,
         `LEARNING PATH: ${path?.title || ''}`,
         `LESSON CONTENT: ${plainContent.slice(0, 700)}`,
-        'REQUIREMENT: Kịch bản, mục tiêu và gợi ý phải bám sát kiến thức trong bài học này.'
+        language === 'vi' ? 'REQUIREMENT: Kịch bản, mục tiêu và gợi ý phải bám sát kiến thức trong bài học này.' : 'REQUIREMENT: Scenario, goals, and hints must closely match the knowledge in this lesson.'
       ].join('\n');
       const result = await api.labs.generateWithAi(
         practiceVulnerability.slug,
@@ -274,24 +276,24 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
         router.push(`/labs/${result.data.id}/play?pathId=${pathId}&lessonId=${lessonId}`);
       }
     } catch (e: any) {
-      setLabError(e.message || 'Không thể tạo bài lab từ nội dung bài học.');
+      setLabError(e.message || (language === 'vi' ? 'Không thể tạo bài lab từ nội dung bài học.' : 'Failed to generate a lab from this lesson.'));
     } finally {
       setGeneratingLab(false);
     }
   };
 
   if (loading) {
-    return <div style={{ textAlign: 'center', padding: 'var(--space-6)' }}>Đang tải bài học...</div>;
+    return <div style={{ textAlign: 'center', padding: 'var(--space-6)' }}>{language === 'vi' ? 'Đang tải bài học...' : 'Loading lesson...'}</div>;
   }
 
   if (error || !lesson || !path) {
     return (
       <div className="card" style={{ textAlign: 'center', padding: 'var(--space-6)' }}>
         <ShieldAlert size={48} style={{ color: 'var(--fg-danger)', margin: '0 auto var(--space-2)' }} />
-        <h3>Lỗi tải bài học</h3>
-        <p style={{ margin: 'var(--space-1) auto' }}>{error || 'Không tìm thấy thông tin.'}</p>
+        <h3>{language === 'vi' ? 'Lỗi tải bài học' : 'Error Loading Lesson'}</h3>
+        <p style={{ margin: 'var(--space-1) auto' }}>{error || (language === 'vi' ? 'Không tìm thấy thông tin.' : 'Information not found.')}</p>
         <Link href={`/learning/${pathId}`} className="btn btn-secondary" style={{ display: 'inline-flex', marginTop: 'var(--space-2)' }}>
-          Quay lại Lộ trình
+          {language === 'vi' ? 'Quay lại Lộ trình' : 'Back to Path'}
         </Link>
       </div>
     );
@@ -300,7 +302,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
   const currentIdx = allLessons.findIndex(l => l.id === lessonId);
   const nextLesson = currentIdx !== -1 && currentIdx < allLessons.length - 1 ? allLessons[currentIdx + 1] : null;
 
-  const resolvedObjective = lesson.learningObjective || LESSON_METADATA_FALLBACKS[lesson.title]?.objective || `Làm chủ lý thuyết và thực hành về ${lesson.title}`;
+  const resolvedObjective = lesson.learningObjective || LESSON_METADATA_FALLBACKS[lesson.title]?.objective || (language === 'vi' ? `Làm chủ lý thuyết và thực hành về ${lesson.title}` : `Master theory and practice on ${lesson.title}`);
   const resolvedMinutes = lesson.estimatedMinutes || LESSON_METADATA_FALLBACKS[lesson.title]?.minutes || 12;
 
   return (
@@ -403,7 +405,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
 
       {/* Navigation Breadcrumb */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', fontSize: '0.875rem' }}>
-        <Link href="/learning" style={{ color: 'var(--text-body-subtle)' }}>Lộ trình học</Link>
+        <Link href="/learning" style={{ color: 'var(--text-body-subtle)' }}>{language === 'vi' ? 'Lộ trình học' : 'Learning Paths'}</Link>
         <span style={{ color: 'var(--text-body-subtle)' }}>/</span>
         <Link href={`/learning/${pathId}`} style={{ color: 'var(--text-body-subtle)' }}>{path.title}</Link>
         <span style={{ color: 'var(--text-body-subtle)' }}>/</span>
@@ -417,7 +419,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
         <div className="card" style={{ padding: '32px', minWidth: 0 }}>
           <div style={{ marginBottom: '24px' }}>
             <Link href={`/learning/${pathId}`} style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--fg-brand)', fontWeight: 600 }}>
-              <ArrowLeft size={14} /> Quay lại Lộ trình học
+              <ArrowLeft size={14} /> {language === 'vi' ? 'Quay lại Lộ trình học' : 'Back to Learning Path'}
             </Link>
           </div>
 
@@ -437,7 +439,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
               <Target size={18} style={{ color: 'var(--fg-brand)', flexShrink: 0, marginTop: '2px' }} />
               <div>
                 <strong style={{ color: 'var(--text-heading)', display: 'block', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>
-                  Mục tiêu chính
+                  {language === 'vi' ? 'Mục tiêu chính' : 'Key Objective'}
                 </strong>
                 <span>{resolvedObjective}</span>
               </div>
@@ -446,9 +448,9 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
               <Clock size={18} style={{ color: 'var(--text-body-subtle)', flexShrink: 0, marginTop: '2px' }} />
               <div>
                 <strong style={{ color: 'var(--text-heading)', display: 'block', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>
-                  Thời lượng ước tính
+                  {language === 'vi' ? 'Thời lượng ước tính' : 'Estimated Time'}
                 </strong>
-                <span>{resolvedMinutes} phút đọc & hiểu</span>
+                <span>{resolvedMinutes} {language === 'vi' ? 'phút đọc & hiểu' : 'minutes reading & comprehension'}</span>
               </div>
             </div>
           </div>
@@ -459,16 +461,16 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
           {/* Practice section at the end of the lesson content */}
           <div style={{ marginTop: '40px', paddingTop: '28px', borderTop: '1px solid var(--border-default)' }}>
             <h3 style={{ fontSize: '1.0625rem', fontWeight: 800, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-              <PlayCircle size={20} style={{ color: 'var(--fg-brand)' }} /> Bài thực hành bám sát lý thuyết
+              <PlayCircle size={20} style={{ color: 'var(--fg-brand)' }} /> {language === 'vi' ? 'Bài thực hành bám sát lý thuyết' : 'Hands-on Labs'}
             </h3>
             
             {defaultLab ? (
               <div className="card" style={{ background: 'var(--bg-brand-softer)', border: '1px solid rgba(56,189,248,0.2)', padding: '24px', display: 'grid', gridTemplateColumns: '1fr auto', gap: '20px', alignItems: 'center', margin: 0 }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <span className="badge badge-brand" style={{ fontSize: '10px' }}>Hệ thống</span>
+                    <span className="badge badge-brand" style={{ fontSize: '10px' }}>{language === 'vi' ? 'Hệ thống' : 'System'}</span>
                     <span className={`badge ${defaultLab.difficulty === 'BEGINNER' ? 'badge-easy' : defaultLab.difficulty === 'INTERMEDIATE' ? 'badge-medium-diff' : 'badge-hard'}`} style={{ fontSize: '10px' }}>
-                      {defaultLab.difficulty === 'BEGINNER' ? 'Dễ' : defaultLab.difficulty === 'INTERMEDIATE' ? 'Trung bình' : 'Khó'}
+                      {defaultLab.difficulty === 'BEGINNER' ? t('common.easy') : defaultLab.difficulty === 'INTERMEDIATE' ? t('common.medium') : t('common.hard')}
                     </span>
                     <span style={{ fontSize: '12px', color: 'var(--text-body-subtle)', fontWeight: 600 }}>+{defaultLab.points} XP</span>
                   </div>
@@ -484,7 +486,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
                   className="btn btn-primary"
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', whiteSpace: 'nowrap' }}
                 >
-                  <PlayCircle size={16} /> Bắt đầu thực hành ngay
+                  <PlayCircle size={16} /> {language === 'vi' ? 'Bắt đầu thực hành ngay' : 'Start Practice Now'}
                 </Link>
               </div>
             ) : (
@@ -494,10 +496,13 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
                     <span className="badge badge-secondary" style={{ fontSize: '10px' }}>AI Generated</span>
                   </div>
                   <h4 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-heading)', margin: '0 0 6px 0' }}>
-                    Tạo lab thực hành bằng AI
+                    {language === 'vi' ? 'Tạo lab thực hành bằng AI' : 'Generate Practice Lab with AI'}
                   </h4>
                   <p style={{ fontSize: '13.5px', color: 'var(--text-body-subtle)', lineHeight: 1.6, margin: 0 }}>
-                    Chưa có lab hệ thống mặc định cho bài này. Bấm nút bên phải để AI dựng môi trường sandbox riêng bám sát kịch bản lý thuyết của bài học này.
+                    {language === 'vi'
+                      ? 'Chưa có lab hệ thống mặc định cho bài này. Bấm nút bên phải để AI dựng môi trường sandbox riêng bám sát kịch bản lý thuyết của bài học này.'
+                      : 'No default system lab is available for this lesson. Click on the button to have AI spin up a custom sandbox aligned with this lesson theory.'
+                    }
                   </p>
                 </div>
                 <button 
@@ -507,7 +512,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', whiteSpace: 'nowrap' }}
                 >
                   {generatingLab ? <LoaderCircle size={16} className="spin" /> : <Sparkles size={16} />}
-                  {generatingLab ? 'Đang khởi tạo...' : 'Dựng lab bằng AI'}
+                  {generatingLab ? (language === 'vi' ? 'Đang khởi tạo...' : 'Initializing...') : (language === 'vi' ? 'Dựng lab bằng AI' : 'Generate Lab with AI')}
                 </button>
               </div>
             )}
@@ -523,11 +528,11 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
                   onClick={handleComplete}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
                 >
-                  <CheckCircle size={16} /> Hoàn thành bài học
+                  <CheckCircle size={16} /> {language === 'vi' ? 'Hoàn thành bài học' : 'Complete Lesson'}
                 </button>
               ) : lesson.completed ? (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--fg-success)', fontSize: '14px', fontWeight: 600 }}>
-                  ✓ Đã hoàn thành bài học này
+                  ✓ {language === 'vi' ? 'Đã hoàn thành bài học này' : 'Completed this lesson'}
                 </span>
               ) : null}
             </div>
@@ -535,7 +540,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
             {nextLesson && (
               <Link href={`/learning/${pathId}/lessons/${nextLesson.id}`} style={{ textDecoration: 'none' }}>
                 <div className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  Bài tiếp theo: {nextLesson.title} <ChevronRight size={14} />
+                  {language === 'vi' ? 'Bài tiếp theo:' : 'Next Lesson:'} {nextLesson.title} <ChevronRight size={14} />
                 </div>
               </Link>
             )}
@@ -548,30 +553,36 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
           {/* Practice Kiosk / Lab integration */}
           <div className="card" style={{ border: '2px solid var(--border-brand)', background: 'var(--bg-brand-softer)' }}>
               <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 12px 0', color: 'var(--fg-brand)' }}>
-                <PlayCircle size={18} /> Thực hành thực tế
+                <PlayCircle size={18} /> {language === 'vi' ? 'Thực hành thực tế' : 'Hands-on Practice'}
               </h3>
               <p style={{ fontSize: '13px', color: 'var(--text-body)', lineHeight: 1.55, margin: '0 0 16px 0' }}>
-                Chọn lab có sẵn hoặc tạo một kịch bản mới bám sát bài <strong>{lesson.title}</strong>.
+                {language === 'vi'
+                  ? `Chọn lab có sẵn hoặc tạo một kịch bản mới bám sát bài ${lesson.title}.`
+                  : `Choose an available lab or generate a new scenario matching ${lesson.title}.`
+                }
               </p>
               {practiceVulnerability && (
                 <div className="lesson-lab-match">
-                  Nhóm thực hành: {practiceVulnerability.name}
+                  {language === 'vi' ? 'Nhóm thực hành:' : 'Practice Category:'} {practiceVulnerability.name}
                 </div>
               )}
               <div className="lesson-lab-actions">
                 {defaultLab && (
                   <Link href={`/labs/${defaultLab.id}/play?pathId=${pathId}&lessonId=${lessonId}`} className="btn btn-primary lesson-lab-button">
-                    <PlayCircle size={16} /> Làm lab mặc định
+                    <PlayCircle size={16} /> {language === 'vi' ? 'Làm lab mặc định' : 'Solve default lab'}
                   </Link>
                 )}
                 <button className="btn btn-secondary lesson-lab-button" onClick={handleGenerateLessonLab} disabled={generatingLab || !practiceVulnerability}>
                   {generatingLab ? <LoaderCircle size={16} className="spin" /> : <Sparkles size={16} />}
-                  {generatingLab ? 'Đang tạo kịch bản...' : 'AI tạo lab theo bài học'}
+                  {generatingLab ? (language === 'vi' ? 'Đang tạo kịch bản...' : 'Creating scenario...') : (language === 'vi' ? 'AI tạo lab theo bài học' : 'AI Generate Lab')}
                 </button>
               </div>
               {!defaultLab && (
                 <p style={{ fontSize: '12px', color: 'var(--text-body-subtle)', margin: '10px 0 0' }}>
-                  Chưa có lab hệ thống cho bài này. Bạn vẫn có thể tạo lab thực hành bằng AI.
+                  {language === 'vi'
+                    ? 'Chưa có lab hệ thống cho bài này. Bạn vẫn có thể tạo lab thực hành bằng AI.'
+                    : 'No system lab available for this lesson. You can still generate one using AI.'
+                  }
                 </p>
               )}
               {labError && <div className="lesson-lab-error">{labError}</div>}
@@ -580,7 +591,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
           {/* Table of contents of the Learning Path */}
           <div className="card">
             <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 16px 0' }}>
-              <BookOpen size={16} style={{ color: 'var(--fg-brand)' }} /> Lộ trình học tập
+              <BookOpen size={16} style={{ color: 'var(--fg-brand)' }} /> {language === 'vi' ? 'Lộ trình học tập' : 'Syllabus'}
             </h3>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '350px', overflowY: 'auto', paddingRight: '4px' }}>
@@ -688,11 +699,14 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
             </div>
 
             <h2 style={{ fontSize: '1.375rem', fontWeight: 800, color: 'var(--text-heading)', marginBottom: '8px' }}>
-              Chúc mừng bạn!
+              {language === 'vi' ? 'Chúc mừng bạn!' : 'Congratulations!'}
             </h2>
             
             <p style={{ fontSize: '14px', lineHeight: 1.6, color: 'var(--text-body-subtle)', marginBottom: '24px' }}>
-              Bạn đã hoàn thành lý thuyết bài học <strong>{lesson.title}</strong>. Hãy thực hành ngay để làm chủ kỹ năng này nhé!
+              {language === 'vi'
+                ? `Bạn đã hoàn thành lý thuyết bài học ${lesson.title}. Hãy thực hành ngay để làm chủ kỹ năng này nhé!`
+                : `You have completed the theory for ${lesson.title}. Start practicing to master this skill!`
+              }
             </p>
 
             {defaultLab && (
@@ -705,13 +719,13 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
                 marginBottom: '20px',
               }}>
                 <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--fg-brand)', display: 'block', marginBottom: '4px' }}>
-                  Bài thực hành mặc định
+                  {language === 'vi' ? 'Bài thực hành mặc định' : 'Default Practice Lab'}
                 </span>
                 <strong style={{ fontSize: '14px', color: 'var(--text-heading)', display: 'block', marginBottom: '2px' }}>
                   {defaultLab.title}
                 </strong>
                 <span style={{ fontSize: '12px', color: 'var(--text-body-subtle)' }}>
-                  Phần thưởng: +{defaultLab.points} XP
+                  {language === 'vi' ? 'Phần thưởng:' : 'Reward:'} +{defaultLab.points} XP
                 </span>
               </div>
             )}
@@ -723,7 +737,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
                   className="btn btn-primary"
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px' }}
                 >
-                  <PlayCircle size={16} /> Làm lab mặc định
+                  <PlayCircle size={16} /> {language === 'vi' ? 'Làm lab mặc định' : 'Solve default lab'}
                 </Link>
               )}
               <button 
@@ -733,14 +747,14 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px' }}
               >
                 {generatingLab ? <LoaderCircle size={16} className="spin" /> : <Sparkles size={16} />}
-                {generatingLab ? 'Đang tạo kịch bản...' : 'AI tạo lab riêng biệt'}
+                {generatingLab ? (language === 'vi' ? 'Đang tạo kịch bản...' : 'Generating...') : (language === 'vi' ? 'AI tạo lab riêng biệt' : 'AI Generate Custom Lab')}
               </button>
               <button 
                 className="btn btn-tertiary" 
                 onClick={() => setShowCongrats(false)}
                 style={{ marginTop: '4px', fontSize: '13px', background: 'transparent', border: 'none', color: 'var(--text-body-subtle)', cursor: 'pointer' }}
               >
-                Để sau
+                {language === 'vi' ? 'Để sau' : 'Maybe later'}
               </button>
             </div>
           </div>

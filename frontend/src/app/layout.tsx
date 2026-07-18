@@ -3,6 +3,7 @@ import { Be_Vietnam_Pro } from 'next/font/google';
 import './globals.css';
 import AppShell from '@/components/AppShell';
 import { AuthProvider } from '@/context/AuthContext';
+import { LanguageProvider } from '@/context/LanguageContext';
 
 const beVietnamPro = Be_Vietnam_Pro({
   subsets: ['latin', 'latin-ext', 'vietnamese'],
@@ -25,7 +26,9 @@ export default function RootLayout({
     <html lang="vi" className={beVietnamPro.variable} suppressHydrationWarning data-scroll-behavior="smooth">
       <body style={{ fontFamily: 'var(--font-sans), sans-serif' }}>
         <AuthProvider>
-          <AppShell>{children}</AppShell>
+          <LanguageProvider>
+            <AppShell>{children}</AppShell>
+          </LanguageProvider>
         </AuthProvider>
       </body>
     </html>

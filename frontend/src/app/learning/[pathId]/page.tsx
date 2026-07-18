@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Clock, BookOpen, ChevronRight, AlertCircle, CheckCircle } from 'lucide-react';
 import { api, LearningPath } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from '@/context/LanguageContext';
 
 interface Lesson {
   id: string;
@@ -51,6 +52,7 @@ function parseMarkdown(md: string) {
 export default function LearningPathDetailPage({ params }: { params: Promise<{ pathId: string }> }) {
   const { pathId } = use(params);
   const { isAuthenticated } = useAuth();
+  const { t, language } = useTranslation();
   const router = useRouter();
 
   const [path, setPath] = useState<LearningPath | null>(null);
@@ -71,7 +73,7 @@ export default function LearningPathDetailPage({ params }: { params: Promise<{ p
         if (pathRes.success && pathRes.data) {
           setPath(pathRes.data);
         } else {
-          setError(pathRes.message || 'Không thể tải lộ trình học.');
+          setError(pathRes.message || (language === 'vi' ? 'Không thể tải lộ trình học.' : 'Failed to load learning path.'));
           setLoading(false);
           return;
         }
@@ -97,14 +99,14 @@ export default function LearningPathDetailPage({ params }: { params: Promise<{ p
 
         setLessons(fetchedLessons);
       } catch (e: any) {
-        setError(e.message || 'Lỗi khi tải dữ liệu lộ trình học.');
+        setError(e.message || (language === 'vi' ? 'Lỗi khi tải dữ liệu lộ trình học.' : 'Error loading learning path data.'));
       } finally {
         setLoading(false);
       }
     }
 
     loadPathData();
-  }, [pathId, isAuthenticated]);
+  }, [pathId, isAuthenticated, language]);
 
   const handleToggleComplete = async (lessonId: string, currentCompleted: boolean) => {
     if (!isAuthenticated) {
@@ -121,22 +123,22 @@ export default function LearningPathDetailPage({ params }: { params: Promise<{ p
         setLessons(prev => prev.map(l => l.id === lessonId ? { ...l, completed: true } : l));
       }
     } catch (e: any) {
-      alert(e.message || 'Lỗi khi cập nhật tiến độ bài học.');
+      alert(e.message || (language === 'vi' ? 'Lỗi khi cập nhật tiến độ bài học.' : 'Failed to update lesson progress.'));
     }
   };
 
   if (loading) {
-    return <div style={{ textAlign: 'center', padding: 'var(--space-6)' }}>Đang tải lộ trình học...</div>;
+    return <div style={{ textAlign: 'center', padding: 'var(--space-6)' }}>{language === 'vi' ? 'Đang tải lộ trình học...' : 'Loading learning path...'}</div>;
   }
 
   if (error || !path) {
     return (
       <div className="card" style={{ textAlign: 'center', padding: 'var(--space-6)' }}>
         <AlertCircle size={48} style={{ color: 'var(--fg-danger)', margin: '0 auto var(--space-2)' }} />
-        <h3>Lỗi dữ liệu</h3>
-        <p style={{ margin: 'var(--space-1) auto' }}>{error || 'Không tìm thấy lộ trình học.'}</p>
+        <h3>{language === 'vi' ? 'Lỗi dữ liệu' : 'Data Error'}</h3>
+        <p style={{ margin: 'var(--space-1) auto' }}>{error || (language === 'vi' ? 'Không tìm thấy lộ trình học.' : 'Learning path not found.')}</p>
         <Link href="/learning" className="btn btn-secondary" style={{ display: 'inline-flex', marginTop: 'var(--space-2)' }}>
-          Quay lại danh sách lộ trình
+          {language === 'vi' ? 'Quay lại danh sách lộ trình' : 'Back to learning paths'}
         </Link>
       </div>
     );
@@ -149,14 +151,14 @@ export default function LearningPathDetailPage({ params }: { params: Promise<{ p
                     path.difficulty === 'INTERMEDIATE' ? 'badge-medium-diff' : 
                     'badge-hard';
 
-  const diffLabel = path.difficulty === 'BEGINNER' ? 'Cơ bản' : 
-                   path.difficulty === 'INTERMEDIATE' ? 'Trung bình' : 'Nâng cao';
+  const diffLabel = path.difficulty === 'BEGINNER' ? t('common.beginner') : 
+                   path.difficulty === 'INTERMEDIATE' ? t('common.intermediate') : t('common.advanced');
 
   return (
     <div>
       {/* Breadcrumb */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-4)', fontSize: '0.875rem' }}>
-        <Link href="/learning" style={{ color: 'var(--text-body-subtle)' }}>Lộ trình học</Link>
+        <Link href="/learning" style={{ color: 'var(--text-body-subtle)' }}>{language === 'vi' ? 'Lộ trình học' : 'Learning Paths'}</Link>
         <span style={{ color: 'var(--text-body-subtle)' }}>/</span>
         <span style={{ color: 'var(--text-heading)' }}>{path.title}</span>
       </div>
@@ -168,7 +170,7 @@ export default function LearningPathDetailPage({ params }: { params: Promise<{ p
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
               <span className={`badge ${diffClass}`}>{diffLabel}</span>
               <span style={{ fontSize: '0.875rem', color: 'var(--text-body-subtle)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                <Clock size={14} /> ~{path.estimatedHours} giờ
+                <Clock size={14} /> ~{path.estimatedHours} {language === 'vi' ? 'giờ' : 'hours'}
               </span>
             </div>
             <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: 'var(--space-1)' }}>
@@ -212,7 +214,7 @@ export default function LearningPathDetailPage({ params }: { params: Promise<{ p
         {isAuthenticated && (
           <div style={{ marginTop: 'var(--space-3)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.8125rem', color: 'var(--text-body-subtle)' }}>
-              <span>{completedCount}/{lessons.length} bài học đã hoàn thành</span>
+              <span>{completedCount}/{lessons.length} {language === 'vi' ? 'bài học đã hoàn thành' : 'lessons completed'}</span>
               <span>{Math.round(progress)}%</span>
             </div>
             <div className="progress-bar" style={{ height: '8px' }}>
@@ -224,7 +226,7 @@ export default function LearningPathDetailPage({ params }: { params: Promise<{ p
 
       {/* Lessons list */}
       <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: 'var(--space-3)', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-        <BookOpen size={20} style={{ color: 'var(--fg-brand)' }} /> Danh sách bài học
+        <BookOpen size={20} style={{ color: 'var(--fg-brand)' }} /> {language === 'vi' ? 'Danh sách bài học' : 'Lessons List'}
       </h2>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
@@ -277,18 +279,18 @@ export default function LearningPathDetailPage({ params }: { params: Promise<{ p
                   {lesson.title}
                 </div>
                 <div style={{ fontSize: '0.8125rem', color: 'var(--text-body-subtle)' }}>
-                  {lesson.vulnerabilityName ? `Liên quan đến: ${lesson.vulnerabilityName}` : 'Bài giảng lý thuyết nhập môn'}
+                  {lesson.vulnerabilityName ? `${language === 'vi' ? 'Liên quan đến' : 'Related to'}: ${lesson.vulnerabilityName}` : (language === 'vi' ? 'Bài giảng lý thuyết nhập môn' : 'Introductory theory lecture')}
                 </div>
               </div>
   
               {/* Complete status or actions */}
               {isCurrent ? (
                 <span style={{ fontSize: '11px', padding: '4px 8px', background: 'var(--bg-brand-softer)', color: 'var(--fg-brand-strong)', borderRadius: 'var(--radius-sm)', fontWeight: 800, border: '1px solid var(--border-brand-subtle)' }}>
-                  Đang học dở
+                  {language === 'vi' ? 'Đang học dở' : 'Resume'}
                 </span>
               ) : !lesson.completed && isAuthenticated ? (
                 <span style={{ fontSize: '11px', padding: '4px 8px', background: 'var(--bg-brand-softer)', color: 'var(--fg-brand)', borderRadius: 'var(--radius-sm)', fontWeight: 600 }}>
-                  Đọc bài học
+                  {language === 'vi' ? 'Đọc bài học' : 'Read lesson'}
                 </span>
               ) : null}
 

@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Menu, Search, Bell, LogOut, User as UserIcon, Shield, KeyRound, Image as ImageIcon, X, Lock, Check } from 'lucide-react';
+import { Menu, Search, Bell, LogOut, User as UserIcon, Shield, KeyRound, Image as ImageIcon, X, Lock, Check, Languages } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from '@/context/LanguageContext';
 import Link from 'next/link';
 
 export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
   const { user, isAuthenticated, logout, updateUser } = useAuth();
+  const { language, setLanguage, t } = useTranslation();
   const [notifications, setNotifications] = useState<string[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   
@@ -107,15 +109,15 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
     setPasswordSuccess('');
 
     if (!currentPassword || !newPassword || !confirmPassword) {
-      setPasswordError('Vui lòng điền đầy đủ các trường');
+      setPasswordError(language === 'vi' ? 'Vui lòng điền đầy đủ các trường' : 'Please fill in all fields');
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPasswordError('Mật khẩu mới và xác nhận mật khẩu không khớp');
+      setPasswordError(language === 'vi' ? 'Mật khẩu mới và xác nhận mật khẩu không khớp' : 'New password and confirmation do not match');
       return;
     }
     if (newPassword.length < 6) {
-      setPasswordError('Mật khẩu mới phải từ 6 ký tự trở lên');
+      setPasswordError(language === 'vi' ? 'Mật khẩu mới phải từ 6 ký tự trở lên' : 'New password must be at least 6 characters');
       return;
     }
 
@@ -131,16 +133,16 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        setPasswordSuccess('Đổi mật khẩu thành công!');
+        setPasswordSuccess(t('header.passwordSuccess'));
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
         setTimeout(() => setShowPasswordModal(false), 1500);
       } else {
-        setPasswordError(data.message || 'Mật khẩu hiện tại chưa chính xác');
+        setPasswordError(data.message || (language === 'vi' ? 'Mật khẩu hiện tại chưa chính xác' : 'Incorrect current password'));
       }
     } catch (err) {
-      setPasswordError('Có lỗi xảy ra, vui lòng thử lại');
+      setPasswordError(language === 'vi' ? 'Có lỗi xảy ra, vui lòng thử lại' : 'An error occurred, please try again');
     } finally {
       setPasswordLoading(false);
     }
@@ -148,7 +150,7 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
 
   const handleAvatarSubmit = async (url: string) => {
     if (!url) {
-      setAvatarError('Vui lòng chọn hoặc nhập URL ảnh đại diện');
+      setAvatarError(language === 'vi' ? 'Vui lòng chọn hoặc nhập URL ảnh đại diện' : 'Please select or enter an avatar URL');
       return;
     }
     setAvatarError('');
@@ -167,14 +169,14 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
       const data = await res.json();
       if (res.ok && data.success && data.data) {
         updateUser(data.data);
-        setAvatarSuccess('Cập nhật ảnh đại diện thành công!');
+        setAvatarSuccess(t('header.avatarSuccess'));
         setCustomAvatarUrl('');
         setTimeout(() => setShowAvatarModal(false), 1500);
       } else {
-        setAvatarError(data.message || 'Cập nhật không thành công');
+        setAvatarError(data.message || (language === 'vi' ? 'Cập nhật không thành công' : 'Update failed'));
       }
     } catch (err) {
-      setAvatarError('Có lỗi xảy ra, vui lòng thử lại');
+      setAvatarError(language === 'vi' ? 'Có lỗi xảy ra, vui lòng thử lại' : 'An error occurred, please try again');
     } finally {
       setAvatarLoading(false);
     }
@@ -276,7 +278,7 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
           </span>
           <input
             type="text"
-            placeholder="Tìm kiếm lỗ hổng, bài lab, tài liệu..."
+            placeholder={t('header.searchPlaceholder')}
             aria-label="Search"
             style={{
               background: 'transparent',
@@ -303,15 +305,51 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
         </div>
       </div>
 
-      <div className="header-right">
+      <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {/* Language Switcher */}
+        <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-neutral-secondary)', border: '1px solid var(--border-default)', borderRadius: '20px', padding: '2px' }}>
+          <button
+            onClick={() => setLanguage('en')}
+            style={{
+              padding: '4px 10px',
+              borderRadius: '16px',
+              fontSize: '11px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              border: 'none',
+              background: language === 'en' ? 'var(--bg-brand)' : 'transparent',
+              color: language === 'en' ? '#fff' : 'var(--text-body-subtle)',
+              transition: 'background-color 0.15s, color 0.15s'
+            }}
+          >
+            EN
+          </button>
+          <button
+            onClick={() => setLanguage('vi')}
+            style={{
+              padding: '4px 10px',
+              borderRadius: '16px',
+              fontSize: '11px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              border: 'none',
+              background: language === 'vi' ? 'var(--bg-brand)' : 'transparent',
+              color: language === 'vi' ? '#fff' : 'var(--text-body-subtle)',
+              transition: 'background-color 0.15s, color 0.15s'
+            }}
+          >
+            VI
+          </button>
+        </div>
+
         {isAuthenticated ? (
           <>
             {/* Notifications */}
             <div ref={dropdownRef} style={{ position: 'relative' }}>
               <button 
                 className="btn btn-ghost btn-icon" 
-                aria-label="Notifications" 
-                title="Thông báo" 
+                aria-label={t('header.notifications')} 
+                title={t('header.notifications')} 
                 onClick={handleBellClick}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}
               >
@@ -476,7 +514,7 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
                       e.currentTarget.style.color = 'var(--text-body)';
                     }}
                   >
-                    <UserIcon size={16} /> <span>Xem hồ sơ</span>
+                    <UserIcon size={16} /> <span>{t('header.viewProfile')}</span>
                   </Link>
 
                   <button 
@@ -508,7 +546,7 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
                       e.currentTarget.style.color = 'var(--text-body)';
                     }}
                   >
-                    <ImageIcon size={16} /> <span>Đổi ảnh đại diện</span>
+                    <ImageIcon size={16} /> <span>{t('header.changeAvatar')}</span>
                   </button>
 
                   <button 
@@ -540,7 +578,7 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
                       e.currentTarget.style.color = 'var(--text-body)';
                     }}
                   >
-                    <KeyRound size={16} /> <span>Đổi mật khẩu</span>
+                    <KeyRound size={16} /> <span>{t('header.changePassword')}</span>
                   </button>
 
                   <div style={{ height: '1px', background: 'var(--border-default)', margin: '4px 0' }} />
@@ -572,7 +610,7 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
                       e.currentTarget.style.background = 'transparent';
                     }}
                   >
-                    <LogOut size={16} /> <span>Đăng xuất</span>
+                    <LogOut size={16} /> <span>{t('header.logout')}</span>
                   </button>
                 </div>
               )}
@@ -581,10 +619,10 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
         ) : (
           <div style={{ display: 'flex', gap: '10px' }}>
             <Link href="/login" className="btn btn-secondary btn-sm" style={{ padding: '6px 16px', fontSize: '13px' }}>
-              Đăng nhập
+              {t('header.login')}
             </Link>
             <Link href="/register" className="btn btn-primary btn-sm" style={{ padding: '6px 16px', fontSize: '13px' }}>
-              Đăng ký
+              {t('header.register')}
             </Link>
           </div>
         )}
@@ -610,7 +648,7 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
             <div className="custom-modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Lock size={18} style={{ color: 'var(--fg-brand)' }} />
-                <span style={{ fontWeight: 850, fontSize: '1.05rem', color: 'var(--text-heading)' }}>Đổi mật khẩu tài khoản</span>
+                <span style={{ fontWeight: 850, fontSize: '1.05rem', color: 'var(--text-heading)' }}>{t('header.passwordModalTitle')}</span>
               </div>
               <button 
                 onClick={() => {
@@ -639,7 +677,7 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
               )}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                <label className="custom-modal-label">MẬT KHẨU HIỆN TẠI</label>
+                <label className="custom-modal-label">{t('header.currentPassword').toUpperCase()}</label>
                 <input 
                   type="password"
                   value={currentPassword}
@@ -649,7 +687,7 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                <label className="custom-modal-label">MẬT KHẨU MỚI</label>
+                <label className="custom-modal-label">{t('header.newPassword').toUpperCase()}</label>
                 <input 
                   type="password"
                   value={newPassword}
@@ -659,7 +697,7 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                <label className="custom-modal-label">XÁC NHẬN MẬT KHẨU MỚI</label>
+                <label className="custom-modal-label">{t('header.confirmNewPassword').toUpperCase()}</label>
                 <input 
                   type="password"
                   value={confirmPassword}
@@ -675,14 +713,14 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
                   disabled={passwordLoading}
                   className="custom-modal-btn-secondary"
                 >
-                  Hủy
+                  {t('common.cancel')}
                 </button>
                 <button 
                   type="submit"
                   disabled={passwordLoading}
                   className="custom-modal-btn-primary"
                 >
-                  {passwordLoading ? 'Đang cập nhật...' : 'Cập nhật'}
+                  {passwordLoading ? t('common.loading') : t('common.submit')}
                 </button>
               </div>
             </form>
@@ -710,7 +748,7 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
             <div className="custom-modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <ImageIcon size={18} style={{ color: 'var(--fg-brand)' }} />
-                <span style={{ fontWeight: 850, fontSize: '1.05rem', color: 'var(--text-heading)' }}>Đổi ảnh đại diện</span>
+                <span style={{ fontWeight: 850, fontSize: '1.05rem', color: 'var(--text-heading)' }}>{t('header.avatarModalTitle')}</span>
               </div>
               <button 
                 onClick={() => {
@@ -739,7 +777,7 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
               )}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label className="custom-modal-label">CHỌN HỒ SƠ MÀU GRADIENT ĐẸP</label>
+                <label className="custom-modal-label">{t('header.avatarSelectGradient')}</label>
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(3, 1fr)',
@@ -777,13 +815,13 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
               <div style={{ height: '1px', background: 'var(--border-default)', margin: '4px 0' }} />
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                <label className="custom-modal-label">HOẶC NHẬP URL ẢNH ĐẠI DIỆN TÙY CHỌN</label>
+                <label className="custom-modal-label">{t('header.avatarCustomUrl')}</label>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <input 
                     type="text"
                     value={customAvatarUrl}
                     onChange={(e) => setCustomAvatarUrl(e.target.value)}
-                    placeholder="https://example.com/avatar.png"
+                    placeholder={t('header.avatarUrlPlaceholder')}
                     className="custom-modal-input"
                     style={{ flex: 1 }}
                   />
@@ -793,7 +831,7 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
                     className="custom-modal-btn-primary"
                     style={{ padding: '0 16px' }}
                   >
-                    Lưu
+                    {t('common.save')}
                   </button>
                 </div>
               </div>
@@ -805,7 +843,7 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
                   disabled={avatarLoading}
                   className="custom-modal-btn-secondary"
                 >
-                  Hủy
+                  {t('common.cancel')}
                 </button>
               </div>
             </div>

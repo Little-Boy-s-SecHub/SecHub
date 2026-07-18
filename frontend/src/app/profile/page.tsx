@@ -6,11 +6,13 @@ import { useRouter } from 'next/navigation';
 import { User, Mail, Shield, Calendar, BookOpen, Flame, Snowflake, Award, History, RotateCw, ExternalLink, Loader2, Play } from 'lucide-react';
 import { api, GrowthOverview, LabAttempt } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from '@/context/LanguageContext';
 import PageBackLink from '@/components/PageBackLink';
 import ActivityHeatmap from '@/components/ActivityHeatmap';
 
 export default function PersonalProfilePage() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const { t, language } = useTranslation();
   const router = useRouter();
   
   const [growth, setGrowth] = useState<GrowthOverview | null>(null);
@@ -49,9 +51,9 @@ export default function PersonalProfilePage() {
     try {
       const res = await api.growth.updateRecommendedTrack(newTrack);
       setGrowth(res.data);
-      alert('Đã cập nhật Lộ trình khuyến nghị thành công!');
+      alert(language === 'vi' ? 'Đã cập nhật Lộ trình khuyến nghị thành công!' : 'Recommended path updated successfully!');
     } catch (e: any) {
-      alert(e.message || 'Không thể cập nhật lộ trình.');
+      alert(e.message || (language === 'vi' ? 'Không thể cập nhật lộ trình.' : 'Cannot update path.'));
     } finally {
       setUpdatingTrack(false);
     }
@@ -59,16 +61,16 @@ export default function PersonalProfilePage() {
 
   const handleResetOnboarding = async () => {
     if (resetting) return;
-    if (!confirm('Bạn có chắc chắn muốn làm lại bài đánh giá năng lực đầu vào? Toàn bộ tiến trình đề xuất sẽ được thiết lập lại (XP và huy hiệu hiện tại của bạn vẫn được giữ nguyên).')) {
+    if (!confirm(language === 'vi' ? 'Bạn có chắc chắn muốn làm lại bài đánh giá năng lực đầu vào? Toàn bộ tiến trình đề xuất sẽ được thiết lập lại (XP và huy hiệu hiện tại của bạn vẫn được giữ nguyên).' : 'Are you sure you want to reset the entry assessment? All recommended paths will be reset (your current XP and badges will be preserved).')) {
       return;
     }
     setResetting(true);
     try {
       await api.growth.resetOnboarding();
-      alert('Đã thiết lập lại trạng thái đánh giá năng lực. Bạn sẽ được chuyển hướng về trang chủ để thực hiện đánh giá lại!');
+      alert(language === 'vi' ? 'Đã thiết lập lại trạng thái đánh giá năng lực. Bạn sẽ được chuyển hướng về trang chủ để thực hiện đánh giá lại!' : 'Assessment state reset. You will be redirected to the homepage to complete it again!');
       router.push('/');
     } catch (e: any) {
-      alert(e.message || 'Không thể thiết lập lại đánh giá.');
+      alert(e.message || (language === 'vi' ? 'Không thể thiết lập lại đánh giá.' : 'Failed to reset assessment.'));
     } finally {
       setResetting(false);
     }
@@ -76,23 +78,23 @@ export default function PersonalProfilePage() {
 
   const getBadgeDescription = (badgeName: string) => {
     const name = badgeName.toLowerCase();
-    if (name.includes('sqli')) return 'Đã giải quyết xuất sắc 2+ bài thực hành SQL Injection.';
-    if (name.includes('idor')) return 'Đã bảo vệ tài nguyên an toàn trong 2+ bài thực hành IDOR.';
-    if (name.includes('xss')) return 'Đã lọc sạch mã độc thành công trong 2+ bài thực hành XSS.';
-    if (name.includes('access')) return 'Đã cấu trúc phân quyền chuẩn trong 2+ bài thực hành Access Control.';
-    if (name.includes('perfect')) return 'Hoàn thành bài thực hành mà không sử dụng gợi ý (0 hints).';
-    if (name.includes('zero')) return 'Gợi ý trung bình bằng 0 cho tối thiểu 2 bài thực hành chuyên đề.';
-    if (name.includes('first')) return 'Mở khóa khi giải thành công bài thực hành đầu tiên trên SecHub.';
-    if (name.includes('explorer')) return 'Khám phá và giải thành công 5+ phòng lab thực hành.';
-    if (name.includes('knowledge')) return 'Đã tích lũy kiến thức qua việc hoàn thành đọc 10+ bài lý thuyết.';
-    return 'Huy hiệu chuyên đề bảo mật xuất sắc.';
+    if (name.includes('sqli')) return language === 'vi' ? 'Đã giải quyết xuất sắc 2+ bài thực hành SQL Injection.' : 'Outstandingly solved 2+ SQL Injection labs.';
+    if (name.includes('idor')) return language === 'vi' ? 'Đã bảo vệ tài nguyên an toàn trong 2+ bài thực hành IDOR.' : 'Safely protected resources in 2+ IDOR labs.';
+    if (name.includes('xss')) return language === 'vi' ? 'Đã lọc sạch mã độc thành công trong 2+ bài thực hành XSS.' : 'Successfully sanitized malicious code in 2+ XSS labs.';
+    if (name.includes('access')) return language === 'vi' ? 'Đã cấu trúc phân quyền chuẩn trong 2+ bài thực hành Access Control.' : 'Structured standard authorization in 2+ Access Control labs.';
+    if (name.includes('perfect')) return language === 'vi' ? 'Hoàn thành bài thực hành mà không sử dụng gợi ý (0 hints).' : 'Completed labs without using any hints (0 hints).';
+    if (name.includes('zero')) return language === 'vi' ? 'Gợi ý trung bình bằng 0 cho tối thiểu 2 bài thực hành chuyên đề.' : 'Zero average hints used in at least 2 specialty labs.';
+    if (name.includes('first')) return language === 'vi' ? 'Mở khóa khi giải thành công bài thực hành đầu tiên trên SecHub.' : 'Unlocked upon solving your first practice lab on SecHub.';
+    if (name.includes('explorer')) return language === 'vi' ? 'Khám phá và giải thành công 5+ phòng lab thực hành.' : 'Explored and successfully solved 5+ labs.';
+    if (name.includes('knowledge')) return language === 'vi' ? 'Đã tích lũy kiến thức qua việc hoàn thành đọc 10+ bài lý thuyết.' : 'Accumulated knowledge by reading 10+ theoretical lessons.';
+    return language === 'vi' ? 'Huy hiệu chuyên đề bảo mật xuất sắc.' : 'Outstanding security specialty badge.';
   };
 
   if (authLoading || loading) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px', gap: '12px' }}>
         <Loader2 size={36} className="animate-spin" style={{ color: 'var(--fg-brand)' }} />
-        <span style={{ fontSize: '14px', color: 'var(--text-body-subtle)' }}>Đang tải thông tin cá nhân...</span>
+        <span style={{ fontSize: '14px', color: 'var(--text-body-subtle)' }}>{language === 'vi' ? 'Đang tải thông tin cá nhân...' : 'Loading personal profile...'}</span>
       </div>
     );
   }
@@ -101,7 +103,7 @@ export default function PersonalProfilePage() {
 
   return (
     <div style={{ maxWidth: '100%' }}>
-      <PageBackLink href="/" label="Quay lại Dashboard" />
+      <PageBackLink href="/" label={language === 'vi' ? 'Quay lại Dashboard' : 'Back to Dashboard'} />
 
       {/* Profile Overview Header Card */}
       <div style={{
@@ -145,19 +147,19 @@ export default function PersonalProfilePage() {
                 borderRadius: '4px',
                 textTransform: 'uppercase'
               }}>
-                {user.role === 'USER' ? 'Học viên' : user.role === 'INSTRUCTOR' ? 'Tác giả' : 'Quản trị viên'}
+                {user.role === 'USER' ? (language === 'vi' ? 'Học viên' : 'Student') : user.role === 'INSTRUCTOR' ? (language === 'vi' ? 'Tác giả' : 'Author') : (language === 'vi' ? 'Quản trị viên' : 'Administrator')}
               </span>
             </div>
             <p style={{ margin: '6px 0 0 0', fontSize: '14px', color: 'var(--text-body-subtle)', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Mail size={14} /> {user.email}</span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Shield size={14} /> Cấp {growth.level} · {growth.levelTitle}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Shield size={14} /> {language === 'vi' ? 'Cấp' : 'Level'} {growth.level} · {growth.levelTitle}</span>
             </p>
           </div>
         </div>
 
         <div>
           <NextLink href={`/profile/${user.username}`} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 24px', textDecoration: 'none', fontWeight: 700 }}>
-            <ExternalLink size={16} /> Xem CV công khai
+            <ExternalLink size={16} /> {language === 'vi' ? 'Xem CV công khai' : 'View Public Profile'}
           </NextLink>
         </div>
       </div>
@@ -172,23 +174,26 @@ export default function PersonalProfilePage() {
           {/* Recommended Track Settings */}
           <section className="card" style={{ padding: '24px' }}>
             <h2 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-heading)', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <BookOpen size={18} style={{ color: 'var(--fg-brand)' }} /> Lộ trình học & AI thích ứng
+              <BookOpen size={18} style={{ color: 'var(--fg-brand)' }} /> {language === 'vi' ? 'Lộ trình học & AI thích ứng' : 'Learning Path & Adaptive AI'}
             </h2>
             <p style={{ fontSize: '13.5px', color: 'var(--text-body-subtle)', lineHeight: 1.5, margin: '0 0 20px 0' }}>
-              Lộ trình này giúp hệ thống xác định các bài học tiếp theo trên Dashboard và tự động điều chỉnh kịch bản kịch tính Docker Sandbox của AI Mentor cho phù hợp với bạn.
+              {language === 'vi'
+                ? 'Lộ trình này giúp hệ thống xác định các bài học tiếp theo trên Dashboard và tự động điều chỉnh kịch bản kịch tính Docker Sandbox của AI Mentor cho phù hợp với bạn.'
+                : 'This path helps the system determine next lessons on the Dashboard and automatically adapts the Docker Sandbox scenarios generated by the AI Mentor to suit your level.'
+              }
             </p>
 
             <div style={{ background: 'var(--bg-neutral-secondary-light)', border: '1px solid var(--border-default)', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
               <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-body-subtle)', textTransform: 'uppercase', marginBottom: '8px' }}>
-                Lộ trình khuyến nghị hiện tại:
+                {language === 'vi' ? 'Lộ trình khuyến nghị hiện tại:' : 'Current Recommended Path:'}
               </div>
               <strong style={{ fontSize: '16px', color: 'var(--fg-brand)' }}>
-                {growth.recommendedTrack === 'BEGINNER' ? 'Người mới (Beginner)' : growth.recommendedTrack === 'WEB_DEVELOPER' ? 'Web Developer' : 'Pentester (Chuyên gia)'}
+                {growth.recommendedTrack === 'BEGINNER' ? (language === 'vi' ? 'Người mới (Beginner)' : 'Beginner') : growth.recommendedTrack === 'WEB_DEVELOPER' ? 'Web Developer' : (language === 'vi' ? 'Pentester (Chuyên gia)' : 'Pentester')}
               </strong>
             </div>
 
             <div style={{ marginBottom: '24px' }}>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '10px' }}>Thay đổi lộ trình:</div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '10px' }}>{language === 'vi' ? 'Thay đổi lộ trình:' : 'Change path:'}</div>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 {[
                   { value: 'BEGINNER', label: 'Beginner' },
@@ -219,8 +224,8 @@ export default function PersonalProfilePage() {
 
             <div style={{ borderTop: '1px solid var(--border-default)', paddingTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
               <div>
-                <strong style={{ fontSize: '13.5px', color: 'var(--text-heading)', display: 'block' }}>Muốn đánh giá lại năng lực?</strong>
-                <span style={{ fontSize: '12px', color: 'var(--text-body-subtle)' }}>Làm lại 5 câu khảo sát đầu vào để AI tự động phân bổ lại lộ trình.</span>
+                <strong style={{ fontSize: '13.5px', color: 'var(--text-heading)', display: 'block' }}>{language === 'vi' ? 'Muốn đánh giá lại năng lực?' : 'Want to reassess your skills?'}</strong>
+                <span style={{ fontSize: '12px', color: 'var(--text-body-subtle)' }}>{language === 'vi' ? 'Làm lại 5 câu khảo sát đầu vào để AI tự động phân bổ lại lộ trình.' : 'Retake the 5-question entry survey for AI to dynamically adjust your learning path.'}</span>
               </div>
               <button
                 className="btn btn-secondary btn-sm"
@@ -228,7 +233,7 @@ export default function PersonalProfilePage() {
                 disabled={resetting}
                 style={{ whiteSpace: 'nowrap' }}
               >
-                {resetting ? 'Đang thiết lập...' : 'Làm lại đánh giá'}
+                {resetting ? (language === 'vi' ? 'Đang thiết lập...' : 'Resetting...') : (language === 'vi' ? 'Làm lại đánh giá' : 'Retake Assessment')}
               </button>
             </div>
           </section>
@@ -236,12 +241,12 @@ export default function PersonalProfilePage() {
           {/* Full Attempts History */}
           <section className="card" style={{ padding: '24px' }}>
             <h2 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-heading)', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <History size={18} style={{ color: 'var(--fg-brand)' }} /> Lịch sử thực hành phòng Lab ({attempts.length})
+              <History size={18} style={{ color: 'var(--fg-brand)' }} /> {language === 'vi' ? 'Lịch sử thực hành phòng Lab' : 'Lab Practice History'} ({attempts.length})
             </h2>
 
             {attempts.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-body-subtle)', fontSize: '13.5px' }}>
-                Bạn chưa tham gia thực hành phòng lab nào. Hãy bắt đầu một lab để ghi điểm!
+                {language === 'vi' ? 'Bạn chưa tham gia thực hành phòng lab nào. Hãy bắt đầu một lab để ghi điểm!' : 'You have not participated in any labs. Start a lab to earn points!'}
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -265,7 +270,7 @@ export default function PersonalProfilePage() {
                         {attempt.labTitle || `Sandbox Lab #${attempt.labId}`}
                       </strong>
                       <span style={{ fontSize: '11.5px', color: 'var(--text-body-subtle)', display: 'block', marginTop: '2px' }}>
-                        Bắt đầu: {new Date(attempt.startedAt).toLocaleString('vi-VN')}
+                        {language === 'vi' ? 'Bắt đầu' : 'Started'}: {new Date(attempt.startedAt).toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}
                       </span>
                     </div>
 
@@ -280,7 +285,7 @@ export default function PersonalProfilePage() {
                         borderRadius: '4px',
                         textTransform: 'uppercase'
                       }}>
-                        {attempt.status === 'COMPLETED' ? 'Thành công' : 'Đang thực hành'}
+                        {attempt.status === 'COMPLETED' ? (language === 'vi' ? 'Thành công' : 'Completed') : (language === 'vi' ? 'Đang thực hành' : 'In Progress')}
                       </span>
 
                       {/* Score */}
@@ -290,11 +295,11 @@ export default function PersonalProfilePage() {
 
                       {/* Hints Penalty Info */}
                       <span style={{ fontSize: '12px', color: 'var(--text-body-subtle)' }}>
-                        {attempt.hintsUsed ? `${attempt.hintsUsed} gợi ý` : '0 gợi ý'}
+                        {attempt.hintsUsed ? `${attempt.hintsUsed} ${language === 'vi' ? 'gợi ý' : 'hints'}` : `0 ${language === 'vi' ? 'gợi ý' : 'hints'}`}
                       </span>
 
                       {/* Quick Play Redirect */}
-                      <NextLink href={`/labs/${attempt.labId}/play`} className="btn btn-icon btn-sm" title="Vào lại phòng thực hành">
+                      <NextLink href={`/labs/${attempt.labId}/play`} className="btn btn-icon btn-sm" title={language === 'vi' ? 'Vào lại phòng thực hành' : 'Re-enter practice sandbox'}>
                         <Play size={14} />
                       </NextLink>
                     </div>
@@ -311,15 +316,15 @@ export default function PersonalProfilePage() {
           
           {/* Streak & Tickets Card */}
           <section className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-heading)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nhịp học tích lũy</h3>
+            <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-heading)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{language === 'vi' ? 'Nhịp học tích lũy' : 'Learning Streak'}</h3>
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(249,115,22,0.1)', color: 'var(--bg-warning)', display: 'grid', placeItems: 'center' }}>
                 <Flame size={20} />
               </div>
               <div>
-                <strong style={{ fontSize: '16px', color: 'var(--text-heading)', display: 'block' }}>{growth.streak} ngày</strong>
-                <span style={{ fontSize: '12px', color: 'var(--text-body-subtle)' }}>Chuỗi ngày học liên tục</span>
+                <strong style={{ fontSize: '16px', color: 'var(--text-heading)', display: 'block' }}>{growth.streak} {language === 'vi' ? 'ngày' : 'days'}</strong>
+                <span style={{ fontSize: '12px', color: 'var(--text-body-subtle)' }}>{language === 'vi' ? 'Chuỗi ngày học liên tục' : 'Consecutive learning days'}</span>
               </div>
             </div>
 
@@ -328,8 +333,8 @@ export default function PersonalProfilePage() {
                 <Snowflake size={20} />
               </div>
               <div>
-                <strong style={{ fontSize: '16px', color: 'var(--text-heading)', display: 'block' }}>{growth.freezeTickets} vé</strong>
-                <span style={{ fontSize: '12px', color: 'var(--text-body-subtle)' }}>Vé bảo toàn phòng hờ</span>
+                <strong style={{ fontSize: '16px', color: 'var(--text-heading)', display: 'block' }}>{growth.freezeTickets} {language === 'vi' ? 'vé' : 'tickets'}</strong>
+                <span style={{ fontSize: '12px', color: 'var(--text-body-subtle)' }}>{language === 'vi' ? 'Vé bảo toàn phòng hờ' : 'Freeze tickets'}</span>
               </div>
             </div>
           </section>
@@ -337,12 +342,12 @@ export default function PersonalProfilePage() {
           {/* Badges List Card */}
           <section className="card" style={{ padding: '24px' }}>
             <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-heading)', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Award size={18} style={{ color: 'var(--fg-brand)' }} /> Huy hiệu của tôi ({growth.badges.length})
+              <Award size={18} style={{ color: 'var(--fg-brand)' }} /> {language === 'vi' ? 'Huy hiệu của tôi' : 'My Badges'} ({growth.badges.length})
             </h3>
 
             {growth.badges.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '16px', color: 'var(--text-body-subtle)', fontSize: '13px' }}>
-                Hoàn thành bài học hoặc giải lab đầu tiên để tích lũy huy hiệu danh giá.
+                {language === 'vi' ? 'Hoàn thành bài học hoặc giải lab đầu tiên để tích lũy huy hiệu danh giá.' : 'Complete lessons or solve your first lab to accumulate premium badges.'}
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
 import LabSimulator from '@/components/LabSimulator';
+import { useTranslation } from '@/context/LanguageContext';
 
 interface LabGameViewProps {
   hints: string[];
@@ -46,6 +47,7 @@ export default function LabGameView({
   apiError,
   onSimulatedSuccess
 }: LabGameViewProps) {
+  const { t, language } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Game engine refs (for 60fps lag-free rendering and zero stale closures)
@@ -85,14 +87,14 @@ export default function LabGameView({
 
   // Map obstacles definitions (bounding boxes)
   const obstacles = [
-    { x: 80, y: 60, width: 80, height: 40, label: 'Bàn Nhiệm Vụ' },
-    { x: 360, y: 60, width: 80, height: 40, label: 'Bàn Thực Hành' },
-    { x: 640, y: 60, width: 80, height: 40, label: 'Bàn Nộp FLAG' },
-    { x: 200, y: 120, width: 80, height: 80, label: 'Tủ Rack 1' },
-    { x: 520, y: 120, width: 80, height: 80, label: 'Tủ Rack 2' },
-    { x: 200, y: 320, width: 80, height: 100, label: 'Tủ Rack 3' },
-    { x: 520, y: 320, width: 80, height: 100, label: 'Tủ Rack 4' },
-    { x: 360, y: 300, width: 80, height: 40, label: 'Bàn Console Dưới' },
+    { x: 80, y: 60, width: 80, height: 40, label: language === 'vi' ? 'Bàn Nhiệm Vụ' : 'Mission Desk' },
+    { x: 360, y: 60, width: 80, height: 40, label: language === 'vi' ? 'Bàn Thực Hành' : 'Practice Desk' },
+    { x: 640, y: 60, width: 80, height: 40, label: language === 'vi' ? 'Bàn Nộp FLAG' : 'FLAG Submit Desk' },
+    { x: 200, y: 120, width: 80, height: 80, label: language === 'vi' ? 'Tủ Rack 1' : 'Server Rack 1' },
+    { x: 520, y: 120, width: 80, height: 80, label: language === 'vi' ? 'Tủ Rack 2' : 'Server Rack 2' },
+    { x: 200, y: 320, width: 80, height: 100, label: language === 'vi' ? 'Tủ Rack 3' : 'Server Rack 3' },
+    { x: 520, y: 320, width: 80, height: 100, label: language === 'vi' ? 'Tủ Rack 4' : 'Server Rack 4' },
+    { x: 360, y: 300, width: 80, height: 40, label: language === 'vi' ? 'Bàn Console Dưới' : 'Lower Console Desk' },
   ];
 
   // Hint stations are distributed in rows so every LabSpec maps to the game automatically.
@@ -130,7 +132,7 @@ export default function LabGameView({
       y: position.y,
       width: 24,
       height: 24,
-      name: `${hintIndex + 2}. Gợi ý ${hintIndex + 1}`,
+      name: `${hintIndex + 2}. ${language === 'vi' ? 'Gợi ý' : 'Hint'} ${hintIndex + 1}`,
       avatar: '',
       color: mentorColors[hintIndex % mentorColors.length],
       hintIndex,
@@ -149,7 +151,7 @@ export default function LabGameView({
       y: 100,
       width: 24,
       height: 24,
-      name: '1. Nhiệm vụ',
+      name: language === 'vi' ? '1. Nhiệm vụ' : '1. Mission',
       avatar: '',
       color: '#eab308',
       hintIndex: 99,
@@ -159,7 +161,7 @@ export default function LabGameView({
       y: 100,
       width: 24,
       height: 24,
-      name: `${practiceStepNum}. Thực hành`,
+      name: `${practiceStepNum}. ${language === 'vi' ? 'Thực hành' : 'Practice'}`,
       avatar: '',
       color: '#38bdf8',
       hintIndex: 98,
@@ -169,7 +171,7 @@ export default function LabGameView({
       y: 100,
       width: 24,
       height: 24,
-      name: `${submitStepNum}. Nộp FLAG`,
+      name: `${submitStepNum}. ${language === 'vi' ? 'Nộp FLAG' : 'Submit FLAG'}`,
       avatar: '',
       color: '#10b981',
       hintIndex: 100,
@@ -203,7 +205,9 @@ export default function LabGameView({
     // Special NPC: Mission Board
     if (npc.hintIndex === 99) {
       triggerDialogue(
-        `NHIỆM VỤ BÀI THỰC HÀNH:\n\n1. Di chuyển lại gần máy tính "${practiceStepNum}. Thực hành" ở giữa và tương tác để thực hành khai thác lỗ hổng [${vulnerabilityName}].\n\n2. Trích xuất mã cờ bí mật (FLAG).\n\n3. Đến Thiết Bị "${submitStepNum}. Nộp FLAG" bên phải để nộp bài!`,
+        language === 'vi'
+          ? `NHIỆM VỤ BÀI THỰC HÀNH:\n\n1. Di chuyển lại gần máy tính "${practiceStepNum}. Thực hành" ở giữa và tương tác để thực hành khai thác lỗ hổng [${vulnerabilityName}].\n\n2. Trích xuất mã cờ bí mật (FLAG).\n\n3. Đến Thiết Bị "${submitStepNum}. Nộp FLAG" bên phải để nộp bài!`
+          : `PRACTICE MISSION:\n\n1. Move close to the "${practiceStepNum}. Practice" computer in the center and interact to exploit the [${vulnerabilityName}] vulnerability.\n\n2. Extract the secret flag value (FLAG).\n\n3. Go to the "${submitStepNum}. Submit FLAG" terminal on the right to submit your work!`,
         false
       );
       return;
@@ -228,15 +232,19 @@ export default function LabGameView({
     } else if (idx === revealedHints) {
       if (labStatus === 'running') {
         triggerDialogue(
-          `Tôi giữ Gợi ý số ${idx + 1}. Mở khóa gợi ý này sẽ tiêu tốn ${points / 10} điểm. Bạn có đồng ý mở khóa không?`,
+          language === 'vi'
+            ? `Tôi giữ Gợi ý số ${idx + 1}. Mở khóa gợi ý này sẽ tiêu tốn ${points / 10} điểm. Bạn có đồng ý mở khóa không?`
+            : `I hold Hint #${idx + 1}. Unlocking this hint costs ${points / 10} points. Do you agree to unlock it?`,
           true
         );
       } else {
-        triggerDialogue('Bạn cần Khởi động Lab trước để mở khóa gợi ý này.', false);
+        triggerDialogue(language === 'vi' ? 'Bạn cần Khởi động Lab trước để mở khóa gợi ý này.' : 'You must Start the Lab first to unlock this hint.', false);
       }
     } else {
       triggerDialogue(
-        `Gợi ý này đã bị khóa. Hãy mở khóa gợi ý số ${revealedHints + 1} của Mentor trước!`,
+        language === 'vi'
+          ? `Gợi ý này đã bị khóa. Hãy mở khóa gợi ý số ${revealedHints + 1} của Mentor trước!`
+          : `This hint is locked. Unlock Mentor hint #${revealedHints + 1} first!`,
         false
       );
     }
@@ -264,14 +272,14 @@ export default function LabGameView({
   const handleConfirmUnlock = async () => {
     if (onRevealHint) {
       try {
-        setDialogue({ isOpen: true, text: 'Đang mở khóa gợi ý...', showOptions: false });
-        setTypedText('Đang giải mã dữ liệu gợi ý từ máy chủ...');
+        setDialogue({ isOpen: true, text: language === 'vi' ? 'Đang mở khóa gợi ý...' : 'Unlocking hint...', showOptions: false });
+        setTypedText(language === 'vi' ? 'Đang giải mã dữ liệu gợi ý từ máy chủ...' : 'Decrypting hint data from server...');
         await onRevealHint();
         setTimeout(() => {
           triggerDialogue(hints[revealedHints], false);
         }, 800);
       } catch (e: any) {
-        triggerDialogue(`Lỗi: ${e.message || 'Không thể mở gợi ý'}`, false);
+        triggerDialogue(`${language === 'vi' ? 'Lỗi' : 'Error'}: ${e.message || (language === 'vi' ? 'Không thể mở gợi ý' : 'Could not unlock hint')}`, false);
       }
     }
   };
@@ -1553,7 +1561,7 @@ export default function LabGameView({
       ctx.globalAlpha = 1;
       ctx.restore();
 
-      drawTextWithOutline(ctx, 'BẠN', px + p.width / 2, py - 12 + idleBob, '#4ade80');
+      drawTextWithOutline(ctx, language === 'vi' ? 'BẠN' : 'YOU', px + p.width / 2, py - 12 + idleBob, '#4ade80');
     };
 
     const renderLoop = () => {
@@ -1674,7 +1682,7 @@ export default function LabGameView({
                     boxShadow: '0 0 10px rgba(234,179,8,0.25)',
                     textShadow: '0 0 4px rgba(234,179,8,0.4)',
                   }}>
-                    GỢI Ý MỞ
+                    {language === 'vi' ? 'GỢI Ý MỞ' : 'HINT UNLOCKED'}
                   </div>
                 )}
 
@@ -1717,7 +1725,7 @@ export default function LabGameView({
                     marginTop: '2px',
                     textShadow: '0 1px 2px rgba(0,0,0,0.5)',
                   }}>
-                    {isMobile ? 'CHẠM ĐỂ CHỌN' : 'ẤN PHÍM E'}
+                    {isMobile ? (language === 'vi' ? 'CHẠM ĐỂ CHỌN' : 'TAP TO CHOOSE') : (language === 'vi' ? 'ẤN PHÍM E' : 'PRESS E KEY')}
                   </div>
                 )}
               </div>
@@ -1771,11 +1779,11 @@ export default function LabGameView({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00f2fe', boxShadow: '0 0 8px #00f2fe', display: 'inline-block', animation: 'blink 1s step-end infinite' }}></span>
-            <span>DIỂM: <strong style={{ color: '#fff', textShadow: '0 0 4px #00f2fe' }}>{points}</strong></span>
+            <span>{language === 'vi' ? 'DIỂM:' : 'XP:'} <strong style={{ color: '#fff', textShadow: '0 0 4px #00f2fe' }}>{points}</strong></span>
           </div>
           <span style={{ color: 'rgba(0, 242, 254, 0.3)' }}>|</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>GỢI Ý: <strong style={{ color: '#fff', textShadow: '0 0 4px #00f2fe' }}>{revealedHints}/{hints.length}</strong></span>
+            <span>{language === 'vi' ? 'GỢI Ý:' : 'HINTS:'} <strong style={{ color: '#fff', textShadow: '0 0 4px #00f2fe' }}>{revealedHints}/{hints.length}</strong></span>
           </div>
         </div>
 
@@ -1851,7 +1859,7 @@ export default function LabGameView({
                       boxShadow: '0 4px 10px rgba(251, 191, 36, 0.3)',
                     }}
                   >
-                    Đồng ý (-{points / 10} pts)
+                    {language === 'vi' ? 'Đồng ý' : 'Agree'} (-{points / 10} pts)
                   </button>
                   <button
                     className="btn btn-secondary btn-sm"
@@ -1870,7 +1878,7 @@ export default function LabGameView({
                       borderRadius: '4px',
                     }}
                   >
-                    Bỏ qua
+                    {language === 'vi' ? 'Bỏ qua' : 'Skip'}
                   </button>
                 </div>
               )}
@@ -1892,7 +1900,7 @@ export default function LabGameView({
                     animation: 'pulse-glow 1.5s infinite',
                   }}
                 >
-                  {isMobile ? '[ CHẠM ĐỂ ĐÓNG ]' : '[ ẤN PHÍM E HOẶC CLICK ĐỂ ĐÓNG ]'}
+                  {isMobile ? (language === 'vi' ? '[ CHẠM ĐỂ ĐÓNG ]' : '[ TAP TO CLOSE ]') : (language === 'vi' ? '[ ẤN PHÍM E HOẶC CLICK ĐỂ ĐÓNG ]' : '[ PRESS E OR CLICK TO CLOSE ]')}
                 </div>
               )}
             </div>
@@ -1947,7 +1955,7 @@ export default function LabGameView({
             </h4>
             
             <p style={{ fontSize: '11px', color: '#94a3b8', margin: '0 0 16px 0', lineHeight: 1.6 }}>
-              Nhập mã FLAG thu thập được từ bài Lab để hệ thống giải mã và cộng điểm.
+              {language === 'vi' ? 'Nhập mã FLAG thu thập được từ bài Lab để hệ thống giải mã và cộng điểm.' : 'Enter the FLAG key harvested from the lab to decrypt and receive XP.'}
             </p>
 
             <input
@@ -1979,12 +1987,12 @@ export default function LabGameView({
 
             {flagResult === 'correct' && (
               <div style={{ color: '#10b981', fontSize: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold' }}>
-                [OK] ✓ Hệ thống xác thực THÀNH CÔNG! (+{points}đ)
+                [OK] ✓ {language === 'vi' ? 'Hệ thống xác thực THÀNH CÔNG!' : 'Flag verified SUCCESSFULLY!'} (+{points}{language === 'vi' ? 'đ' : 'pts'})
               </div>
             )}
             {flagResult === 'wrong' && (
               <div style={{ color: '#ff2d55', fontSize: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold' }}>
-                [ERR] ✗ SAI LỆCH MÃ! Vui lòng thử lại.
+                [ERR] ✗ {language === 'vi' ? 'SAI LỆCH MÃ! Vui lòng thử lại.' : 'INCORRECT FLAG! Please try again.'}
               </div>
             )}
 
@@ -1996,7 +2004,7 @@ export default function LabGameView({
                 }}
                 style={{ fontSize: '12px', padding: '6px 16px', background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', color: '#cbd5e1' }}
               >
-                HỦY
+                {language === 'vi' ? 'HỦY' : 'CANCEL'}
               </button>
               <button
                 className="btn btn-primary btn-sm"
@@ -2012,7 +2020,7 @@ export default function LabGameView({
                   boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
                 }}
               >
-                {isSubmitting ? 'ĐANG GỬI...' : 'XÁC THỰC'}
+                {isSubmitting ? (language === 'vi' ? 'ĐANG GỬI...' : 'SUBMITTING...') : (language === 'vi' ? 'XÁC THỰC' : 'VALIDATE')}
               </button>
             </div>
           </div>
@@ -2044,7 +2052,7 @@ export default function LabGameView({
                 <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#27c93f', display: 'inline-block' }}></span>
               </div>
               <div style={{ background: 'var(--bg-neutral-secondary-medium)', border: '1px solid var(--border-default-medium)', borderRadius: '4px', padding: '3px 16px', fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-body-subtle)', flex: 1, textAlign: 'center', maxWidth: '400px', margin: '0 auto' }}>
-                {runtimeUrl || 'Runtime chưa sẵn sàng'}
+                {runtimeUrl || (language === 'vi' ? 'Runtime chưa sẵn sàng' : 'Runtime not ready')}
               </div>
               <button
                 onClick={() => setIsServerModalOpen(false)}
@@ -2201,7 +2209,7 @@ export default function LabGameView({
           color: 'var(--text-body-subtle)',
           fontFamily: 'var(--font-mono)',
         }}>
-          Điều khiển: Di chuyển bằng phím <strong style={{ color: 'var(--fg-brand)' }}>WASD</strong> hoặc <strong style={{ color: 'var(--fg-brand)' }}>Mũi tên</strong>. Ấn phím <strong style={{ color: 'var(--fg-brand)' }}>E</strong> khi ở gần thiết bị để tương tác.
+          {language === 'vi' ? 'Điều khiển: Di chuyển bằng phím WASD hoặc Mũi tên. Ấn phím E khi ở gần thiết bị để tương tác.' : 'Controls: Move with WASD or Arrow keys. Press E near devices to interact.'}
         </div>
       )}
     </div>

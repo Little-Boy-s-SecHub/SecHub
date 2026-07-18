@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { api, Vulnerability, LearningPath, Lab, LabAttempt, ResumeLearning, GrowthOverview, LeaderboardEntry } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from '@/context/LanguageContext';
 import VulnIcon from '@/components/VulnIcon';
 import ActivityHeatmap from '@/components/ActivityHeatmap';
 import NewUserOnboarding from '@/components/NewUserOnboarding';
@@ -80,6 +81,7 @@ function TerminalHero() {
 }
 
 function VulnMiniCard({ vuln }: { vuln: Vulnerability }) {
+  const { language } = useTranslation();
   const severityClass = vuln.severity === 'CRITICAL' ? 'badge-critical' : 
                         vuln.severity === 'HIGH' ? 'badge-high' : 
                         vuln.severity === 'MEDIUM' ? 'badge-medium' : 'badge-low';
@@ -93,7 +95,7 @@ function VulnMiniCard({ vuln }: { vuln: Vulnerability }) {
         <div className="vuln-card-desc">{vuln.description}</div>
         <div className="vuln-card-footer">
           <span className={`badge ${severityClass}`}>{vuln.severity}</span>
-          <span className="vuln-card-labs">{vuln.labCount || 0} labs</span>
+          <span className="vuln-card-labs">{vuln.labCount || 0} {language === 'vi' ? 'phòng lab' : 'labs'}</span>
         </div>
       </div>
     </NextLink>
@@ -101,6 +103,7 @@ function VulnMiniCard({ vuln }: { vuln: Vulnerability }) {
 }
 
 function PathMiniCard({ path }: { path: LearningPath }) {
+  const { language } = useTranslation();
   const lessonCount = path.lessonCount || 0;
   const completedLessons = path.completedLessons || 0;
   const progress = lessonCount > 0 ? (completedLessons / lessonCount) * 100 : 0;
@@ -120,7 +123,7 @@ function PathMiniCard({ path }: { path: LearningPath }) {
         <div className="path-card-desc">{path.description}</div>
         <div style={{ marginTop: 'auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.75rem', color: 'var(--text-body-subtle)' }}>
-            <span>{completedLessons}/{lessonCount} bài học</span>
+            <span>{completedLessons}/{lessonCount} {language === 'vi' ? 'bài học' : 'lessons'}</span>
             <span>{Math.round(progress)}%</span>
           </div>
           <div className="progress-bar">
@@ -133,18 +136,19 @@ function PathMiniCard({ path }: { path: LearningPath }) {
 }
 
 function RecentLabCard({ attempt }: { attempt: LabAttempt }) {
+  const { language } = useTranslation();
   const isExpired = attempt.expiresAt && new Date(attempt.expiresAt) < new Date();
   const statusContent = attempt.status === 'COMPLETED' ? (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--fg-success-strong)' }}>
-      <CheckCircle2 size={14} /> Hoàn thành
+      <CheckCircle2 size={14} /> {language === 'vi' ? 'Hoàn thành' : 'Completed'}
     </span>
   ) : (attempt.status === 'RUNNING' || attempt.status === 'STARTED') && !isExpired ? (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--fg-brand)' }}>
-      <RotateCw size={14} style={{ animation: 'spin 3s linear infinite' }} /> Đang chạy
+      <RotateCw size={14} style={{ animation: 'spin 3s linear infinite' }} /> {language === 'vi' ? 'Đang chạy' : 'Running'}
     </span>
   ) : (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-body-subtle)' }}>
-      Chưa hoàn thành
+      {language === 'vi' ? 'Chưa hoàn thành' : 'Incomplete'}
     </span>
   );
 
@@ -156,13 +160,13 @@ function RecentLabCard({ attempt }: { attempt: LabAttempt }) {
           {statusContent}
         </div>
         <div className="lab-card-title">{attempt.labTitle}</div>
-        <div className="lab-card-desc">Bắt đầu lúc: {new Date(attempt.startedAt).toLocaleString('vi-VN')}</div>
+        <div className="lab-card-desc">{language === 'vi' ? 'Bắt đầu lúc' : 'Started at'}: {new Date(attempt.startedAt).toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}</div>
         <div className="lab-card-meta" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           <span className="lab-card-meta-item" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            <Trophy size={12} /> {attempt.score} điểm
+            <Trophy size={12} /> {attempt.score} {language === 'vi' ? 'điểm' : 'pts'}
           </span>
           <span className="lab-card-meta-item" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            Gợi ý đã dùng: {attempt.hintsUsed}
+            {language === 'vi' ? 'Gợi ý đã dùng' : 'Hints used'}: {attempt.hintsUsed}
           </span>
         </div>
       </div>
@@ -172,6 +176,7 @@ function RecentLabCard({ attempt }: { attempt: LabAttempt }) {
 
 export default function DashboardPage() {
   const { isAuthenticated } = useAuth();
+  const { t, language } = useTranslation();
   const router = useRouter();
   const [vulns, setVulns] = useState<Vulnerability[]>([]);
   const [paths, setPaths] = useState<LearningPath[]>([]);
@@ -260,7 +265,7 @@ export default function DashboardPage() {
       const res = await api.growth.getWeeklyLab();
       router.push(`/labs/${res.data.id}/play`);
     } catch (e: any) {
-      alert(e.message || 'Chưa thể mở thử thách tuần.');
+      alert(e.message || (language === 'vi' ? 'Chưa thể mở thử thách tuần.' : 'Cannot open weekly challenge at this time.'));
       setOpeningWeekly(false);
     }
   };
@@ -277,12 +282,12 @@ export default function DashboardPage() {
                 {resume.type === 'LAB' ? <MonitorPlay size={22} /> : <BookOpen size={22} />}
               </div>
               <div className="continue-learning-copy">
-                <div className="continue-learning-kicker">{resume.type === 'LAB' ? 'Phiên thực hành đang mở' : 'Tiếp tục từ lần trước'}</div>
+                <div className="continue-learning-kicker">{resume.type === 'LAB' ? (language === 'vi' ? 'Phiên thực hành đang mở' : 'Active lab sandbox') : t('dashboard.continueLearning')}</div>
                 <h2>{resume.title}</h2>
-                <p>{resume.subtitle}{resume.type === 'LESSON' && typeof resume.progress === 'number' ? ` · Đã đọc ${resume.progress}%` : ''}</p>
+                <p>{resume.subtitle}{resume.type === 'LESSON' && typeof resume.progress === 'number' ? ` · ${language === 'vi' ? 'Đã đọc' : 'Read'} ${resume.progress}%` : ''}</p>
               </div>
               <NextLink href={resume.url} className="btn btn-primary continue-learning-button">
-                Tiếp tục <ArrowRight size={16} />
+                {t('dashboard.continueButton')} <ArrowRight size={16} />
               </NextLink>
             </section>
           )}
@@ -290,12 +295,12 @@ export default function DashboardPage() {
           {growth && !growth.onboardingRequired && (
             <>
               {/* Bảng xếp hạng tuần - Đưa lên trên cùng */}
-              <section className="dashboard-community" aria-label="Bảng xếp hạng tuần" style={{ marginBottom: 'var(--space-4)', padding: '16px 20px', border: '1px solid var(--border-default)', borderRadius: '12px', background: 'var(--bg-neutral-primary)', boxShadow: '0 4px 20px rgba(0,0,0,0.01)' }}>
+              <section className="dashboard-community" aria-label={t('dashboard.weeklyLeaderboard')} style={{ marginBottom: 'var(--space-4)', padding: '16px 20px', border: '1px solid var(--border-default)', borderRadius: '12px', background: 'var(--bg-neutral-primary)', boxShadow: '0 4px 20px rgba(0,0,0,0.01)' }}>
                 <div className="dashboard-panel-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-default)', paddingBottom: '12px', marginBottom: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Trophy size={18} style={{ color: 'var(--fg-brand)' }} />
                     <h2 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-heading)', margin: 0 }}>
-                      Bảng xếp hạng tuần
+                      {t('dashboard.weeklyLeaderboard')}
                     </h2>
                   </div>
                   <NextLink 
@@ -311,7 +316,7 @@ export default function DashboardPage() {
                       transition: 'opacity 0.2s' 
                     }}
                   >
-                    Xem chi tiết <ArrowRight size={13} />
+                    {language === 'vi' ? 'Xem chi tiết' : 'View Details'} <ArrowRight size={13} />
                   </NextLink>
                 </div>
 
@@ -350,11 +355,11 @@ export default function DashboardPage() {
                       </div>
                     ))}
                     {weeklyLeaders.length === 0 && (
-                      <span style={{ color: 'var(--text-body-subtle)', fontSize: '13px' }}>Chưa có điểm trong tuần này.</span>
+                      <span style={{ color: 'var(--text-body-subtle)', fontSize: '13px' }}>{t('dashboard.noActivity')}</span>
                     )}
                   </div>
                   <NextLink href="/leaderboard" className="btn btn-secondary btn-sm" style={{ padding: '8px 16px', fontSize: '12.5px' }}>
-                    Mở Bảng xếp hạng →
+                    {t('dashboard.openLeaderboard')}
                   </NextLink>
                 </div>
               </section>
@@ -364,8 +369,8 @@ export default function DashboardPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <div className="dashboard-missions" style={{ width: '100%' }}>
                     <div className="dashboard-panel-heading">
-                      <div><CalendarDays size={18} /><h2>Nhiệm vụ hằng ngày</h2></div>
-                      <span style={{ fontWeight: 600, color: 'var(--fg-brand)' }}>10–15 phút</span>
+                      <div><CalendarDays size={18} /><h2>{t('dashboard.dailyMissionTitle')}</h2></div>
+                      <span style={{ fontWeight: 600, color: 'var(--fg-brand)' }}>{language === 'vi' ? '10-15 phút' : '10-15 mins'}</span>
                     </div>
                     
                     <div className="dashboard-mission-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', padding: '12px 0' }}>
@@ -373,19 +378,19 @@ export default function DashboardPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
                           <strong style={{ color: 'var(--text-heading)', fontSize: '14px' }}>{growth.dailyMission.title}</strong>
                           <span className="badge badge-secondary" style={{ fontSize: '10px', padding: '2px 6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            <Clock size={12} /> {growth.dailyMission.minutes} phút
+                            <Clock size={12} /> {growth.dailyMission.minutes} {t('common.minutes')}
                           </span>
                           <span className="badge badge-brand" style={{ fontSize: '10px', padding: '2px 6px' }}>+25 XP</span>
                           {growth.dailyMission.completed && (
                             <span className="badge badge-success" style={{ fontSize: '10px', padding: '2px 6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                              <CheckCircle2 size={12} style={{ color: 'var(--fg-success-strong)' }} /> Xong
+                              <CheckCircle2 size={12} style={{ color: 'var(--fg-success-strong)' }} /> {t('dashboard.congratsDone')}
                             </span>
                           )}
                         </div>
                         <p style={{ margin: 0, fontSize: '12.5px', color: 'var(--text-body-subtle)' }}>{growth.dailyMission.description}</p>
                       </div>
                       <NextLink href={growth.dailyMission.actionUrl} className={`btn ${growth.dailyMission.completed ? 'btn-secondary' : 'btn-primary'} btn-sm`} style={{ whiteSpace: 'nowrap' }}>
-                        {growth.dailyMission.completed ? 'Xem lại' : 'Bắt đầu'}
+                        {growth.dailyMission.completed ? (language === 'vi' ? 'Xem lại' : 'Review') : t('dashboard.startNow')}
                       </NextLink>
                     </div>
 
@@ -394,12 +399,12 @@ export default function DashboardPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
                           <strong style={{ color: 'var(--text-heading)', fontSize: '14px' }}>{growth.weeklyChallenge.title}</strong>
                           <span className="badge badge-secondary" style={{ fontSize: '10px', padding: '2px 6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            <Clock size={12} /> {growth.weeklyChallenge.minutes} phút
+                            <Clock size={12} /> {growth.weeklyChallenge.minutes} {t('common.minutes')}
                           </span>
                           <span className="badge badge-brand" style={{ fontSize: '10px', padding: '2px 6px' }}>+50 XP</span>
                           {growth.weeklyChallenge.completed && (
                             <span className="badge badge-success" style={{ fontSize: '10px', padding: '2px 6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                              <CheckCircle2 size={12} style={{ color: 'var(--fg-success-strong)' }} /> Xong
+                              <CheckCircle2 size={12} style={{ color: 'var(--fg-success-strong)' }} /> {t('dashboard.congratsDone')}
                             </span>
                           )}
                         </div>
@@ -411,7 +416,7 @@ export default function DashboardPage() {
                         disabled={openingWeekly || growth.weeklyChallenge.completed}
                         style={{ whiteSpace: 'nowrap' }}
                       >
-                        {openingWeekly ? 'Đang tạo...' : growth.weeklyChallenge.completed ? 'Đã hoàn thành' : 'Bắt đầu'}
+                        {openingWeekly ? (language === 'vi' ? 'Đang tạo...' : 'Creating...') : growth.weeklyChallenge.completed ? (language === 'vi' ? 'Đã hoàn thành' : 'Completed') : t('dashboard.startNow')}
                       </button>
                     </div>
                   </div>
@@ -443,18 +448,18 @@ export default function DashboardPage() {
                         </div>
                         <div style={{ minWidth: 0 }}>
                           <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--fg-brand)', display: 'block' }}>
-                            Bài đang học
+                            {t('dashboard.continueReading')}
                           </span>
                           <strong style={{ fontSize: '13px', color: 'var(--text-heading)', display: 'block', margin: '2px 0 1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {lessonResume.title}
                           </strong>
                           <span style={{ fontSize: '11px', color: 'var(--text-body-subtle)' }}>
-                            Tiến độ: {lessonResume.progress}%
+                            {t('dashboard.readProgress')}: {lessonResume.progress}%
                           </span>
                         </div>
                       </div>
                       <NextLink href={lessonResume.url} className="btn btn-secondary btn-sm" style={{ whiteSpace: 'nowrap', padding: '6px 12px', fontSize: '12px' }}>
-                        Học tiếp
+                        {t('dashboard.readButton')}
                       </NextLink>
                     </div>
                   )}
@@ -463,8 +468,8 @@ export default function DashboardPage() {
                 {/* Right Column: Streak, Freeze Status and Weekly Report */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div className="dashboard-rhythm" style={{ width: '100%', marginBottom: 0 }}>
-                    <div className="dashboard-rhythm-stat"><Flame size={19} /><div><strong>{growth.streak} ngày</strong><span>Chuỗi học hiện tại</span></div></div>
-                    <div className="dashboard-rhythm-stat"><Snowflake size={19} /><div><strong>{growth.freezeTickets} vé</strong><span>Bảo toàn chuỗi</span></div></div>
+                    <div className="dashboard-rhythm-stat"><Flame size={19} /><div><strong>{growth.streak} {t('common.days')}</strong><span>{t('dashboard.streakTitle')}</span></div></div>
+                    <div className="dashboard-rhythm-stat"><Snowflake size={19} /><div><strong>{growth.freezeTickets} {language === 'vi' ? 'vé' : 'tickets'}</strong><span>{t('dashboard.freezeTitle')}</span></div></div>
                   </div>
                   
                   <div style={{
@@ -483,22 +488,22 @@ export default function DashboardPage() {
                         <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
                           <ShieldCheck size={14} style={{ color: 'var(--fg-success-strong)', flexShrink: 0 }} /> 
                           <span style={{ color: 'var(--text-body)', lineHeight: 1.3 }}>
-                            <strong style={{ color: 'var(--fg-success-strong)' }}>Chuỗi được bảo vệ:</strong> Bạn có <strong>{growth.freezeTickets} vé</strong> bảo toàn.
+                            <strong style={{ color: 'var(--fg-success-strong)' }}>{t('dashboard.streakProtected')}</strong> {t('dashboard.streakTicketsCount', { count: growth.freezeTickets })}
                           </span>
                         </p>
                       ) : (
                         <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
                           <AlertTriangle size={14} style={{ color: 'var(--fg-warning)', flexShrink: 0 }} /> 
                           <span style={{ color: 'var(--text-body)', lineHeight: 1.3 }}>
-                            <strong style={{ color: 'var(--fg-warning)' }}>Không có vé dự phòng:</strong> Hãy duy trì học tập để tích lũy thêm.
+                            <strong style={{ color: 'var(--fg-warning)' }}>{t('dashboard.streakNoTickets')}</strong> {t('dashboard.streakMaintainDesc')}
                           </span>
                         </p>
                       )}
                     </div>
                     <div style={{ borderTop: '1px solid var(--border-default)', paddingTop: '6px', marginTop: '2px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', marginBottom: '4px' }}>
-                        <span>Vé tiếp theo:</span>
-                        <strong style={{ color: 'var(--text-heading)' }}>{growth.streak % 7}/7 ngày</strong>
+                        <span>{t('dashboard.nextTicketProgress')}</span>
+                        <strong style={{ color: 'var(--text-heading)' }}>{growth.streak % 7}/7 {t('common.days')}</strong>
                       </div>
                       <div style={{ width: '100%', height: '4px', background: 'var(--bg-neutral-tertiary)', borderRadius: '2px', overflow: 'hidden' }}>
                         <div style={{ width: `${((growth.streak % 7) / 7) * 100}%`, height: '100%', background: 'var(--bg-brand)', borderRadius: '2px' }} />
@@ -508,26 +513,26 @@ export default function DashboardPage() {
 
                   <div className="dashboard-insights" style={{ width: '100%' }}>
                     <div className="dashboard-panel-heading">
-                      <div><TrendingUp size={18} /><h2>Báo cáo tuần</h2></div>
+                      <div><TrendingUp size={18} /><h2>{t('dashboard.weeklyReportTitle')}</h2></div>
                       <span style={{ fontWeight: 600, color: 'var(--fg-success-strong)' }}>+{growth.weeklyReport.xpGained} XP</span>
                     </div>
                     <div className="dashboard-weekly-numbers" style={{ display: 'flex', gap: '20px', padding: '10px 0', marginBottom: '12px' }}>
-                      <span><strong>{growth.weeklyReport.labsCompleted}</strong> lab</span>
-                      <span><strong>{growth.weeklyReport.lessonsCompleted}</strong> bài học</span>
+                      <span><strong>{growth.weeklyReport.labsCompleted}</strong> {language === 'vi' ? 'lab đã giải' : 'labs completed'}</span>
+                      <span><strong>{growth.weeklyReport.lessonsCompleted}</strong> {language === 'vi' ? 'bài học lý thuyết' : 'lessons studied'}</span>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12.5px' }}>
                       <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <TrendingUp size={14} style={{ color: 'var(--fg-success-strong)' }} /> 
-                        <span><strong style={{ color: 'var(--text-heading)' }}>Kỹ năng đã tăng:</strong> <span style={{ color: 'var(--fg-success-strong)', fontWeight: 600 }}>{growth.weeklyReport.strongestSkill}</span></span>
+                        <span><strong style={{ color: 'var(--text-heading)' }}>{t('dashboard.weeklyReportStrength')}:</strong> <span style={{ color: 'var(--fg-success-strong)', fontWeight: 600 }}>{growth.weeklyReport.strongestSkill}</span></span>
                       </p>
                       <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Target size={14} style={{ color: 'var(--fg-danger-strong)' }} /> 
-                        <span><strong style={{ color: 'var(--text-heading)' }}>Điểm yếu cần chú ý:</strong> <span style={{ color: 'var(--fg-danger-strong)', fontWeight: 600 }}>{growth.weeklyReport.weakSkill}</span></span>
+                        <span><strong style={{ color: 'var(--text-heading)' }}>{t('dashboard.weeklyReportWeakness')}:</strong> <span style={{ color: 'var(--fg-danger-strong)', fontWeight: 600 }}>{growth.weeklyReport.weakSkill}</span></span>
                       </p>
                       <p style={{ margin: 0, padding: '8px 12px', background: 'var(--bg-neutral-secondary)', borderLeft: '3px solid var(--border-brand)', borderRadius: '0 6px 6px 0' }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
                           <Lightbulb size={14} style={{ color: 'var(--fg-brand)' }} /> 
-                          <strong style={{ color: 'var(--text-heading)' }}>Bài nên học tiếp:</strong>
+                          <strong style={{ color: 'var(--text-heading)' }}>{t('dashboard.weeklyReportLessonRec')}:</strong>
                         </span>
                         <span style={{ color: 'var(--text-body)', fontSize: '12px' }}>{growth.weeklyReport.recommendation}</span>
                       </p>
@@ -537,16 +542,16 @@ export default function DashboardPage() {
 
               </section>
 
-              <section className="dashboard-competency" aria-label="Năng lực và thành tích" style={{ marginBottom: 'var(--space-6)' }}>
+              <section className="dashboard-competency" aria-label={language === 'vi' ? 'Năng lực và thành tích' : 'Skills and Achievements'} style={{ marginBottom: 'var(--space-6)' }}>
                 <div className="dashboard-xp-panel">
-                  <div className="dashboard-panel-heading"><div><Trophy size={18} /><h2>Cấp {growth.level} · {growth.levelTitle}</h2></div><strong>{growth.xp} XP</strong></div>
+                  <div className="dashboard-panel-heading"><div><Trophy size={18} /><h2>{t('common.level')} {growth.level} · {growth.levelTitle}</h2></div><strong>{growth.xp} XP</strong></div>
                   <div className="dashboard-xp-track"><span style={{ width: `${((growth.xp % 500) / 500) * 100}%` }} /></div>
-                  <small>{500 - (growth.xp % 500)} XP tới cấp tiếp theo</small>
-                  <div className="dashboard-badges"><Award size={16} />{growth.badges.length ? growth.badges.slice(0, 4).map(badge => <span key={badge}>{badge}</span>) : <span>Hoàn thành lab đầu tiên để nhận huy hiệu</span>}</div>
+                  <small>{500 - (growth.xp % 500)} XP {language === 'vi' ? 'tới cấp tiếp theo' : 'to next level'}</small>
+                  <div className="dashboard-badges"><Award size={16} />{growth.badges.length ? growth.badges.slice(0, 4).map(badge => <span key={badge}>{badge}</span>) : <span>{language === 'vi' ? 'Hoàn thành lab đầu tiên để nhận huy hiệu' : 'Complete your first lab to earn badges'}</span>}</div>
                 </div>
                 <div className="dashboard-skill-panel">
-                  <div className="dashboard-panel-heading"><div><ShieldCheck size={18} /><h2>Bản đồ năng lực</h2></div><span>Từ kết quả lab</span></div>
-                  {growth.skills.length ? growth.skills.slice(0, 8).map(skill => <div className="dashboard-skill-row" key={skill.slug}><div><strong>{skill.name}</strong><small>Cấp {skill.level} · {skill.completedLabs} lab</small></div><div><span style={{ width: `${Math.min(100, skill.xp / 5)}%` }} /></div><b>{skill.xp} XP</b></div>) : <p className="dashboard-skill-empty">SQLi, XSS, Access Control và SSRF sẽ xuất hiện khi bạn hoàn thành lab tương ứng.</p>}
+                  <div className="dashboard-panel-heading"><div><ShieldCheck size={18} /><h2>{t('dashboard.competencyMapTitle')}</h2></div><span>{language === 'vi' ? 'Từ kết quả lab' : 'From lab results'}</span></div>
+                  {growth.skills.length ? growth.skills.slice(0, 8).map(skill => <div className="dashboard-skill-row" key={skill.slug}><div><strong>{skill.name}</strong><small>{language === 'vi' ? 'Cấp' : 'Level'} {skill.level} · {skill.completedLabs} lab</small></div><div><span style={{ width: `${Math.min(100, skill.xp / 5)}%` }} /></div><b>{skill.xp} XP</b></div>) : <p className="dashboard-skill-empty">{language === 'vi' ? 'SQLi, XSS, Access Control và SSRF sẽ xuất hiện khi bạn hoàn thành lab tương ứng.' : 'SQLi, XSS, Access Control and SSRF will appear when you complete the corresponding lab.'}</p>}
                 </div>
               </section>
 
@@ -556,12 +561,12 @@ export default function DashboardPage() {
                   <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                       <h2 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <FlaskConical size={28} style={{ color: 'var(--fg-brand)' }} /> Phiên thực hành của bạn
+                        <FlaskConical size={28} style={{ color: 'var(--fg-brand)' }} /> {language === 'vi' ? 'Phiên thực hành của bạn' : 'Your Lab Sessions'}
                       </h2>
-                      <p className="section-subtitle">Lịch sử và tiến độ làm lab gần đây</p>
+                      <p className="section-subtitle">{language === 'vi' ? 'Lịch sử và tiến độ làm lab gần đây' : 'Recent lab history and progress'}</p>
                     </div>
                     <NextLink href="/labs" className="btn btn-secondary btn-sm">
-                      Tất cả labs →
+                      {language === 'vi' ? 'Tất cả labs →' : 'All labs →'}
                     </NextLink>
                   </div>
                   <div className="grid-3">
@@ -580,19 +585,21 @@ export default function DashboardPage() {
             <div className="hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', alignItems: 'center' }}>
               <div>
                 <h1 style={{ fontSize: '2.5rem', fontWeight: 900, lineHeight: 1.1, marginBottom: 'var(--space-2)', color: 'var(--text-heading)' }}>
-                  Học <span className="text-brand">Pentest Web</span> qua{' '}
-                  <span className="text-brand">Thực hành</span>
+                  {language === 'vi' ? (
+                    <>Học <span className="text-brand">Pentest Web</span> qua <span className="text-brand">Thực hành</span></>
+                  ) : (
+                    <>Learn <span className="text-brand">Web Pentest</span> through <span className="text-brand">Practice</span></>
+                  )}
                 </h1>
                 <p style={{ fontSize: '1.0625rem', maxWidth: '50ch', marginBottom: 'var(--space-4)' }}>
-                  Nắm vững kỹ năng khai thác lỗ hổng bảo mật web từ cơ bản đến nâng cao.
-                  Tài liệu chi tiết kết hợp bài lab thực hành tương tác trực tiếp với Docker container.
+                  {t('landing.heroDesc')}
                 </p>
                 <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                   <NextLink href="/labs" className="btn btn-primary btn-lg" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                    <FlaskConical size={18} /> Bắt đầu Lab
+                    <FlaskConical size={18} /> {t('landing.startLab')}
                   </NextLink>
                   <NextLink href="/learning" className="btn btn-secondary btn-lg" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                    <BookOpen size={18} /> Xem lộ trình
+                    <BookOpen size={18} /> {language === 'vi' ? 'Xem lộ trình' : 'View Paths'}
                   </NextLink>
                 </div>
               </div>
@@ -602,10 +609,10 @@ export default function DashboardPage() {
 
           <section className="animate-fade-in-up animate-delay-1" style={{ marginBottom: 'var(--space-6)' }}>
             <div className="grid-4">
-              <StatCard value={String(stats.totalVulnerabilities)} label="Loại lỗ hổng" color="green" />
-              <StatCard value={String(stats.totalLabs)} label="Bài Lab thực hành" color="blue" />
-              <StatCard value="Yêu cầu đăng nhập" label="Hoàn thành" color="orange" />
-              <StatCard value="Yêu cầu đăng nhập" label="Tổng điểm" color="purple" />
+              <StatCard value={String(stats.totalVulnerabilities)} label={t('landing.statsVulns')} color="green" />
+              <StatCard value={String(stats.totalLabs)} label={t('landing.statsLabs')} color="blue" />
+              <StatCard value={t('landing.requireLogin')} label={t('landing.statsCompleted')} color="orange" />
+              <StatCard value={t('landing.requireLogin')} label={t('landing.statsTotalPoints')} color="purple" />
             </div>
           </section>
 
@@ -613,12 +620,12 @@ export default function DashboardPage() {
             <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <h2 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <ShieldAlert size={28} style={{ color: 'var(--fg-brand)' }} /> Lỗ hổng bảo mật
+                  <ShieldAlert size={28} style={{ color: 'var(--fg-brand)' }} /> {t('sidebar.vulnerabilities')}
                 </h2>
-                <p className="section-subtitle">Khám phá và học cách khai thác các lỗ hổng web phổ biến nhất</p>
+                <p className="section-subtitle">{language === 'vi' ? 'Khám phá và học cách khai thác các lỗ hổng web phổ biến nhất' : 'Explore and learn to exploit the most common web vulnerabilities'}</p>
               </div>
               <NextLink href="/vulnerabilities" className="btn btn-secondary btn-sm">
-                Xem tất cả →
+                {language === 'vi' ? 'Xem tất cả →' : 'See all →'}
               </NextLink>
             </div>
             <div className="grid-4">
@@ -636,12 +643,12 @@ export default function DashboardPage() {
             <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <h2 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <BookOpen size={28} style={{ color: 'var(--fg-brand)' }} /> Lộ trình học
+                  <BookOpen size={28} style={{ color: 'var(--fg-brand)' }} /> {t('sidebar.learningPaths')}
                 </h2>
-                <p className="section-subtitle">Từ người mới bắt đầu đến chuyên gia pentest</p>
+                <p className="section-subtitle">{language === 'vi' ? 'Từ người mới bắt đầu đến chuyên gia pentest' : 'From absolute beginner to expert pentester'}</p>
               </div>
               <NextLink href="/learning" className="btn btn-secondary btn-sm">
-                Xem tất cả →
+                {language === 'vi' ? 'Xem tất cả →' : 'See all →'}
               </NextLink>
             </div>
             <div className="grid-3">

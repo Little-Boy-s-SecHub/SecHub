@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { api, Lab, LabAttempt, LabFeedback, MentorGuidance, resolveApiUrl } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from '@/context/LanguageContext';
 import LabSimulator from '@/components/LabSimulator';
 import LabGameView from '@/components/LabGameView';
 import LabCompletionFeedback from '@/components/LabCompletionFeedback';
@@ -33,6 +34,7 @@ import LabCompletionFeedback from '@/components/LabCompletionFeedback';
 export default function LabPlayPage({ params }: { params: Promise<{ labId: string }> }) {
   const { labId } = use(params);
   const { isAuthenticated, loading: authLoading } = useAuth();
+  const { t, language } = useTranslation();
   const router = useRouter();
 
   const [lab, setLab] = useState<Lab | null>(null);
@@ -337,16 +339,16 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
         <div className="card" style={{ textAlign: 'center', padding: '40px', maxWidth: '500px', margin: '0 auto' }}>
           <AlertCircle size={48} style={{ color: 'var(--fg-danger)', margin: '0 auto 16px' }} />
           <h3 style={{ fontSize: '1.25rem', marginBottom: '8px' }}>
-            {labNotFound ? 'Bài lab không còn tồn tại' : 'Lỗi tải trang'}
+            {labNotFound ? (language === 'vi' ? 'Bài lab không còn tồn tại' : 'Lab Challenge Not Found') : t('common.error')}
           </h3>
           <p style={{ color: 'var(--text-body-subtle)', marginBottom: '24px' }}>
             {labNotFound
-              ? 'Lab AI này đã bị xoá hoặc liên kết bạn mở đã cũ. Container cũ không còn được sử dụng.'
-              : apiError || 'Không tìm thấy thông tin phòng Lab.'}
+              ? (language === 'vi' ? 'Lab AI này đã bị xoá hoặc liên kết bạn mở đã cũ. Container cũ không còn được sử dụng.' : 'This AI lab has been deleted or the link you opened is old. Old container is no longer used.')
+              : apiError || (language === 'vi' ? 'Không tìm thấy thông tin phòng Lab.' : 'Lab workspace information not found.')}
           </p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <Link href="/labs" className="btn btn-primary">Chọn bài lab khác</Link>
-            <Link href="/learning" className="btn btn-secondary">Quay lại bài học</Link>
+            <Link href="/labs" className="btn btn-primary">{language === 'vi' ? 'Chọn bài lab khác' : 'Choose another lab'}</Link>
+            <Link href="/learning" className="btn btn-secondary">{t('lesson.backToSyllabus')}</Link>
           </div>
         </div>
       </div>
@@ -358,12 +360,12 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--bg-neutral-primary)', padding: '20px' }}>
         <div className="card" style={{ textAlign: 'center', padding: '40px', maxWidth: '600px', margin: '0 auto' }}>
           <FlaskConical size={56} style={{ color: 'var(--fg-brand)', margin: '0 auto 20px' }} />
-          <h2 style={{ marginBottom: '12px' }}>Môi trường Lab chưa được khởi chạy</h2>
+          <h2 style={{ marginBottom: '12px' }}>{language === 'vi' ? 'Môi trường Lab chưa được khởi chạy' : 'Lab Environment Not Launched'}</h2>
           <p style={{ color: 'var(--text-body-subtle)', marginBottom: '30px', lineHeight: 1.6 }}>
-            Phòng thực hành ảo chứa ứng dụng lỗi chưa được dựng lên cho bạn. Vui lòng quay lại trang thông tin chi tiết và nhấn nút "Khởi động Lab".
+            {language === 'vi' ? 'Phòng thực hành ảo chứa ứng dụng lỗi chưa được dựng lên cho bạn. Vui lòng quay lại trang thông tin chi tiết và nhấn nút "Khởi động Lab".' : 'The virtual sandbox environment containing the vulnerable app has not been spawned. Please go back to the details page and click "Start Lab".'}
           </p>
           <Link href={`/labs/${labId}`} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-            <ArrowLeft size={16} /> Quay lại trang chi tiết Lab
+            <ArrowLeft size={16} /> {language === 'vi' ? 'Quay lại trang chi tiết Lab' : 'Back to Lab Details'}
           </Link>
         </div>
       </div>
@@ -375,18 +377,18 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
       <div style={{ display: 'grid', placeItems: 'center', minHeight: '100vh', background: 'var(--bg-neutral-primary)', padding: '24px' }}>
         <div className="card" style={{ width: '100%', maxWidth: '620px', padding: '40px', textAlign: 'center' }}>
           <Clock3 size={52} style={{ color: 'var(--fg-danger)', margin: '0 auto 18px' }} />
-          <h2 style={{ marginBottom: '10px' }}>Phiên lab đã hết 60 phút</h2>
+          <h2 style={{ marginBottom: '10px' }}>{language === 'vi' ? 'Phiên lab đã hết 60 phút' : 'Lab Session Expired (60 mins)'}</h2>
           <p style={{ color: 'var(--text-body-subtle)', lineHeight: 1.65, marginBottom: '26px' }}>
-            Container đã được dừng tự động. Bạn có thể làm lại đúng bài này hoặc tạo một biến thể có cùng loại lỗ hổng.
+            {language === 'vi' ? 'Container đã được dừng tự động. Bạn có thể làm lại đúng bài này hoặc tạo một biến thể có cùng loại lỗ hổng.' : 'The container has been stopped automatically. You can restart this lab or generate a similar variant with the same vulnerability.'}
           </p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
             <button className="btn btn-primary" onClick={handleRestartLab} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
-              <RotateCcw size={16} /> Làm lại bài này
+              <RotateCcw size={16} /> {language === 'vi' ? 'Làm lại bài này' : 'Restart This Lab'}
             </button>
             <button className="btn btn-secondary" onClick={handleCreateSimilar} disabled={creatingSimilar} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
-              <Sparkles size={16} /> {creatingSimilar ? 'Đang tạo...' : 'Tạo lab tương tự'}
+              <Sparkles size={16} /> {creatingSimilar ? (language === 'vi' ? 'Đang tạo...' : 'Generating...') : (language === 'vi' ? 'Tạo lab tương tự' : 'Generate Similar Lab')}
             </button>
-            <Link href="/labs" className="btn btn-secondary">Về danh sách</Link>
+            <Link href="/labs" className="btn btn-secondary">{language === 'vi' ? 'Về danh sách' : 'Back to List'}</Link>
           </div>
         </div>
       </div>
@@ -712,7 +714,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
               transition: 'all 0.2s'
             }}
           >
-            <ArrowLeft size={14} /> Quay lại
+            <ArrowLeft size={14} /> {t('common.back')}
           </Link>
           <div style={{ width: '1px', height: '20px', background: 'var(--border-default)' }}></div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -720,7 +722,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
               {lab.title}
             </h1>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(0,122,85,0.08)', border: '1px solid rgba(0,122,85,0.15)', color: 'var(--fg-success-strong)', fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px' }}>
-              <span style={activeDotStyle}></span> Đang mở
+              <span style={activeDotStyle}></span> {language === 'vi' ? 'Đang mở' : 'Active'}
             </span>
           </div>
         </div>
@@ -731,13 +733,13 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
             <Clock3 size={15} />
             {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}
             {remainingSeconds > 0 && remainingSeconds <= 600 && (currentAttempt?.extensionCount || 0) < 1 && (
-              <button className="btn btn-secondary btn-sm" onClick={handleExtendTime} disabled={extending} title="Gia hạn thêm 30 phút">
-                <TimerReset size={14} /> {extending ? 'Đang xin...' : '+30 phút'}
+              <button className="btn btn-secondary btn-sm" onClick={handleExtendTime} disabled={extending} title={language === 'vi' ? "Gia hạn thêm 30 phút" : "Extend by 30 mins"}>
+                <TimerReset size={14} /> {extending ? (language === 'vi' ? 'Đang xin...' : 'Requesting...') : (language === 'vi' ? '+30 phút' : '+30 mins')}
               </button>
             )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--fg-brand)', fontSize: '13px', fontWeight: 600 }}>
-            <Trophy size={14} /> {lab.points} điểm
+            <Trophy size={14} /> {t('labs.pointsAward', { points: lab.points })}
           </div>
 
           <div style={{
@@ -765,7 +767,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
                 transition: 'all 0.2s',
               }}
             >
-              <LayoutGrid size={13} /> Giao diện Chuẩn
+              <LayoutGrid size={13} /> {language === 'vi' ? 'Giao diện Chuẩn' : 'Standard UI'}
             </button>
             <button
               onClick={() => setViewMode('game')}
@@ -785,7 +787,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
                 transition: 'all 0.2s',
               }}
             >
-              <Gamepad2 size={13} /> Chế độ Game 2D
+              <Gamepad2 size={13} /> {language === 'vi' ? 'Chế độ Game 2D' : '2D Game Mode'}
             </button>
           </div>
         </div>
@@ -811,8 +813,8 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', marginBottom: '8px', border: '1px solid rgba(190,55,55,.25)', borderRadius: '6px', background: 'rgba(190,55,55,.06)', color: 'var(--fg-danger)', fontSize: '12px' }}>
                 <AlertCircle size={15} />
                 <span style={{ flex: 1 }}>{runtimeError}</span>
-                <button className="btn btn-secondary btn-sm" onClick={() => setRuntimeCheck(value => value + 1)}>Thử lại</button>
-                <Link className="btn btn-secondary btn-sm" href={`/labs/${labId}`}>Quay về lab</Link>
+                <button className="btn btn-secondary btn-sm" onClick={() => setRuntimeCheck(value => value + 1)}>{language === 'vi' ? 'Thử lại' : 'Retry'}</button>
+                <Link className="btn btn-secondary btn-sm" href={`/labs/${labId}`}>{language === 'vi' ? 'Quay về lab' : 'Back to Lab'}</Link>
               </div>
             )}
             {labStatus === 'starting' ? (
@@ -838,7 +840,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
                   </div>
                 </div>
                 <p style={{ color: 'var(--text-body-subtle)', fontSize: '13px', margin: 0 }}>
-                  Đang khởi chạy môi trường thực hành ảo...
+                  {t('labDetail.startingSandbox')}
                 </p>
               </div>
             ) : isSimulated ? (
@@ -863,7 +865,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
                     <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#27c93f', display: 'inline-block' }}></span>
                   </div>
                   <div style={{ background: 'var(--bg-neutral-secondary-medium)', border: '1px solid var(--border-default-medium)', borderRadius: '4px', padding: '2px 12px', fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-body-subtle)', flex: 1, textAlign: 'center', maxWidth: '500px', margin: '0 auto' }}>
-                    {activeRuntimeUrl || 'Runtime chưa sẵn sàng'}
+                    {activeRuntimeUrl || (language === 'vi' ? 'Runtime chưa sẵn sàng' : 'Runtime not ready')}
                   </div>
                 </div>
                 <iframe 
@@ -880,26 +882,26 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
             {/* Sidebar main view */}
             {/* Objectives */}
             <div className="card">
-              <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, marginBottom: '8px' }}>Thông tin bài lab</h3>
+              <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, marginBottom: '8px' }}>{language === 'vi' ? 'Thông tin bài lab' : 'Lab Challenge Information'}</h3>
               <p style={{ fontSize: '13px', color: 'var(--text-body-subtle)', lineHeight: 1.65, margin: 0 }}>{lab.description}</p>
             </div>
 
             <div className="card">
               <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Target size={16} style={{ color: 'var(--fg-brand)' }} /> Nhiệm vụ bài thực hành
+                <Target size={16} style={{ color: 'var(--fg-brand)' }} /> {language === 'vi' ? 'Nhiệm vụ bài thực hành' : 'Practice Challenge Objectives'}
               </h3>
               <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '10px', padding: 0, margin: 0 }}>
                 <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: 'var(--text-body)', lineHeight: 1.55 }}>
                   <span style={{ color: 'var(--fg-brand)', fontWeight: 'bold', flexShrink: 0 }}>✓</span>
-                  Phân tích giao diện web bên trái để tìm kiếm lỗ hổng.
+                  {language === 'vi' ? 'Phân tích giao diện web bên trái để tìm kiếm lỗ hổng.' : 'Analyze the web interface on the left to locate vulnerability entry points.'}
                 </li>
                 <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: 'var(--text-body)', lineHeight: 1.55 }}>
                   <span style={{ color: 'var(--fg-brand)', fontWeight: 'bold', flexShrink: 0 }}>✓</span>
-                  Khai thác lỗ hổng {lab.vulnerabilityName} bằng payload tương ứng.
+                  {language === 'vi' ? `Khai thác lỗ hổng ${lab.vulnerabilityName} bằng payload tương ứng.` : `Exploit the ${lab.vulnerabilityName} vulnerability using suitable payloads.`}
                 </li>
                 <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: 'var(--text-body)', lineHeight: 1.55 }}>
                   <span style={{ color: 'var(--fg-brand)', fontWeight: 'bold', flexShrink: 0 }}>✓</span>
-                  Tìm chuỗi cờ bí mật (FLAG) nộp ở khung phía dưới.
+                  {language === 'vi' ? 'Tìm chuỗi cờ bí mật (FLAG) nộp ở khung phía dưới.' : 'Find the secret flag value (FLAG) and submit it below.'}
                 </li>
               </ul>
             </div>
@@ -908,7 +910,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
             <div className="card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-                  <Lightbulb size={16} style={{ color: 'var(--fg-brand)' }} /> Danh sách Gợi ý
+                  <Lightbulb size={16} style={{ color: 'var(--fg-brand)' }} /> {language === 'vi' ? 'Danh sách Gợi ý' : 'Hints List'}
                 </h3>
                 <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', background: 'var(--bg-neutral-secondary)', padding: '2px 8px', borderRadius: '4px', color: 'var(--text-body-subtle)' }}>
                   {revealedHints}/{hints.length}
@@ -952,7 +954,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
                         ) : (
                           <Lock size={13} />
                         )}
-                        Gợi ý {i + 1}
+                        {language === 'vi' ? 'Gợi ý' : 'Hint'} {i + 1}
                       </span>
                       <span>
                         {i < revealedHints && openHintIndexes.has(i) ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
@@ -969,9 +971,9 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
 
               {labStatus === 'running' && <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border-default)' }}>
                 <button className="btn btn-secondary btn-sm" onClick={handleAskMentor} disabled={askingMentor} style={{ width: '100%' }}>
-                  <Sparkles size={14} /> {askingMentor ? 'Mentor đang suy nghĩ...' : 'Hỏi AI mentor (không trừ điểm)'}
+                  <Sparkles size={14} /> {askingMentor ? (language === 'vi' ? 'Mentor đang suy nghĩ...' : 'Mentor thinking...') : (language === 'vi' ? 'Hỏi AI mentor (không trừ điểm)' : 'Ask AI Mentor (no penalty)')}
                 </button>
-                {mentor && <div style={{ marginTop: '9px', padding: '11px 12px', borderLeft: '3px solid var(--border-brand)', background: 'var(--bg-brand-softer)', fontSize: '12.5px', lineHeight: 1.6 }}><strong>Câu hỏi dẫn dắt:</strong> {mentor.question}</div>}
+                {mentor && <div style={{ marginTop: '9px', padding: '11px 12px', borderLeft: '3px solid var(--border-brand)', background: 'var(--bg-brand-softer)', fontSize: '12.5px', lineHeight: 1.6 }}><strong>{language === 'vi' ? 'Câu hỏi dẫn dắt:' : 'Guiding question:'}</strong> {mentor.question}</div>}
               </div>}
 
               {revealedHints < hints.length && labStatus === 'running' && (
@@ -980,7 +982,10 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
                   onClick={handleRevealHint}
                   style={{ marginTop: '10px', width: '100%', padding: '8px' }}
                 >
-                  {mentor ? `Mở gợi ý tiếp theo (-${lab.points / 10} điểm)` : 'Nhận câu hỏi từ AI mentor trước'}
+                  {mentor 
+                    ? (language === 'vi' ? `Mở gợi ý tiếp theo (-${lab.points / 10} điểm)` : `Unlock next hint (-${lab.points / 10} pts)`) 
+                    : (language === 'vi' ? 'Nhận câu hỏi từ AI mentor trước' : 'Get a question from AI mentor first')
+                  }
                 </button>
               )}
             </div>
@@ -988,7 +993,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
             {/* Flag Submission */}
             <div className="card">
               <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Flag size={16} style={{ color: 'var(--fg-brand)' }} /> Nộp kết quả (FLAG)
+                <Flag size={16} style={{ color: 'var(--fg-brand)' }} /> {language === 'vi' ? 'Nộp kết quả (FLAG)' : 'Submit Result (FLAG)'}
               </h3>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input
@@ -1018,17 +1023,17 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
                   disabled={labStatus === 'completed' || !flagValue.trim()}
                   style={{ fontWeight: 600, padding: '0 16px', borderRadius: '6px', cursor: 'pointer' }}
                 >
-                  Gửi Flag
+                  {language === 'vi' ? 'Gửi Flag' : 'Submit Flag'}
                 </button>
               </div>
               {flagResult === 'correct' && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--fg-success-strong)', fontSize: '13px', marginTop: '12px' }}>
-                  <CheckCircle2 size={14} /> Chúc mừng! Bạn đã hoàn thành xuất sắc bài lab này! +{lab.points} điểm.
+                  <CheckCircle2 size={14} /> {language === 'vi' ? `Chúc mừng! Bạn đã hoàn thành xuất sắc bài lab này! +${lab.points} điểm.` : `Congratulations! You successfully completed this lab! +${lab.points} points.`}
                 </div>
               )}
               {flagResult === 'wrong' && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--fg-danger)', fontSize: '13px', marginTop: '12px' }}>
-                  <AlertCircle size={14} /> Flag không chính xác. Hãy tiếp tục thử sức nhé!
+                  <AlertCircle size={14} /> {language === 'vi' ? 'Flag không chính xác. Hãy tiếp tục thử sức nhé!' : 'Incorrect flag. Please try again!'}
                 </div>
               )}
             </div>

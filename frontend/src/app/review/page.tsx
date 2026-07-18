@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { BrainCircuit, CheckCircle2, Code2, FlaskConical, LoaderCircle, RotateCcw, Sparkles, XCircle } from 'lucide-react';
 import { api, Flashcard, ReviewDashboard } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from '@/context/LanguageContext';
 import PageBackLink from '@/components/PageBackLink';
 
 type Result = { correct: boolean; correctAnswer: string; explanation: string; nextReviewAt: string };
@@ -12,6 +13,7 @@ type Result = { correct: boolean; correctAnswer: string; explanation: string; ne
 export default function ReviewPage() {
   const router = useRouter();
   const { isAuthenticated, loading: authLoading } = useAuth();
+  const { t, language } = useTranslation();
   const [dashboard, setDashboard] = useState<ReviewDashboard | null>(null);
   const [cards, setCards] = useState<Flashcard[]>([]);
   const [index, setIndex] = useState(0);
@@ -57,16 +59,16 @@ export default function ReviewPage() {
     } catch (e: any) { setError(e.message); setDailyLoading(false); }
   };
 
-  if (loading || authLoading) return <div className="review-loading"><LoaderCircle className="spin" /> Đang chuẩn bị bộ ôn tập...</div>;
+  if (loading || authLoading) return <div className="review-loading"><LoaderCircle className="spin" /> {language === 'vi' ? 'Đang chuẩn bị bộ ôn tập...' : 'Preparing review cards...'}</div>;
 
   return (
     <div>
-      <PageBackLink href="/" label="Quay lại Dashboard" />
+      <PageBackLink href="/" label={language === 'vi' ? 'Quay lại Dashboard' : 'Back to Dashboard'} />
       <div className="review-header">
         <div>
-          <div className="review-kicker">Học lại đúng lúc</div>
-          <h1 className="section-title"><BrainCircuit size={28} /> Ôn tập thông minh</h1>
-          <p className="section-subtitle">Củng cố code lỗi, payload và tư duy khai thác từ những bài bạn đã hoàn thành.</p>
+          <div className="review-kicker">{language === 'vi' ? 'Học lại đúng lúc' : 'Learn at the right time'}</div>
+          <h1 className="section-title"><BrainCircuit size={28} /> {language === 'vi' ? 'Ôn tập thông minh' : 'Smart Review'}</h1>
+          <p className="section-subtitle">{language === 'vi' ? 'Củng cố code lỗi, payload và tư duy khai thác từ những bài bạn đã hoàn thành.' : 'Reinforce vulnerability detection, payloads, and hacking mindsets from completed lessons.'}</p>
         </div>
         <button className="btn btn-primary review-daily-button" onClick={openDailyLab} disabled={dailyLoading}>
           {dailyLoading ? <LoaderCircle size={16} className="spin" /> : <FlaskConical size={16} />}
@@ -75,9 +77,9 @@ export default function ReviewPage() {
       </div>
 
       <div className="review-stats">
-        <div><span>Cần ôn hôm nay</span><strong>{dashboard?.dueCount || 0}</strong></div>
-        <div><span>Tổng flashcard</span><strong>{dashboard?.totalCards || 0}</strong></div>
-        <div><span>Tiến độ phiên</span><strong>{cards.length ? `${Math.min(index + 1, cards.length)}/${cards.length}` : '0/0'}</strong></div>
+        <div><span>{language === 'vi' ? 'Cần ôn hôm nay' : 'Due Today'}</span><strong>{dashboard?.dueCount || 0}</strong></div>
+        <div><span>{language === 'vi' ? 'Tổng flashcard' : 'Total Flashcards'}</span><strong>{dashboard?.totalCards || 0}</strong></div>
+        <div><span>{language === 'vi' ? 'Tiến độ phiên' : 'Session Progress'}</span><strong>{cards.length ? `${Math.min(index + 1, cards.length)}/${cards.length}` : '0/0'}</strong></div>
       </div>
 
       {error && <div className="lesson-lab-error">{error}</div>}
@@ -85,20 +87,20 @@ export default function ReviewPage() {
       {!card ? (
         <div className="review-empty">
           <CheckCircle2 size={44} />
-          <h2>{dashboard?.totalCards ? 'Bạn đã ôn xong hôm nay' : 'Chưa có bài để tạo flashcard'}</h2>
-          <p>{dashboard?.totalCards ? 'Các thẻ sẽ quay lại theo lịch ghi nhớ của bạn.' : 'Hãy hoàn thành một bài học, sau đó quay lại đây để bắt đầu ôn tập.'}</p>
-          <button className="btn btn-primary" onClick={() => router.push('/learning')}>Đi đến lộ trình học</button>
+          <h2>{dashboard?.totalCards ? (language === 'vi' ? 'Bạn đã ôn xong hôm nay' : 'You completed today\'s review!') : (language === 'vi' ? 'Chưa có bài để tạo flashcard' : 'No lessons to build flashcards yet')}</h2>
+          <p>{dashboard?.totalCards ? (language === 'vi' ? 'Các thẻ sẽ quay lại theo lịch ghi nhớ của bạn.' : 'Cards will reappear according to your spaced repetition schedule.') : (language === 'vi' ? 'Hãy hoàn thành một bài học, sau đó quay lại đây để bắt đầu ôn tập.' : 'Complete a lesson first, then return here to start reviewing.')}</p>
+          <button className="btn btn-primary" onClick={() => router.push('/learning')}>{language === 'vi' ? 'Đi đến lộ trình học' : 'Go to Learning Paths'}</button>
         </div>
       ) : (
         <section className="review-session">
           <div className="review-session-heading">
-            <span>Phiên ôn hôm nay</span>
+            <span>{language === 'vi' ? 'Phiên ôn hôm nay' : 'Today\'s Review Session'}</span>
             <span>{Math.round(progress)}%</span>
           </div>
           <div className="review-progress"><span style={{ width: `${progress}%` }} /></div>
           <div className="review-card">
             <div className="review-card-meta">
-              <span><Code2 size={14} /> {card.type === 'CODE_REVIEW' ? 'Đọc code' : card.type === 'PAYLOAD' ? 'Payload' : 'Kiến thức'}</span>
+              <span><Code2 size={14} /> {card.type === 'CODE_REVIEW' ? (language === 'vi' ? 'Đọc code' : 'Code Review') : card.type === 'PAYLOAD' ? 'Payload' : (language === 'vi' ? 'Kiến thức' : 'General')}</span>
               <span>{card.lessonTitle}</span>
             </div>
             <h2>{card.question}</h2>
@@ -113,16 +115,16 @@ export default function ReviewPage() {
 
             {!result ? (
               <div className="review-ratings">
-                <button disabled={!answer || submitting} onClick={() => submit('AGAIN')}><span><RotateCcw size={15} /> Quên</span><small>Ôn lại sau 8 giờ</small></button>
-                <button disabled={!answer || submitting} onClick={() => submit('HARD')}><span>Khó</span><small>Ôn lại sau 2 ngày</small></button>
-                <button disabled={!answer || submitting} onClick={() => submit('GOOD')}><span>Nhớ</span><small>Ôn lại sau 4 ngày</small></button>
-                <button disabled={!answer || submitting} onClick={() => submit('EASY')}><span><Sparkles size={15} /> Dễ</span><small>Ôn lại sau 7 ngày</small></button>
+                <button disabled={!answer || submitting} onClick={() => submit('AGAIN')}><span><RotateCcw size={15} /> {language === 'vi' ? 'Quên' : 'Again'}</span><small>{language === 'vi' ? 'Ôn lại sau 8 giờ' : 'Review in 8 hrs'}</small></button>
+                <button disabled={!answer || submitting} onClick={() => submit('HARD')}><span>{language === 'vi' ? 'Khó' : 'Hard'}</span><small>{language === 'vi' ? 'Ôn lại sau 2 ngày' : 'Review in 2 days'}</small></button>
+                <button disabled={!answer || submitting} onClick={() => submit('GOOD')}><span>{language === 'vi' ? 'Nhớ' : 'Good'}</span><small>{language === 'vi' ? 'Ôn lại sau 4 ngày' : 'Review in 4 days'}</small></button>
+                <button disabled={!answer || submitting} onClick={() => submit('EASY')}><span><Sparkles size={15} /> {language === 'vi' ? 'Dễ' : 'Easy'}</span><small>{language === 'vi' ? 'Ôn lại sau 7 ngày' : 'Review in 7 days'}</small></button>
               </div>
             ) : (
               <div className={`review-result ${result.correct ? 'correct' : 'wrong'}`}>
-                <div className="review-result-title">{result.correct ? <CheckCircle2 size={20} /> : <XCircle size={20} />}{result.correct ? 'Chính xác' : `Đáp án: ${result.correctAnswer}`}</div>
+                <div className="review-result-title">{result.correct ? <CheckCircle2 size={20} /> : <XCircle size={20} />}{result.correct ? (language === 'vi' ? 'Chính xác' : 'Correct!') : (language === 'vi' ? `Đáp án: ${result.correctAnswer}` : `Answer: ${result.correctAnswer}`)}</div>
                 <p>{result.explanation}</p>
-                <button className="btn btn-primary" onClick={next}>{index + 1 < cards.length ? 'Thẻ tiếp theo' : 'Hoàn tất phiên ôn'}</button>
+                <button className="btn btn-primary" onClick={next}>{index + 1 < cards.length ? (language === 'vi' ? 'Thẻ tiếp theo' : 'Next Card') : (language === 'vi' ? 'Hoàn tất phiên ôn' : 'Finish Session')}</button>
               </div>
             )}
           </div>

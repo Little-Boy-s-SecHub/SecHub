@@ -5,10 +5,12 @@ import Link from 'next/link';
 import { BookOpen, Clock, CheckCircle2, Sparkles } from 'lucide-react';
 import { api, LearningPath } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from '@/context/LanguageContext';
 import PageBackLink from '@/components/PageBackLink';
 
 export default function LearningPage() {
   const { isAuthenticated } = useAuth();
+  const { t, language } = useTranslation();
   const [paths, setPaths] = useState<LearningPath[]>([]);
   const [loading, setLoading] = useState(true);
   const [recommendedTrack, setRecommendedTrack] = useState<string | null>(null);
@@ -38,14 +40,16 @@ export default function LearningPage() {
 
   return (
     <div>
-      <PageBackLink href="/" label="Quay lại Dashboard" />
+      <PageBackLink href="/" label={language === 'vi' ? 'Quay lại Dashboard' : 'Back to Dashboard'} />
       <div className="section-header">
         <h1 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <BookOpen size={28} style={{ color: 'var(--fg-brand)' }} /> Lộ trình học
+          <BookOpen size={28} style={{ color: 'var(--fg-brand)' }} /> {language === 'vi' ? 'Lộ trình học' : 'Learning Paths'}
         </h1>
         <p className="section-subtitle">
-          Các khóa học được thiết kế theo lộ trình từ người mới bắt đầu đến chuyên gia pentest.
-          Mỗi lộ trình bao gồm bài giảng lý thuyết và bài lab thực hành.
+          {language === 'vi' 
+            ? 'Các khóa học được thiết kế theo lộ trình từ người mới bắt đầu đến chuyên gia pentest. Mỗi lộ trình bao gồm bài giảng lý thuyết và bài lab thực hành.'
+            : 'Courses structured as learning paths from beginner to pentest expert. Each path contains theoretical lessons and hands-on labs.'
+          }
         </p>
       </div>
 
@@ -66,8 +70,8 @@ export default function LearningPage() {
                               path.difficulty === 'INTERMEDIATE' ? 'badge-medium-diff' : 
                               'badge-hard';
             
-            const diffLabel = path.difficulty === 'BEGINNER' ? 'Cơ bản' : 
-                             path.difficulty === 'INTERMEDIATE' ? 'Trung bình' : 'Nâng cao';
+            const diffLabel = path.difficulty === 'BEGINNER' ? t('common.beginner') : 
+                             path.difficulty === 'INTERMEDIATE' ? t('common.intermediate') : t('common.advanced');
 
             const isRecommended = (recommendedTrack === 'BEGINNER' && path.difficulty === 'BEGINNER') ||
                                   (recommendedTrack === 'WEB_DEVELOPER' && path.difficulty === 'INTERMEDIATE') ||
@@ -88,11 +92,11 @@ export default function LearningPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 'var(--space-4)', alignItems: 'center' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-2)', flexWrap: 'wrap' }}>
-                        <span className="path-card-number">Lộ trình {index + 1}</span>
+                        <span className="path-card-number">{language === 'vi' ? 'Lộ trình' : 'Path'} {index + 1}</span>
                         <span className={`badge ${diffClass}`}>{diffLabel}</span>
                         {isRecommended && (
                           <span className="badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 800, background: 'var(--bg-brand-softer)', color: 'var(--fg-brand-strong)', border: '1px solid var(--border-brand-subtle)' }}>
-                            <Sparkles size={11} /> Khuyên dùng cho bạn
+                            <Sparkles size={11} /> {language === 'vi' ? 'Khuyên dùng cho bạn' : 'Recommended for you'}
                           </span>
                         )}
                       </div>
@@ -105,14 +109,14 @@ export default function LearningPage() {
 
                       <div className="path-card-stats" style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                         <span className="path-card-stat" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <BookOpen size={14} /> {lessonCount} bài học
+                          <BookOpen size={14} /> {lessonCount} {language === 'vi' ? 'bài học' : 'lessons'}
                         </span>
                         <span className="path-card-stat" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <Clock size={14} /> ~{path.estimatedHours} giờ
+                          <Clock size={14} /> ~{path.estimatedHours} {language === 'vi' ? 'giờ' : 'hours'}
                         </span>
                         {isAuthenticated && (
                           <span className="path-card-stat" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            <CheckCircle2 size={14} /> {completedLessons}/{lessonCount} hoàn thành
+                            <CheckCircle2 size={14} /> {completedLessons}/{lessonCount} {language === 'vi' ? 'hoàn thành' : 'completed'}
                           </span>
                         )}
                       </div>
@@ -147,7 +151,7 @@ export default function LearningPage() {
                             {Math.round(progress)}%
                           </div>
                         </div>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-body-subtle)' }}>Tiến độ</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-body-subtle)' }}>{language === 'vi' ? 'Tiến độ' : 'Progress'}</span>
                       </div>
                     )}
                   </div>

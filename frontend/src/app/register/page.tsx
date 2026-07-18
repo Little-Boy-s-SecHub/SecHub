@@ -4,11 +4,13 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from '@/context/LanguageContext';
 import { Shield, Lock, User, Mail, AlertCircle } from 'lucide-react';
 import PageBackLink from '@/components/PageBackLink';
 
 export default function RegisterPage() {
   const { register } = useAuth();
+  const { language } = useTranslation();
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -20,12 +22,12 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !email.trim() || !password.trim()) {
-      setError('Vui lòng điền đầy đủ các thông tin bắt buộc.');
+      setError(language === 'vi' ? 'Vui lòng điền đầy đủ các thông tin bắt buộc.' : 'Please fill in all required fields.');
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Mật khẩu nhập lại không khớp.');
+      setError(language === 'vi' ? 'Mật khẩu nhập lại không khớp.' : 'Passwords do not match.');
       return;
     }
 
@@ -36,7 +38,7 @@ export default function RegisterPage() {
       await register(username, email, password);
       router.push('/');
     } catch (err: any) {
-      setError(err.message || 'Đăng ký thất bại. Tên đăng nhập hoặc email có thể đã được sử dụng.');
+      setError(err.message || (language === 'vi' ? 'Đăng ký thất bại. Tên đăng nhập hoặc email có thể đã được sử dụng.' : 'Registration failed. The username or email may already be in use.'));
     } finally {
       setLoading(false);
     }
@@ -56,7 +58,7 @@ export default function RegisterPage() {
         padding: 'var(--space-4)',
         boxShadow: 'var(--shadow-xl)'
       }}>
-        <PageBackLink href="/" label="Quay lại Dashboard" />
+        <PageBackLink href="/" label={language === 'vi' ? 'Quay lại Dashboard' : 'Back to Dashboard'} />
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 'var(--space-3)' }}>
           <div style={{
@@ -72,9 +74,9 @@ export default function RegisterPage() {
           }}>
             <Shield size={24} />
           </div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '4px' }}>Tạo tài khoản mới</h2>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '4px' }}>{language === 'vi' ? 'Tạo tài khoản mới' : 'Create New Account'}</h2>
           <p style={{ fontSize: '13px', color: 'var(--text-body-subtle)', margin: '0 auto' }}>
-            Bắt đầu lộ trình học và thực hành kiểm thử bảo mật
+            {language === 'vi' ? 'Bắt đầu lộ trình học và thực hành kiểm thử bảo mật' : 'Start your security learning path & practice labs'}
           </p>
         </div>
 
@@ -104,7 +106,7 @@ export default function RegisterPage() {
               color: 'var(--text-heading)',
               marginBottom: '6px'
             }}>
-              Tên đăng nhập *
+              {language === 'vi' ? 'Tên đăng nhập' : 'Username'} *
             </label>
             <div style={{ position: 'relative' }}>
               <span style={{
@@ -123,7 +125,7 @@ export default function RegisterPage() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Nhập tên đăng nhập"
+                placeholder={language === 'vi' ? 'Nhập tên đăng nhập' : 'Enter your username'}
                 style={{
                   width: '100%',
                   background: 'var(--bg-neutral-secondary-medium)',
@@ -147,7 +149,7 @@ export default function RegisterPage() {
               color: 'var(--text-heading)',
               marginBottom: '6px'
             }}>
-              Địa chỉ Email *
+              {language === 'vi' ? 'Địa chỉ Email' : 'Email Address'} *
             </label>
             <div style={{ position: 'relative' }}>
               <span style={{
@@ -190,7 +192,7 @@ export default function RegisterPage() {
               color: 'var(--text-heading)',
               marginBottom: '6px'
             }}>
-              Mật khẩu *
+              {language === 'vi' ? 'Mật khẩu' : 'Password'} *
             </label>
             <div style={{ position: 'relative' }}>
               <span style={{
@@ -233,7 +235,7 @@ export default function RegisterPage() {
               color: 'var(--text-heading)',
               marginBottom: '6px'
             }}>
-              Nhập lại mật khẩu *
+              {language === 'vi' ? 'Nhập lại mật khẩu' : 'Confirm Password'} *
             </label>
             <div style={{ position: 'relative' }}>
               <span style={{
@@ -274,7 +276,7 @@ export default function RegisterPage() {
             style={{ width: '100%', marginTop: 'var(--space-1)', padding: '12px' }}
             disabled={loading}
           >
-            {loading ? 'Đang khởi tạo...' : 'Đăng ký tài khoản'}
+            {loading ? (language === 'vi' ? 'Đang khởi tạo...' : 'Registering...') : (language === 'vi' ? 'Đăng ký tài khoản' : 'Register Account')}
           </button>
         </form>
 
@@ -285,9 +287,9 @@ export default function RegisterPage() {
           fontSize: '13px',
           color: 'var(--text-body-subtle)'
         }}>
-          Đã có tài khoản?{' '}
+          {language === 'vi' ? 'Đã có tài khoản?' : 'Already have an account?'}{' '}
           <Link href="/login" style={{ fontWeight: 600, color: 'var(--fg-brand)' }}>
-            Đăng nhập
+            {language === 'vi' ? 'Đăng nhập' : 'Log in'}
           </Link>
         </div>
       </div>

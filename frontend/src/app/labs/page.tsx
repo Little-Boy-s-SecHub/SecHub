@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { api, Lab, Vulnerability, LabAttempt } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { useTranslation } from '@/context/LanguageContext';
 import PageBackLink from '@/components/PageBackLink';
 
 interface CustomSelectOption {
@@ -179,6 +180,7 @@ function CustomSelect({
 
 export default function LabsPage() {
   const { isAuthenticated } = useAuth();
+  const { t, language } = useTranslation();
   const [labs, setLabs] = useState<Lab[]>([]);
   const [deletingLabId, setDeletingLabId] = useState<string | null>(null);
   const [vulns, setVulns] = useState<Vulnerability[]>([]);
@@ -365,7 +367,9 @@ export default function LabsPage() {
   const getFeatureLabel = () => wizardOpts.features.find(o => o.value === wizardFeature)?.label || '';
   const getGoalLabel = () => wizardOpts.goals.find(o => o.value === wizardGoal)?.label || '';
 
-  const generatedScenario = `Ứng dụng dạng: ${getAppLabel()}. Lỗ hổng nằm ở chức năng: ${getFeatureLabel()}. Mục tiêu tấn công là: ${getGoalLabel()}.`;
+  const generatedScenario = language === 'vi'
+    ? `Ứng dụng dạng: ${getAppLabel()}. Lỗ hổng nằm ở chức năng: ${getFeatureLabel()}. Mục tiêu tấn công là: ${getGoalLabel()}.`
+    : `Application type: ${getAppLabel()}. Vulnerability is in feature: ${getFeatureLabel()}. Target goal: ${getGoalLabel()}.`;
 
   useEffect(() => {
     async function loadData() {
@@ -475,15 +479,14 @@ export default function LabsPage() {
 
   return (
     <div>
-      <PageBackLink href="/" label="Quay lại Dashboard" />
+      <PageBackLink href="/" label={language === 'vi' ? 'Quay lại Dashboard' : 'Back to Dashboard'} />
       <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
         <div style={{ flex: '1 1 300px', minWidth: 0 }}>
           <h1 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FlaskConical size={28} style={{ color: 'var(--fg-brand)' }} /> Phòng Lab thực hành
+            <FlaskConical size={28} style={{ color: 'var(--fg-brand)' }} /> {t('labs.title')}
           </h1>
           <p className="section-subtitle">
-            Chọn bài lab để thực hành khai thác lỗ hổng trên môi trường web thực tế.
-            Mỗi lab chạy trong Docker container riêng biệt.
+            {t('labs.subtitle')}
           </p>
         </div>
         {isAuthenticated && (
@@ -505,7 +508,7 @@ export default function LabsPage() {
               color: '#ffffff'
             }}
           >
-            <Sparkles size={16} /> Tạo Lab bằng Codex 5.6
+            <Sparkles size={16} /> {language === 'vi' ? 'Tạo Lab bằng Codex 5.6' : 'Generate Lab with Codex 5.6'}
           </button>
         )}
       </div>
@@ -523,10 +526,10 @@ export default function LabsPage() {
           value={filterVuln}
           onChange={setFilterVuln}
           options={[
-            { value: 'all', label: 'Tất cả lỗ hổng' },
+            { value: 'all', label: language === 'vi' ? 'Tất cả lỗ hổng' : 'All Vulnerabilities' },
             ...vulns.map(v => ({ value: v.slug, label: v.name }))
           ]}
-          placeholder="Tất cả lỗ hổng"
+          placeholder={language === 'vi' ? 'Tất cả lỗ hổng' : 'All Vulnerabilities'}
           disabled={loading}
         />
 
@@ -534,17 +537,17 @@ export default function LabsPage() {
           value={filterDifficulty}
           onChange={setFilterDifficulty}
           options={[
-            { value: 'all', label: 'Tất cả độ khó' },
-            { value: 'BEGINNER', label: 'Dễ' },
-            { value: 'INTERMEDIATE', label: 'Trung bình' },
-            { value: 'ADVANCED', label: 'Khó' }
+            { value: 'all', label: t('labs.filterAllDiffs') },
+            { value: 'BEGINNER', label: t('common.beginner') },
+            { value: 'INTERMEDIATE', label: t('common.intermediate') },
+            { value: 'ADVANCED', label: t('common.advanced') }
           ]}
-          placeholder="Tất cả độ khó"
+          placeholder={t('labs.filterAllDiffs')}
           disabled={loading}
         />
 
         <div style={{ marginLeft: 'auto', fontSize: '0.875rem', color: 'var(--text-body-subtle)', display: 'flex', alignItems: 'center' }}>
-          {filteredLabs.length} bài lab
+          {filteredLabs.length} {language === 'vi' ? 'bài lab' : 'labs'}
         </div>
       </div>
 
@@ -562,21 +565,21 @@ export default function LabsPage() {
                               lab.difficulty === 'INTERMEDIATE' ? 'badge-medium-diff' : 
                               'badge-hard';
             
-            const difficultyLabel = lab.difficulty === 'BEGINNER' ? 'Dễ' :
-                                    lab.difficulty === 'INTERMEDIATE' ? 'Trung bình' : 'Khó';
+            const difficultyLabel = lab.difficulty === 'BEGINNER' ? t('common.beginner') :
+                                    lab.difficulty === 'INTERMEDIATE' ? t('common.intermediate') : t('common.advanced');
 
             const status = getLabStatus(lab.id);
             const statusContent = status === 'COMPLETED' ? (
               <span className="lab-card-status" style={{ color: 'var(--fg-success-strong)' }}>
-                <CheckCircle2 size={14} /> Hoàn thành
+                <CheckCircle2 size={14} /> {t('labs.completedBadge')}
               </span>
             ) : status === 'IN_PROGRESS' ? (
               <span className="lab-card-status" style={{ color: 'var(--fg-brand)' }}>
-                <RotateCw size={14} style={{ animation: 'spin 3s linear infinite' }} /> Đang làm
+                <RotateCw size={14} style={{ animation: 'spin 3s linear infinite' }} /> {t('common.running')}
               </span>
             ) : (
               <span className="lab-card-status" style={{ color: 'var(--text-body-subtle)' }}>
-                <PlayCircle size={14} /> Chưa bắt đầu
+                <PlayCircle size={14} /> {language === 'vi' ? 'Chưa bắt đầu' : 'Not started'}
               </span>
             );
 
@@ -600,16 +603,16 @@ export default function LabsPage() {
                     <div className="lab-card-generated-row">
                       <span className="lab-generated-label" title="Lab có source và Docker artifact được tạo tự động"><Sparkles size={13} /> AI generated</span>
                         <button
-                          type="button"
-                          title="Xoá bài lab AI"
-                          aria-label={`Xoá ${lab.title}`}
-                          disabled={deletingLabId === lab.id}
-                          onClick={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                            handleDeleteGeneratedLab(lab);
-                          }}
-                          className="lab-delete-button"
+                           type="button"
+                           title="Xoá bài lab AI"
+                           aria-label={`Xoá ${lab.title}`}
+                           disabled={deletingLabId === lab.id}
+                           onClick={(event) => {
+                             event.preventDefault();
+                             event.stopPropagation();
+                             handleDeleteGeneratedLab(lab);
+                           }}
+                           className="lab-delete-button"
                         >
                           {deletingLabId === lab.id ? <RotateCw size={14} className="spin" /> : <Trash2 size={14} />}
                         </button>
@@ -619,10 +622,10 @@ export default function LabsPage() {
                   <div className="lab-card-desc">{lab.description}</div>
                   <div className="lab-card-meta" style={{ marginTop: 'auto', paddingTop: 'var(--space-2)', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                     <span className="lab-card-meta-item" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                      <Clock size={12} /> {lab.estimatedMinutes}p
+                      <Clock size={12} /> {lab.estimatedMinutes}{language === 'vi' ? 'p' : 'm'}
                     </span>
                     <span className="lab-card-meta-item" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                      <Trophy size={12} /> {lab.points}pt
+                      <Trophy size={12} /> {t('labs.pointsAward', { points: lab.points })}
                     </span>
                     <span className="lab-card-meta-item" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                       <LinkIcon size={12} /> {lab.vulnerabilityName}
@@ -640,8 +643,8 @@ export default function LabsPage() {
           <div className="empty-state-icon" style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--space-2)' }}>
             <Search size={40} style={{ color: 'var(--text-body-subtle)' }} />
           </div>
-          <div className="empty-state-title">Không tìm thấy bài lab</div>
-          <div className="empty-state-desc">Thử thay đổi bộ lọc để xem các bài lab khác.</div>
+          <div className="empty-state-title">{t('labs.noLabsFound')}</div>
+          <div className="empty-state-desc">{language === 'vi' ? 'Thử thay đổi bộ lọc để xem các bài lab khác.' : 'Try changing the filters to see other labs.'}</div>
         </div>
       )}
 
@@ -739,7 +742,7 @@ export default function LabsPage() {
                       borderRadius: '50%',
                       animation: 'spin 1s linear infinite'
                     }}></div>
-                    <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-heading)' }}>Đang tạo lab thực hành bằng GPT-5.6...</span>
+                    <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-heading)' }}>{language === 'vi' ? 'Đang tạo lab thực hành bằng GPT-5.6...' : 'Generating practice lab with GPT-5.6...'}</span>
                   </div>
                   <div style={{
                     background: '#090f1e',
@@ -771,34 +774,34 @@ export default function LabsPage() {
                 <>
                   <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: '1 1 200px' }}>
-                      <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-body-subtle)' }}>PHÂN LOẠI LỖ HỔNG</label>
+                      <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-body-subtle)' }}>{language === 'vi' ? 'PHÂN LOẠI LỖ HỔNG' : 'VULNERABILITY CATEGORY'}</label>
                       <CustomSelect
                         value={aiVulnSlug}
                         onChange={setAiVulnSlug}
                         options={vulns.map(v => ({ value: v.slug, label: v.name }))}
-                        placeholder="Chọn lỗ hổng"
+                        placeholder={language === 'vi' ? 'Chọn lỗ hổng' : 'Select Vulnerability'}
                         fullWidth
                       />
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: '1 1 120px' }}>
-                      <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-body-subtle)' }}>ĐỘ KHÓ LAB</label>
+                      <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-body-subtle)' }}>{t('common.difficulty').toUpperCase()}</label>
                       <CustomSelect
                         value={aiDifficulty}
                         onChange={setAiDifficulty}
                         options={[
-                          { value: 'BEGINNER', label: 'Dễ (Beginner)' },
-                          { value: 'INTERMEDIATE', label: 'Trung bình (Intermediate)' },
-                          { value: 'ADVANCED', label: 'Khó (Advanced)' }
+                          { value: 'BEGINNER', label: language === 'vi' ? 'Dễ (Beginner)' : 'Easy (Beginner)' },
+                          { value: 'INTERMEDIATE', label: language === 'vi' ? 'Trung bình (Intermediate)' : 'Medium (Intermediate)' },
+                          { value: 'ADVANCED', label: language === 'vi' ? 'Khó (Advanced)' : 'Hard (Advanced)' }
                         ]}
-                        placeholder="Chọn độ khó"
+                        placeholder={language === 'vi' ? 'Chọn độ khó' : 'Select Difficulty'}
                         fullWidth
                       />
                     </div>
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-body-subtle)' }}>PHƯƠNG THỨC XÂY DỰNG KỊCH BẢN</label>
+                    <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-body-subtle)' }}>{language === 'vi' ? 'PHƯƠNG THỨC XÂY DỰNG KỊCH BẢN' : 'SCENARIO GENERATION METHOD'}</label>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button
                         type="button"
@@ -820,7 +823,7 @@ export default function LabsPage() {
                           transition: 'all 0.15s'
                         }}
                       >
-                        <Zap size={14} /> <span>Chọn theo gợi ý</span>
+                        <Zap size={14} /> <span>{language === 'vi' ? 'Chọn theo gợi ý' : 'Select Suggestions'}</span>
                       </button>
                       <button
                         type="button"
@@ -842,7 +845,7 @@ export default function LabsPage() {
                           transition: 'all 0.15s'
                         }}
                       >
-                        <Keyboard size={14} /> <span>Tự nhập kịch bản</span>
+                        <Keyboard size={14} /> <span>{language === 'vi' ? 'Tự nhập kịch bản' : 'Manual Input'}</span>
                       </button>
                     </div>
                   </div>
@@ -856,19 +859,19 @@ export default function LabsPage() {
                           value={wizardApp}
                           onChange={setWizardApp}
                           options={appOptions}
-                          placeholder="Chọn ứng dụng"
+                          placeholder={language === 'vi' ? 'Chọn ứng dụng' : 'Select Application'}
                           fullWidth
                         />
                       </div>
 
                       {/* Feature select */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-body-subtle)' }}>2. CHỨC NĂNG CHỨA LỖ HỔNG</label>
+                        <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-body-subtle)' }}>2. {language === 'vi' ? 'CHỨC NĂNG CHỨA LỖ HỔNG' : 'VULNERABLE COMPONENT/FEATURE'}</label>
                         <CustomSelect
                           value={wizardFeature}
                           onChange={setWizardFeature}
                           options={wizardOpts.features}
-                          placeholder="Chọn chức năng"
+                          placeholder={language === 'vi' ? 'Chọn chức năng' : 'Select Feature'}
                           fullWidth
                           placement="top"
                         />
@@ -876,12 +879,12 @@ export default function LabsPage() {
 
                       {/* Goal select */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-body-subtle)' }}>3. MỤC TIÊU KHAI THÁC CHÍNH</label>
+                        <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-body-subtle)' }}>3. {language === 'vi' ? 'MỤC TIÊU KHAI THÁC CHÍNH' : 'PRIMARY EXPLOITATION GOAL'}</label>
                         <CustomSelect
                           value={wizardGoal}
                           onChange={setWizardGoal}
                           options={wizardOpts.goals}
-                          placeholder="Chọn mục tiêu"
+                          placeholder={language === 'vi' ? 'Chọn mục tiêu' : 'Select Goal'}
                           fullWidth
                           placement="top"
                         />
@@ -896,7 +899,7 @@ export default function LabsPage() {
                         marginTop: '4px'
                       }}>
                         <div style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--fg-brand)', marginBottom: '6px', letterSpacing: '0.05em' }}>
-                          Kịch bản AI sẽ biên dịch:
+                          {language === 'vi' ? 'Kịch bản AI sẽ biên dịch:' : 'AI Compiler Scenario:'}
                         </div>
                         <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-body)', lineHeight: 1.5 }}>
                           {generatedScenario}
@@ -905,11 +908,11 @@ export default function LabsPage() {
                     </>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-body-subtle)' }}>KỊCH BẢN THỰC HÀNH</label>
+                      <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-body-subtle)' }}>{language === 'vi' ? 'KỊCH BẢN THỰC HÀNH' : 'PRACTICE SCENARIO'}</label>
                       <textarea
                         value={aiScenario}
                         onChange={(e) => setAiScenario(e.target.value)}
-                        placeholder="Mô tả kịch bản bài lab. Ví dụ: 'Trang web thương mại điện tử bị dính Blind SQL Injection dựa trên thời gian (Time-based Blind SQLi) ở ô tìm kiếm sản phẩm...'"
+                        placeholder={language === 'vi' ? "Mô tả kịch bản bài lab. Ví dụ: 'Trang web thương mại điện tử bị dính Blind SQL Injection...'" : "Describe the lab scenario. E.g. 'An e-commerce site vulnerable to Time-based Blind SQL Injection in search query...'"}
                         rows={4}
                         style={{
                           background: 'var(--bg-neutral-secondary-soft)',
@@ -946,7 +949,7 @@ export default function LabsPage() {
                   className="btn btn-secondary"
                   style={{ padding: '8px 16px', borderRadius: '6px' }}
                 >
-                  Hủy
+                  {t('common.cancel')}
                 </button>
                 <button 
                   onClick={handleAiGenerate}
@@ -960,7 +963,7 @@ export default function LabsPage() {
                     color: '#ffffff'
                   }}
                 >
-                  Bắt đầu tạo
+                  {language === 'vi' ? 'Bắt đầu tạo' : 'Start Generating'}
                 </button>
               </div>
             )}
