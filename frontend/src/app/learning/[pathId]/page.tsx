@@ -7,6 +7,7 @@ import { Clock, BookOpen, ChevronRight, AlertCircle, CheckCircle } from 'lucide-
 import { api, LearningPath } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/context/LanguageContext';
+import { localizeLessonTitle } from '@/utils/localize';
 
 interface Lesson {
   id: string;
@@ -276,7 +277,7 @@ export default function LearningPathDetailPage({ params }: { params: Promise<{ p
                   marginBottom: '2px',
                   textDecoration: lesson.completed && !isCurrent ? 'line-through' : 'none',
                 }}>
-                  {lesson.title}
+                  {localizeLessonTitle(lesson.title, language)}
                 </div>
                 <div style={{ fontSize: '0.8125rem', color: 'var(--text-body-subtle)' }}>
                   {lesson.vulnerabilityName ? `${language === 'vi' ? 'Liên quan đến' : 'Related to'}: ${lesson.vulnerabilityName}` : (language === 'vi' ? 'Bài giảng lý thuyết nhập môn' : 'Introductory theory lecture')}

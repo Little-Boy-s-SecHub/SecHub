@@ -95,7 +95,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
         if (labRes.success) {
           setLab(labRes.data);
         } else {
-          setApiError(labRes.message || 'Không thể lấy thông tin lab.');
+          setApiError(labRes.message || (language === 'vi' ? 'Không thể lấy thông tin lab.' : 'Failed to retrieve lab details.'));
         }
 
         if (isAuthenticated) {
@@ -137,13 +137,13 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
                 }, 1500);
               } else {
                 setLabStatus('idle');
-                setApiError(res.message || 'Không thể tự động khởi động lab.');
+                setApiError(res.message || (language === 'vi' ? 'Không thể tự động khởi động lab.' : 'Failed to auto-start lab.'));
               }
             }
           }
         }
       } catch (e: any) {
-        setApiError(e.message || 'Đã xảy ra lỗi khi kết nối máy chủ.');
+        setApiError(e.message || (language === 'vi' ? 'Đã xảy ra lỗi khi kết nối máy chủ.' : 'An error occurred while connecting to the server.'));
       } finally {
         setLoading(false);
       }
@@ -194,7 +194,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
         setRuntimeError(null);
       } catch {
         failures += 1;
-        if (failures >= 2) setRuntimeError('Ứng dụng lab tạm thời không phản hồi.');
+        if (failures >= 2) setRuntimeError(language === 'vi' ? 'Ứng dụng lab tạm thời không phản hồi.' : 'The lab application is temporarily unresponsive.');
       }
     };
     checkRuntime();
@@ -209,7 +209,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
       const res = await api.labs.extendTime(currentAttempt.id);
       if (res.success) setCurrentAttempt(res.data);
     } catch (e: any) {
-      alert(e.message || 'Không thể gia hạn phiên lab.');
+      alert(e.message || (language === 'vi' ? 'Không thể gia hạn phiên lab.' : 'Failed to extend lab session.'));
     } finally {
       setExtending(false);
     }
@@ -227,7 +227,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
       setLabStatus('running');
     } catch (e: any) {
       setLabStatus('expired');
-      alert(e.message || 'Không thể khởi động lại lab.');
+      alert(e.message || (language === 'vi' ? 'Không thể khởi động lại lab.' : 'Failed to restart lab.'));
     }
   };
 
@@ -238,11 +238,13 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
       const res = await api.labs.generateWithAi(
         lab.vulnerabilitySlug,
         lab.difficulty,
-        `Tạo một biến thể mới tương tự lab "${lab.title}", nhưng đổi bối cảnh và đường khai thác.`
+        language === 'vi'
+          ? `Tạo một biến thể mới tương tự lab "${lab.title}", nhưng đổi bối cảnh và đường khai thác.`
+          : `Create a new variant similar to lab "${lab.title}", but change the context and exploitation path.`
       );
       router.push(`/labs/${res.data.id}/play${pathId && lessonId ? `?pathId=${pathId}&lessonId=${lessonId}` : ''}`);
     } catch (e: any) {
-      alert(e.message || 'Không thể tạo lab tương tự.');
+      alert(e.message || (language === 'vi' ? 'Không thể tạo lab tương tự.' : 'Failed to generate a similar lab.'));
     } finally {
       setCreatingSimilar(false);
     }
@@ -263,7 +265,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
         setOpenHintIndexes(prev => new Set(prev).add(res.data.hintsUsed - 1));
       }
     } catch (e: any) {
-      alert(e.message || 'Không thể tải gợi ý.');
+      alert(e.message || (language === 'vi' ? 'Không thể tải gợi ý.' : 'Failed to load hints.'));
     }
   };
 
@@ -273,9 +275,9 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
     try {
       const guidance = (await api.labs.getMentor(currentAttempt.id)).data;
       setMentor(guidance);
-      if (viewMode === 'game') window.alert(`AI Mentor hỏi bạn:\n\n${guidance.question}\n\nHãy suy nghĩ trước, sau đó bấm GỢI Ý lần nữa nếu vẫn cần.`);
+      if (viewMode === 'game') window.alert(language === 'vi' ? `AI Mentor hỏi bạn:\n\n${guidance.question}\n\nHãy suy nghĩ trước, sau đó bấm GỢI Ý lần nữa nếu vẫn cần.` : `AI Mentor asks you:\n\n${guidance.question}\n\nThink first, then click HINT again if you still need it.`);
     }
-    catch (e: any) { setApiError(e.message || 'Mentor chưa thể phản hồi.'); }
+    catch (e: any) { setApiError(e.message || (language === 'vi' ? 'Mentor chưa thể phản hồi.' : 'Mentor cannot respond right now.')); }
     finally { setAskingMentor(false); }
   };
 
@@ -286,7 +288,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
       const res = await api.growth.createHarderVariant(currentAttempt.id);
       router.push(`/labs/${res.data.id}/play${pathId && lessonId ? `?pathId=${pathId}&lessonId=${lessonId}` : ''}`);
     }
-    catch (e: any) { setApiError(e.message || 'Không thể tạo bản khó hơn.'); setCreatingHarder(false); }
+    catch (e: any) { setApiError(e.message || (language === 'vi' ? 'Không thể tạo bản khó hơn.' : 'Failed to generate a harder version.')); setCreatingHarder(false); }
   };
 
   const handleSimulatedSuccess = (foundFlag: string) => {

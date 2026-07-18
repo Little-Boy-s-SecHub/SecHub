@@ -432,7 +432,7 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
 
                     {notifications.length === 0 && (
                       <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--text-body-subtle)', fontSize: '12.5px' }}>
-                        Không có thông báo mới nào
+                        {language === 'vi' ? 'Không có thông báo mới nào' : 'No new notifications'}
                       </div>
                     )}
                   </div>

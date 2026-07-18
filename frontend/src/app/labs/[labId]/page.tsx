@@ -62,7 +62,7 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
         if (labRes.success) {
           setLab(labRes.data);
         } else {
-          setApiError(labRes.message || 'Không thể lấy thông tin lab.');
+          setApiError(labRes.message || (language === 'vi' ? 'Không thể lấy thông tin lab.' : 'Failed to retrieve lab details.'));
         }
 
         if (isAuthenticated) {
@@ -85,7 +85,7 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
           }
         }
       } catch (e: any) {
-        setApiError(e.message || 'Lỗi khi tải dữ liệu lab.');
+        setApiError(e.message || (language === 'vi' ? 'Lỗi khi tải dữ liệu lab.' : 'Error loading lab data.'));
       } finally {
         setLoading(false);
       }

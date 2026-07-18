@@ -7,6 +7,7 @@ import { ArrowLeft, BookOpen, CheckCircle, Clock, ChevronRight, PlayCircle, Shie
 import { api, Lab, Vulnerability } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/context/LanguageContext';
+import { localizeLessonTitle, localizeLessonObjective } from '@/utils/localize';
 import { marked } from 'marked';
 
 interface Lesson {
@@ -409,7 +410,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
         <span style={{ color: 'var(--text-body-subtle)' }}>/</span>
         <Link href={`/learning/${pathId}`} style={{ color: 'var(--text-body-subtle)' }}>{path.title}</Link>
         <span style={{ color: 'var(--text-body-subtle)' }}>/</span>
-        <span style={{ color: 'var(--text-heading)' }}>{lesson.title}</span>
+        <span style={{ color: 'var(--text-heading)' }}>{localizeLessonTitle(lesson.title, language)}</span>
       </div>
 
       {/* Main Workspace Layout */}
@@ -441,7 +442,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
                 <strong style={{ color: 'var(--text-heading)', display: 'block', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>
                   {language === 'vi' ? 'Mục tiêu chính' : 'Key Objective'}
                 </strong>
-                <span>{resolvedObjective}</span>
+                <span>{localizeLessonObjective(lesson.title, language, resolvedObjective)}</span>
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
@@ -540,7 +541,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
             {nextLesson && (
               <Link href={`/learning/${pathId}/lessons/${nextLesson.id}`} style={{ textDecoration: 'none' }}>
                 <div className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  {language === 'vi' ? 'Bài tiếp theo:' : 'Next Lesson:'} {nextLesson.title} <ChevronRight size={14} />
+                  {language === 'vi' ? 'Bài tiếp theo:' : 'Next Lesson:'} {localizeLessonTitle(nextLesson.title, language)} <ChevronRight size={14} />
                 </div>
               </Link>
             )}
@@ -558,7 +559,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
               <p style={{ fontSize: '13px', color: 'var(--text-body)', lineHeight: 1.55, margin: '0 0 16px 0' }}>
                 {language === 'vi'
                   ? `Chọn lab có sẵn hoặc tạo một kịch bản mới bám sát bài ${lesson.title}.`
-                  : `Choose an available lab or generate a new scenario matching ${lesson.title}.`
+                  : `Choose an available lab or generate a new scenario matching ${localizeLessonTitle(lesson.title, language)}.`
                 }
               </p>
               {practiceVulnerability && (
@@ -637,7 +638,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
                         textDecoration: l.completed ? 'line-through' : 'none',
                         opacity: l.completed && !isCurrent ? 0.75 : 1
                       }}>
-                        {l.title}
+                        {localizeLessonTitle(l.title, language)}
                       </span>
                     </div>
                   </Link>
