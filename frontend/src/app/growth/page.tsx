@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowRight, Bell, CheckCircle2, Flame, Medal, ShieldCheck, Snowflake, Sparkles, Target, Trophy } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Flame, Medal, ShieldCheck, Snowflake, Sparkles, Target, Trophy } from 'lucide-react';
 import { api, GrowthOverview, LeaderboardEntry } from '@/lib/api';
 import { useTranslation } from '@/context/LanguageContext';
 
@@ -165,24 +165,16 @@ export default function GrowthPage() {
         </section>
       </div>
 
-      <div className="growth-two-column">
-        <section className="growth-section">
-          <div className="growth-section-title"><div><Medal /><h2>{language === 'vi' ? 'Huy hiệu' : 'Badges'}</h2></div></div>
-          <div className="badge-list">
-            {overview.badges.length ? (
-              overview.badges.map(badge => <span key={badge}>{badge}</span>)
-            ) : (
-              <p className="growth-empty">{language === 'vi' ? 'Huy hiệu đầu tiên đang chờ bạn.' : 'Your first badge is waiting for you.'}</p>
-            )}
-          </div>
-        </section>
-        <section className="growth-section">
-          <div className="growth-section-title"><div><Bell /><h2>{language === 'vi' ? 'Cập nhật phù hợp' : 'Personalized Updates'}</h2></div></div>
-          <ul className="notification-list">
-            {overview.notifications.map(item => <li key={item}>{item}</li>)}
-          </ul>
-        </section>
-      </div>
+      <section className="growth-section">
+        <div className="growth-section-title"><div><Medal /><h2>{language === 'vi' ? 'Huy hiệu' : 'Badges'}</h2></div></div>
+        <div className="badge-list">
+          {overview.badges.length ? (
+            overview.badges.map(badge => <span key={badge}>{badge}</span>)
+          ) : (
+            <p className="growth-empty">{language === 'vi' ? 'Huy hiệu đầu tiên đang chờ bạn.' : 'Your first badge is waiting for you.'}</p>
+          )}
+        </div>
+      </section>
 
       <section className="growth-section">
         <div className="growth-section-title">

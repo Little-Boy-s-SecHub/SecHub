@@ -66,27 +66,10 @@ public class GrowthService {
         boolean dailyDone=flashcards.countByUserIdAndLastReviewedAtAfter(user.getId(),LocalDate.now().atStartOfDay())>0
                 ||completed.stream().anyMatch(a->a.getCompletedAt()!=null&&a.getCompletedAt().toLocalDate().equals(LocalDate.now())&&a.getLab().getTitle().startsWith("Daily "));
         boolean weeklyDone=completed.stream().anyMatch(a->a.getCompletedAt()!=null&&a.getCompletedAt().isAfter(weekStart)&&a.getLab().getTitle().startsWith("Weekly "));
-        List<String> notices = new ArrayList<>();
-        java.util.Set<UUID> completedLabIds = completed.stream().map(a -> a.getLab().getId()).collect(java.util.stream.Collectors.toSet());
-        final String finalWeak = weak;
-        var weakLab = publishedLabs.stream()
-                .filter(l -> !l.getTitle().startsWith("Daily ") && !l.getTitle().startsWith("Weekly "))
-                .filter(l -> l.getVulnerability().getName().toLowerCase().contains(finalWeak.toLowerCase()) || finalWeak.toLowerCase().contains(l.getVulnerability().getName().toLowerCase()))
-                .filter(l -> !completedLabIds.contains(l.getId()))
-                .findFirst();
-        if (weakLab.isPresent()) {
-            notices.add("Gợi ý cho bạn: Luyện tập lab về " + weakLab.get().getVulnerability().getName() + ": " + weakLab.get().getTitle());
-        } else {
-            publishedLabs.stream()
-                    .filter(l -> !l.getTitle().startsWith("Daily ") && !l.getTitle().startsWith("Weekly "))
-                    .filter(l -> !completedLabIds.contains(l.getId()))
-                    .findFirst()
-                    .ifPresent(l -> notices.add("Gợi ý học tập: Hãy thử thách bản thân với lab " + l.getVulnerability().getName() + ": " + l.getTitle()));
-        }
         return new GrowthOverviewDto(Boolean.TRUE.equals(user.getOnboardingRequired()),Boolean.TRUE.equals(profile.getAssessmentCompleted()),profile.getRecommendedTrack(),profile.getAssessmentScore(),xp,level,streak,
                 profile.getFreezeTickets(),levelTitle(level),skills,badges,
                 new GrowthOverviewDto.MissionDto("Ôn tập hằng ngày","Hoàn thành flashcard đến hạn hoặc Daily Lab.","/review",12,dailyDone),
-                new GrowthOverviewDto.MissionDto("Thử thách tuần","Giải một tình huống thực tế biến thể từ kỹ năng đã học.","/growth?weekly=1",15,weeklyDone),report,notices);
+                new GrowthOverviewDto.MissionDto("Thử thách tuần","Giải một tình huống thực tế biến thể từ kỹ năng đã học.","/growth?weekly=1",15,weeklyDone),report,List.of());
     }
 
     @Transactional
