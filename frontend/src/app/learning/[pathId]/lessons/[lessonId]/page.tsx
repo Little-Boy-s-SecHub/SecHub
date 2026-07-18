@@ -262,11 +262,17 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
         .replace(/[#*_>`\[\]()!-]/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
+      const langMap: Record<string, string> = {
+        vi: 'Vietnamese (Tiếng Việt)',
+        en: 'English'
+      };
+      const targetLangName = langMap[language] || 'English';
       const scenario = [
         `LESSON TITLE: ${lesson.title}`,
         `LEARNING PATH: ${path?.title || ''}`,
         `LESSON CONTENT: ${plainContent.slice(0, 700)}`,
-        language === 'vi' ? 'REQUIREMENT: Kịch bản, mục tiêu và gợi ý phải bám sát kiến thức trong bài học này.' : 'REQUIREMENT: Scenario, goals, and hints must closely match the knowledge in this lesson.'
+        language === 'vi' ? 'REQUIREMENT: Kịch bản, mục tiêu và gợi ý phải bám sát kiến thức trong bài học này.' : 'REQUIREMENT: Scenario, goals, and hints must closely match the knowledge in this lesson.',
+        `LANGUAGE REQUIREMENT: Generate all lab text, title, description, tasks, instructions, and hints in ${targetLangName}.`
       ].join('\n');
       const result = await api.labs.generateWithAi(
         practiceVulnerability.slug,

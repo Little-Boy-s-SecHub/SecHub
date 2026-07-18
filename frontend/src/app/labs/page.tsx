@@ -198,6 +198,13 @@ export default function LabsPage() {
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiStatusLogs, setAiStatusLogs] = useState<string[]>([]);
   const [aiError, setAiError] = useState('');
+  const [aiLanguage, setAiLanguage] = useState(language === 'vi' ? 'vi' : 'en');
+
+  useEffect(() => {
+    if (showAiModal) {
+      setAiLanguage(language === 'vi' ? 'vi' : 'en');
+    }
+  }, [showAiModal, language]);
 
   // AI Wizard States for beginners
   const [useWizard, setUseWizard] = useState(true);
@@ -420,8 +427,21 @@ export default function LabsPage() {
     setTimeout(() => addLog(isVi ? '[*] Đang tạo LabSpec có cấu trúc bằng GPT-5.6 Sol...' : '[*] Drafting structured LabSpec schema via GPT-5.6 Sol...'), 1200);
     setTimeout(() => addLog(isVi ? '[*] Đang sinh source và Docker artifact từ template an toàn...' : '[*] Generating safe source templates and Docker artifacts...'), 2000);
 
+    const baseScenario = useWizard ? generatedScenario : aiScenario;
+    const langMap: Record<string, string> = {
+      vi: 'Vietnamese (Tiếng Việt)',
+      en: 'English',
+      ja: 'Japanese (日本語)',
+      zh: 'Chinese (中文)',
+      es: 'Spanish (Español)',
+      fr: 'French (Français)',
+      ru: 'Russian (Русский)'
+    };
+    const targetLangName = langMap[aiLanguage] || 'English';
+    const scenarioWithLanguage = `${baseScenario}\nLANGUAGE REQUIREMENT: Generate all lab text, title, description, tasks, instructions, and hints in ${targetLangName}.`;
+
     try {
-      const res = await api.labs.generateWithAi(aiVulnSlug, aiDifficulty, useWizard ? generatedScenario : aiScenario);
+      const res = await api.labs.generateWithAi(aiVulnSlug, aiDifficulty, scenarioWithLanguage);
       if (res.success && res.data) {
         addLog(isVi ? '[+] Sinh bài lab thành công từ AI!' : '[+] AI Lab generation completed successfully!');
         addLog(isVi ? '[+] Đã lưu metadata và source lab; sẵn sàng build khi người học bắt đầu.' : '[+] Metadata and lab sources saved; ready to spin up Docker container.');
@@ -800,6 +820,25 @@ export default function LabsPage() {
                           { value: 'ADVANCED', label: language === 'vi' ? 'Khó (Advanced)' : 'Hard (Advanced)' }
                         ]}
                         placeholder={language === 'vi' ? 'Chọn độ khó' : 'Select Difficulty'}
+                        fullWidth
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: '1 1 150px' }}>
+                      <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-body-subtle)' }}>{language === 'vi' ? 'NGÔN NGỮ BÀI LAB' : 'LAB LANGUAGE'}</label>
+                      <CustomSelect
+                        value={aiLanguage}
+                        onChange={setAiLanguage}
+                        options={[
+                          { value: 'en', label: 'English' },
+                          { value: 'vi', label: 'Tiếng Việt (Vietnamese)' },
+                          { value: 'ja', label: '日本語 (Japanese)' },
+                          { value: 'zh', label: '中文 (Chinese)' },
+                          { value: 'es', label: 'Español (Spanish)' },
+                          { value: 'fr', label: 'Français (French)' },
+                          { value: 'ru', label: 'Русский (Russian)' },
+                        ]}
+                        placeholder={language === 'vi' ? 'Chọn ngôn ngữ' : 'Select Language'}
                         fullWidth
                       />
                     </div>
