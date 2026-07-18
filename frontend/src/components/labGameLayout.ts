@@ -26,12 +26,6 @@ const WORKFLOW_STATIONS: GameRect[] = [
   { x: 668, y: 100, width: ENTITY_SIZE, height: ENTITY_SIZE },
 ];
 
-const MIDDLE_HINT_SLOTS = [
-  { x: 108, y: 270 }, { x: 308, y: 270 }, { x: 468, y: 270 }, { x: 668, y: 270 },
-  { x: 108, y: 355 }, { x: 308, y: 355 }, { x: 468, y: 355 }, { x: 668, y: 355 },
-  { x: 108, y: 440 }, { x: 308, y: 440 }, { x: 468, y: 440 }, { x: 668, y: 440 },
-];
-
 export function rectsOverlap(a: GameRect, b: GameRect, clearance = 0) {
   return a.x < b.x + b.width + clearance
     && a.x + a.width + clearance > b.x
@@ -50,31 +44,72 @@ export function isWalkableEntityPosition(position: { x: number; y: number }, occ
     && !occupied.some(other => rectsOverlap(entity, other, 36));
 }
 
+/**
+ * Distribute hint stations in a compact cluster in the middle area of the map.
+ * For few hints (1-4), they stay close together rather than spread across the map.
+ * For many hints (5+), they fill rows naturally.
+ */
 export function getHintPositions(hintCount: number) {
   if (hintCount <= 0) return [];
-  if (hintCount === 1) return [{ x: 388, y: 205 }];
 
-  const positions: Array<{ x: number; y: number }> = Array(hintCount);
-  positions[0] = { x: 228, y: 212 };
-  positions[hintCount - 1] = { x: 548, y: 212 };
-  const occupied: GameRect[] = [positions[0], positions[hintCount - 1]].map(position => ({
-    ...position,
-    width: ENTITY_SIZE,
-    height: ENTITY_SIZE,
-  }));
+  // Center of the playable hint zone
+  const centerX = 388;
+  const startY = 210;
+  const rowSpacing = 80;
 
-  const candidates = [...MIDDLE_HINT_SLOTS];
-  for (let y = 225; y <= 440; y += 43) {
-    for (let x = 38; x <= 738; x += 70) candidates.push({ x, y });
+  // Determine grid layout based on hint count
+  let cols: number;
+  if (hintCount <= 2) cols = 2;
+  else if (hintCount <= 4) cols = 2;
+  else if (hintCount <= 6) cols = 3;
+  else cols = 4;
+
+  // Horizontal spacing adapts to column count to keep things compact
+  const colSpacing = Math.min(160, 100 + (cols <= 2 ? 0 : 20));
+
+  const rows = Math.ceil(hintCount / cols);
+  const totalWidth = (cols - 1) * colSpacing;
+  const totalHeight = (rows - 1) * rowSpacing;
+  const originX = centerX - totalWidth / 2;
+  const originY = startY - totalHeight / 2 + (rows > 1 ? 20 : 0);
+
+  const candidates: Array<{ x: number; y: number }> = [];
+  for (let row = 0; row < rows; row++) {
+    const itemsInRow = row < rows - 1 ? cols : hintCount - row * cols;
+    const rowWidth = (itemsInRow - 1) * colSpacing;
+    const rowOriginX = centerX - rowWidth / 2;
+    for (let col = 0; col < itemsInRow; col++) {
+      candidates.push({
+        x: Math.round(rowOriginX + col * colSpacing),
+        y: Math.round(originY + row * rowSpacing),
+      });
+    }
   }
 
-  for (let index = 1; index < hintCount - 1; index++) {
-    const candidateIndex = candidates.findIndex(candidate => isWalkableEntityPosition(candidate, occupied));
-    if (candidateIndex < 0) break;
-    const [position] = candidates.splice(candidateIndex, 1);
-    positions[index] = position;
-    occupied.push({ ...position, width: ENTITY_SIZE, height: ENTITY_SIZE });
+  // Validate each position and nudge if it overlaps obstacles/stations
+  const occupied: GameRect[] = [];
+  const positions: Array<{ x: number; y: number }> = [];
+
+  for (const candidate of candidates) {
+    let pos = candidate;
+    if (!isWalkableEntityPosition(pos, occupied)) {
+      // Try nudging in a small radius to find a valid spot
+      let found = false;
+      for (const dy of [0, -30, 30, -60, 60]) {
+        for (const dx of [0, -30, 30, -60, 60, -90, 90]) {
+          const nudged = { x: pos.x + dx, y: pos.y + dy };
+          if (isWalkableEntityPosition(nudged, occupied)) {
+            pos = nudged;
+            found = true;
+            break;
+          }
+        }
+        if (found) break;
+      }
+    }
+    positions.push(pos);
+    occupied.push({ ...pos, width: ENTITY_SIZE, height: ENTITY_SIZE });
   }
 
-  return positions.filter(Boolean);
+  return positions;
 }
