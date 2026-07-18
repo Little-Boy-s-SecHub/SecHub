@@ -54,6 +54,8 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
   const [mentor, setMentor] = useState<MentorGuidance | null>(null);
   const [askingMentor, setAskingMentor] = useState(false);
   const [creatingHarder, setCreatingHarder] = useState(false);
+  const [pathId, setPathId] = useState<string | null>(null);
+  const [lessonId, setLessonId] = useState<string | null>(null);
   const labNotFound = apiError?.includes('Không tìm thấy Lab') || apiError?.includes('404');
 
   const defaultHints = [
@@ -70,6 +72,14 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
       console.error(e);
     }
   }
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      setPathId(searchParams.get('pathId'));
+      setLessonId(searchParams.get('lessonId'));
+    }
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -89,23 +99,44 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
         if (isAuthenticated) {
           const attemptsRes = await api.labs.getLabAttempts(labId);
           if (attemptsRes.success && attemptsRes.data) {
-            const running = attemptsRes.data.find(a => a.status === 'RUNNING');
+            const running = attemptsRes.data.find(a => {
+              if (a.status !== 'RUNNING' && a.status !== 'STARTED') return false;
+              if (a.expiresAt && new Date(a.expiresAt) < new Date()) return false;
+              return true;
+            });
             const completed = attemptsRes.data.find(a => a.status === 'COMPLETED');
             
             if (running) {
               setCurrentAttempt(running);
               setLabStatus('running');
               setRevealedHints(running.hintsUsed);
+              const indexes = new Set<number>();
+              for (let i = 0; i < running.hintsUsed; i++) indexes.add(i);
+              setOpenHintIndexes(indexes);
             } else if (completed) {
               setLabStatus('completed');
               setCurrentAttempt(completed);
               setRevealedHints(completed.hintsUsed);
+              const indexes = new Set<number>();
+              for (let i = 0; i < completed.hintsUsed; i++) indexes.add(i);
+              setOpenHintIndexes(indexes);
               api.labs.getFeedback(completed.id).then(result => setCompletionFeedback(result.data)).catch(() => undefined);
             } else if (attemptsRes.data.some(a => a.status === 'EXPIRED')) {
               setCurrentAttempt(attemptsRes.data.find(a => a.status === 'EXPIRED') || null);
               setLabStatus('expired');
             } else {
-              setLabStatus('idle');
+              setLabStatus('starting');
+              const res = await api.labs.startLab(labId);
+              if (res.success && res.data) {
+                setTimeout(() => {
+                  setCurrentAttempt(res.data);
+                  setLabStatus('running');
+                  setRevealedHints(res.data.hintsUsed);
+                }, 1500);
+              } else {
+                setLabStatus('idle');
+                setApiError(res.message || 'Không thể tự động khởi động lab.');
+              }
             }
           }
         }
@@ -207,7 +238,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
         lab.difficulty,
         `Tạo một biến thể mới tương tự lab "${lab.title}", nhưng đổi bối cảnh và đường khai thác.`
       );
-      router.push(`/labs/${res.data.id}`);
+      router.push(`/labs/${res.data.id}/play${pathId && lessonId ? `?pathId=${pathId}&lessonId=${lessonId}` : ''}`);
     } catch (e: any) {
       alert(e.message || 'Không thể tạo lab tương tự.');
     } finally {
@@ -249,7 +280,10 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
   const handleCreateHarder = async () => {
     if (!currentAttempt) return;
     setCreatingHarder(true);
-    try { router.push(`/labs/${(await api.growth.createHarderVariant(currentAttempt.id)).data.id}`); }
+    try {
+      const res = await api.growth.createHarderVariant(currentAttempt.id);
+      router.push(`/labs/${res.data.id}/play${pathId && lessonId ? `?pathId=${pathId}&lessonId=${lessonId}` : ''}`);
+    }
     catch (e: any) { setApiError(e.message || 'Không thể tạo bản khó hơn.'); setCreatingHarder(false); }
   };
 
@@ -759,7 +793,16 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
 
       {/* Main Workspace Layout */}
       <div className="lab-workspace-body">
-        {completionFeedback && currentAttempt && <LabCompletionFeedback feedback={completionFeedback} attempt={currentAttempt} onHarder={handleCreateHarder} creatingHarder={creatingHarder} />}
+        {completionFeedback && currentAttempt && (
+          <LabCompletionFeedback
+            feedback={completionFeedback}
+            attempt={currentAttempt}
+            onHarder={handleCreateHarder}
+            creatingHarder={creatingHarder}
+            pathId={pathId || undefined}
+            lessonId={lessonId || undefined}
+          />
+        )}
         <div className="lab-workspace-grid">
           
           {/* Left Side: Vulnerable Application (Playground) - Hero component */}
@@ -772,7 +815,33 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
                 <Link className="btn btn-secondary btn-sm" href={`/labs/${labId}`}>Quay về lab</Link>
               </div>
             )}
-            {isSimulated ? (
+            {labStatus === 'starting' ? (
+              <div className="card animate-fade-in-up" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '560px', padding: '32px', border: '1px solid var(--border-default)', background: 'var(--bg-neutral-primary)' }}>
+                <div className="terminal" style={{ width: '100%', maxWidth: '500px', marginBottom: '16px' }}>
+                  <div className="terminal-header">
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <span className="terminal-dot red"></span>
+                      <span className="terminal-dot yellow"></span>
+                      <span className="terminal-dot green"></span>
+                    </div>
+                    <span className="terminal-title">Docker</span>
+                    <div></div>
+                  </div>
+                  <div className="terminal-body" style={{ textAlign: 'left' }}>
+                    <div><span className="terminal-output">Checking docker availability...</span></div>
+                    <div><span className="terminal-output">Pulling vulnerable image: {lab.dockerImage}...</span></div>
+                    <div><span className="terminal-output">Spawning container: sechub-attempt-...</span></div>
+                    <div><span className="terminal-success">Starting internal web server on port {lab.dockerPort}...</span></div>
+                    <div>
+                      <span className="terminal-success" style={{ animation: 'blink 1s step-end infinite' }}>▌</span>
+                    </div>
+                  </div>
+                </div>
+                <p style={{ color: 'var(--text-body-subtle)', fontSize: '13px', margin: 0 }}>
+                  Đang khởi chạy môi trường thực hành ảo...
+                </p>
+              </div>
+            ) : isSimulated ? (
               <LabSimulator 
                 dockerPort={lab.dockerPort} 
                 flag={apiError || 'FLAG{sechub_simulated_success}'}

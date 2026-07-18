@@ -66,7 +66,11 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
         if (isAuthenticated) {
           const attemptsRes = await api.labs.getLabAttempts(labId);
           if (attemptsRes.success && attemptsRes.data) {
-            const running = attemptsRes.data.find(a => a.status === 'RUNNING');
+            const running = attemptsRes.data.find(a => {
+              if (a.status !== 'RUNNING' && a.status !== 'STARTED') return false;
+              if (a.expiresAt && new Date(a.expiresAt) < new Date()) return false;
+              return true;
+            });
             const completed = attemptsRes.data.find(a => a.status === 'COMPLETED');
             
             if (running) {

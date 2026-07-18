@@ -320,7 +320,7 @@ export const api = {
   users: {
     getDashboard: () => request<any>("/users/me/dashboard"),
     getActivities: () => request<any[]>("/users/me/activities"),
-    getResume: () => request<ResumeLearning | null>("/users/me/resume"),
+    getResume: (onlyLesson?: boolean) => request<ResumeLearning | null>(`/users/me/resume${onlyLesson ? "?onlyLesson=true" : ""}`),
     saveLearningState: (lessonId: string, scrollProgress: number, scrollY: number) =>
       request<ResumeLearning>("/users/me/learning-state", {
         method: "PUT",
@@ -354,7 +354,10 @@ export const api = {
     getWeeklyLab: () => request<Lab>("/growth/weekly-lab", { method: "POST" }),
     createHarderVariant: (attemptId: string) => request<Lab>(`/growth/harder/${attemptId}`, { method: "POST" }),
     getPublicProfile: (username: string) => request<PublicProfile>(`/growth/public/${username}`),
+    getPublicActivities: (username: string) => request<any[]>(`/growth/public/${username}/activities`),
     getLeaderboard: (track?: string) => request<LeaderboardEntry[]>(`/growth/leaderboard${track ? `?track=${encodeURIComponent(track)}` : ''}`),
+    updateRecommendedTrack: (track: string) => request<GrowthOverview>("/growth/track", { method: "PUT", body: JSON.stringify({ track }) }),
+    resetOnboarding: () => request<GrowthOverview>("/growth/reset-onboarding", { method: "POST" }),
   },
   author: {
     getWorkspace: () => request<{ paths: LearningPath[]; labs: Lab[] }>("/author"),

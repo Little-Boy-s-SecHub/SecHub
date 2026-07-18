@@ -31,8 +31,10 @@ public class UserController {
     }
 
     @GetMapping("/me/resume")
-    public ResponseEntity<ApiResponse<ResumeLearningDto>> getResume(@AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(ApiResponse.success(learningStateService.get(userDetails.getUsername())));
+    public ResponseEntity<ApiResponse<ResumeLearningDto>> getResume(
+            @RequestParam(value = "onlyLesson", defaultValue = "false") boolean onlyLesson,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(ApiResponse.success(learningStateService.get(userDetails.getUsername(), onlyLesson)));
     }
 
     @PutMapping("/me/learning-state")
@@ -64,6 +66,23 @@ public class UserController {
                 .map(a -> new com.sechub.dto.UserActivityDto(a.getActivityDate().toString(), a.getCount()))
                 .toList();
         return ResponseEntity.ok(ApiResponse.success(activities));
+    }
+
+    @PutMapping("/me/password")
+    public ResponseEntity<ApiResponse<Void>> changePassword(
+            @RequestBody com.sechub.dto.ChangePasswordRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        userService.changePassword(userDetails.getUsername(), request);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    @PutMapping("/me/avatar")
+    public ResponseEntity<ApiResponse<UserDto>> updateAvatar(
+            @RequestBody java.util.Map<String, String> body,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String avatarUrl = body.get("avatarUrl");
+        UserDto user = userService.updateAvatar(userDetails.getUsername(), avatarUrl);
+        return ResponseEntity.ok(ApiResponse.success(user));
     }
 
     @GetMapping

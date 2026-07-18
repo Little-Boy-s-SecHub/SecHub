@@ -45,15 +45,15 @@ class LabServiceBehaviorTest {
         assertThatThrownBy(()->service.useHint(attempt.getId(),"student")).isInstanceOf(BadRequestException.class);
     }
 
-    @Test void hintPenaltyIsTenPercentAndNeverBelowQuarter() {
+    @Test void hintPenaltyIsFivePercentAfterFirstFreeAndNeverBelowHalf() {
         attempt.setHintsUsed(3); LabAttemptDto result=service.submitFlag(attempt.getId()," SecHub{ok} ","student");
-        assertThat(result.status()).isEqualTo("COMPLETED");assertThat(result.score()).isEqualTo(70);
+        assertThat(result.status()).isEqualTo("COMPLETED");assertThat(result.score()).isEqualTo(90);
         verify(docker).stopContainer("container-1");verify(activity).incrementActivity(user.getId());
 
         LabAttempt manyHints=LabAttempt.builder().id(UUID.randomUUID()).user(user).lab(lab).status(LabAttempt.Status.RUNNING)
                 .startedAt(LocalDateTime.now()).expiresAt(LocalDateTime.now().plusHours(1)).hintsUsed(20).build();
         when(attempts.findById(manyHints.getId())).thenReturn(Optional.of(manyHints));
-        assertThat(service.submitFlag(manyHints.getId(),"SecHub{ok}","student").score()).isEqualTo(25);
+        assertThat(service.submitFlag(manyHints.getId(),"SecHub{ok}","student").score()).isEqualTo(50);
     }
 
     @Test void rejectsWrongFlagWithoutCompletingAttempt() {

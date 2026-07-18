@@ -39,16 +39,18 @@ public class LearningStateService {
     }
 
     @Transactional(readOnly = true)
-    public ResumeLearningDto get(String username) {
+    public ResumeLearningDto get(String username, boolean onlyLesson) {
         User user = users.findByUsername(username);
-        var running = attempts.findByUserIdAndStatus(user.getId(), LabAttempt.Status.RUNNING).stream()
-                .filter(item -> item.getExpiresAt() == null || item.getExpiresAt().isAfter(LocalDateTime.now()))
-                .max(Comparator.comparing(LabAttempt::getStartedAt));
-        if (running.isPresent()) {
-            LabAttempt attempt = running.get();
-            return new ResumeLearningDto("LAB", "/labs/" + attempt.getLab().getId() + "/play",
-                    attempt.getLab().getTitle(), "Phiên lab đang chạy · " + attempt.getHintsUsed() + " gợi ý đã mở",
-                    null, null, null, attempt.getLab().getId(), attempt.getId(), attempt.getHintsUsed(), attempt.getStartedAt());
+        if (!onlyLesson) {
+            var running = attempts.findByUserIdAndStatus(user.getId(), LabAttempt.Status.RUNNING).stream()
+                    .filter(item -> item.getExpiresAt() == null || item.getExpiresAt().isAfter(LocalDateTime.now()))
+                    .max(Comparator.comparing(LabAttempt::getStartedAt));
+            if (running.isPresent()) {
+                LabAttempt attempt = running.get();
+                return new ResumeLearningDto("LAB", "/labs/" + attempt.getLab().getId() + "/play",
+                        attempt.getLab().getTitle(), "Phiên lab đang chạy · " + attempt.getHintsUsed() + " gợi ý đã mở",
+                        null, null, null, attempt.getLab().getId(), attempt.getId(), attempt.getHintsUsed(), attempt.getStartedAt());
+            }
         }
         return states.findByUserId(user.getId()).map(this::lessonResume).orElse(null);
     }

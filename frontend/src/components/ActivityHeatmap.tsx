@@ -9,7 +9,7 @@ interface Activity {
   count: number;
 }
 
-export default function ActivityHeatmap() {
+export default function ActivityHeatmap({ username, noWrapper }: { username?: string; noWrapper?: boolean }) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -21,7 +21,9 @@ export default function ActivityHeatmap() {
   useEffect(() => {
     async function fetchActivities() {
       try {
-        const res = await api.users.getActivities();
+        const res = username 
+          ? await api.growth.getPublicActivities(username)
+          : await api.users.getActivities();
         if (res.success && res.data) {
           const data: Activity[] = res.data;
           setActivities(data);
@@ -35,7 +37,7 @@ export default function ActivityHeatmap() {
     }
 
     fetchActivities();
-  }, []);
+  }, [username]);
 
   const calculateStreaks = (data: Activity[]) => {
     if (!data || data.length === 0) return;
@@ -97,7 +99,9 @@ export default function ActivityHeatmap() {
     
     // We need to loop day-by-day chronologically from the earliest active date
     const start = new Date(activeDates[0]);
+    start.setHours(0, 0, 0, 0);
     const end = new Date();
+    end.setHours(0, 0, 0, 0);
     let currentCheck = new Date(start);
 
     while (currentCheck <= end) {
@@ -116,7 +120,7 @@ export default function ActivityHeatmap() {
     setStats({
       totalContributions: total,
       currentStreak: current,
-      longestStreak: longest
+      longestStreak: Math.max(longest, current)
     });
   };
 
@@ -197,7 +201,7 @@ export default function ActivityHeatmap() {
   });
 
   return (
-    <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
+    <div className={noWrapper ? "" : "card"} style={noWrapper ? {} : { padding: '24px', marginBottom: '24px' }}>
       <style>{`
         .heatmap-container {
           overflow-x: auto;

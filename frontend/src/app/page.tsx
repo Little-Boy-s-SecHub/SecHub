@@ -19,9 +19,13 @@ import {
   CalendarDays,
   Bell,
   TrendingUp,
-  Sparkles
-  ,Award
-  ,ShieldCheck
+  Sparkles,
+  Award,
+  ShieldCheck,
+  Crown,
+  AlertTriangle,
+  Target,
+  Lightbulb
 } from 'lucide-react';
 import { api, Vulnerability, LearningPath, Lab, LabAttempt, ResumeLearning, GrowthOverview, LeaderboardEntry } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
@@ -129,11 +133,12 @@ function PathMiniCard({ path }: { path: LearningPath }) {
 }
 
 function RecentLabCard({ attempt }: { attempt: LabAttempt }) {
+  const isExpired = attempt.expiresAt && new Date(attempt.expiresAt) < new Date();
   const statusContent = attempt.status === 'COMPLETED' ? (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--fg-success-strong)' }}>
       <CheckCircle2 size={14} /> Hoàn thành
     </span>
-  ) : attempt.status === 'RUNNING' ? (
+  ) : (attempt.status === 'RUNNING' || attempt.status === 'STARTED') && !isExpired ? (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--fg-brand)' }}>
       <RotateCw size={14} style={{ animation: 'spin 3s linear infinite' }} /> Đang chạy
     </span>
@@ -172,6 +177,7 @@ export default function DashboardPage() {
   const [paths, setPaths] = useState<LearningPath[]>([]);
   const [attempts, setAttempts] = useState<LabAttempt[]>([]);
   const [resume, setResume] = useState<ResumeLearning | null>(null);
+  const [lessonResume, setLessonResume] = useState<ResumeLearning | null>(null);
   const [growth, setGrowth] = useState<GrowthOverview | null>(null);
   const [weeklyLeaders, setWeeklyLeaders] = useState<LeaderboardEntry[]>([]);
   const [openingWeekly, setOpeningWeekly] = useState(false);
@@ -209,10 +215,11 @@ export default function DashboardPage() {
         }));
 
         if (isAuthenticated) {
-          const [dashboardRes, attemptsRes, resumeRes, growthRes] = await Promise.all([
+          const [dashboardRes, attemptsRes, resumeRes, lessonResumeRes, growthRes] = await Promise.all([
             api.users.getDashboard(),
             api.labs.getMyAttempts(),
             api.users.getResume(),
+            api.users.getResume(true),
             api.growth.getOverview()
           ]);
 
@@ -231,6 +238,7 @@ export default function DashboardPage() {
             setAttempts(attemptsRes.data);
           }
           if (resumeRes.success) setResume(resumeRes.data);
+          if (lessonResumeRes.success) setLessonResume(lessonResumeRes.data);
           if (growthRes.success) {
             setGrowth(growthRes.data);
             api.growth.getLeaderboard(growthRes.data.recommendedTrack).then(result => setWeeklyLeaders(result.data)).catch(() => undefined);
@@ -248,178 +256,405 @@ export default function DashboardPage() {
 
   const openWeeklyChallenge = async () => {
     setOpeningWeekly(true);
-    try { router.push(`/labs/${(await api.growth.getWeeklyLab()).data.id}`); }
-    catch (e: any) { alert(e.message || 'Chưa thể mở thử thách tuần.'); setOpeningWeekly(false); }
+    try {
+      const res = await api.growth.getWeeklyLab();
+      router.push(`/labs/${res.data.id}/play`);
+    } catch (e: any) {
+      alert(e.message || 'Chưa thể mở thử thách tuần.');
+      setOpeningWeekly(false);
+    }
   };
 
   return (
     <div>
-      {isAuthenticated && growth?.onboardingRequired && <NewUserOnboarding onComplete={setGrowth} />}
-      {isAuthenticated && resume && (
-        <section className="continue-learning">
-          <div className="continue-learning-icon">
-            {resume.type === 'LAB' ? <MonitorPlay size={22} /> : <BookOpen size={22} />}
-          </div>
-          <div className="continue-learning-copy">
-            <div className="continue-learning-kicker">{resume.type === 'LAB' ? 'Phiên thực hành đang mở' : 'Tiếp tục từ lần trước'}</div>
-            <h2>{resume.title}</h2>
-            <p>{resume.subtitle}{resume.type === 'LESSON' && typeof resume.progress === 'number' ? ` · Đã đọc ${resume.progress}%` : ''}</p>
-          </div>
-          <NextLink href={resume.url} className="btn btn-primary continue-learning-button">
-            Tiếp tục <ArrowRight size={16} />
-          </NextLink>
-        </section>
-      )}
-      {isAuthenticated && growth && !growth.onboardingRequired && (
+      {isAuthenticated ? (
         <>
-        <section className="dashboard-return-grid" aria-label="Nhịp học của bạn">
-          <div className="dashboard-rhythm">
-            <div className="dashboard-rhythm-stat"><Flame size={19} /><div><strong>{growth.streak} ngày</strong><span>Chuỗi học hiện tại</span></div></div>
-            <div className="dashboard-rhythm-stat"><Snowflake size={19} /><div><strong>{growth.freezeTickets} vé</strong><span>Bảo toàn chuỗi</span></div></div>
-          </div>
-          <div className="dashboard-missions">
-            <div className="dashboard-panel-heading"><div><CalendarDays size={18} /><h2>Việc nên làm hôm nay</h2></div><span>10–15 phút</span></div>
-            <div className="dashboard-mission-row"><div><strong>{growth.dailyMission.title}</strong><p>{growth.dailyMission.description}</p></div><NextLink href={growth.dailyMission.actionUrl} className="btn btn-secondary btn-sm">{growth.dailyMission.completed ? 'Xem lại' : 'Bắt đầu'}</NextLink></div>
-            <div className="dashboard-mission-row"><div><strong>{growth.weeklyChallenge.title}</strong><p>Lab biến thể từ kỹ năng đã hoàn thành, không lặp lại đề cũ.</p></div><button className="btn btn-secondary btn-sm" onClick={openWeeklyChallenge} disabled={openingWeekly}><Sparkles size={14} /> {openingWeekly ? 'Đang tạo...' : 'Mở thử thách'}</button></div>
-          </div>
-          <div className="dashboard-insights">
-            <div className="dashboard-panel-heading"><div><TrendingUp size={18} /><h2>Báo cáo tuần</h2></div><span>+{growth.weeklyReport.xpGained} XP</span></div>
-            <div className="dashboard-weekly-numbers"><span><strong>{growth.weeklyReport.labsCompleted}</strong> lab</span><span><strong>{growth.weeklyReport.lessonsCompleted}</strong> bài học</span></div>
-            <p><b>Kỹ năng tốt:</b> {growth.weeklyReport.strongestSkill}</p><p><b>Nên học tiếp:</b> {growth.weeklyReport.weakSkill}</p><p>{growth.weeklyReport.recommendation}</p>
-          </div>
-          {growth.notifications.length > 0 && <div className="dashboard-notice"><Bell size={18} /><div><strong>Cập nhật dành cho bạn</strong><p>{growth.notifications[0]}</p></div></div>}
-        </section>
-        <section className="dashboard-competency" aria-label="Năng lực và thành tích">
-          <div className="dashboard-xp-panel">
-            <div className="dashboard-panel-heading"><div><Trophy size={18} /><h2>Cấp {growth.level} · {growth.levelTitle}</h2></div><strong>{growth.xp} XP</strong></div>
-            <div className="dashboard-xp-track"><span style={{ width: `${((growth.xp % 500) / 500) * 100}%` }} /></div>
-            <small>{500 - (growth.xp % 500)} XP tới cấp tiếp theo</small>
-            <div className="dashboard-badges"><Award size={16} />{growth.badges.length ? growth.badges.slice(0, 4).map(badge => <span key={badge}>{badge}</span>) : <span>Hoàn thành lab đầu tiên để nhận huy hiệu</span>}</div>
-          </div>
-          <div className="dashboard-skill-panel">
-            <div className="dashboard-panel-heading"><div><ShieldCheck size={18} /><h2>Bản đồ năng lực</h2></div><span>Từ kết quả lab</span></div>
-            {growth.skills.length ? growth.skills.slice(0, 5).map(skill => <div className="dashboard-skill-row" key={skill.slug}><div><strong>{skill.name}</strong><small>Cấp {skill.level} · {skill.completedLabs} lab</small></div><div><span style={{ width: `${Math.min(100, skill.xp / 5)}%` }} /></div><b>{skill.xp} XP</b></div>) : <p className="dashboard-skill-empty">SQLi, XSS, Access Control và SSRF sẽ xuất hiện khi bạn hoàn thành lab tương ứng.</p>}
-          </div>
-        </section>
-        <section className="dashboard-community" aria-label="Cộng đồng SecHub">
-          <div className="dashboard-panel-heading"><div><Trophy size={18} /><h2>Top tuần · {growth.recommendedTrack === 'BEGINNER' ? 'Người mới' : growth.recommendedTrack === 'WEB_DEVELOPER' ? 'Web Developer' : 'Pentester'}</h2></div><NextLink href={`/profile/${api.auth.getCurrentUser()?.username}`}>Hồ sơ CV của tôi</NextLink></div>
-          <div className="dashboard-community-list">{weeklyLeaders.slice(0, 5).map((entry, index) => <div key={entry.username}><span>{index + 1}</span><NextLink href={`/profile/${entry.username}`}>{entry.username}</NextLink><small>{entry.strongestSkill}</small><strong>{entry.weeklyXp} XP</strong></div>)}{weeklyLeaders.length === 0 && <p>Chưa có điểm trong nhóm tuần này. Bạn có thể là người đầu tiên.</p>}</div>
-        </section>
+          {growth?.onboardingRequired && <NewUserOnboarding onComplete={setGrowth} />}
+          
+          {resume && (
+            <section className="continue-learning" style={{ marginBottom: 'var(--space-4)' }}>
+              <div className="continue-learning-icon">
+                {resume.type === 'LAB' ? <MonitorPlay size={22} /> : <BookOpen size={22} />}
+              </div>
+              <div className="continue-learning-copy">
+                <div className="continue-learning-kicker">{resume.type === 'LAB' ? 'Phiên thực hành đang mở' : 'Tiếp tục từ lần trước'}</div>
+                <h2>{resume.title}</h2>
+                <p>{resume.subtitle}{resume.type === 'LESSON' && typeof resume.progress === 'number' ? ` · Đã đọc ${resume.progress}%` : ''}</p>
+              </div>
+              <NextLink href={resume.url} className="btn btn-primary continue-learning-button">
+                Tiếp tục <ArrowRight size={16} />
+              </NextLink>
+            </section>
+          )}
+
+          {growth && !growth.onboardingRequired && (
+            <>
+              {/* Bảng xếp hạng tuần - Đưa lên trên cùng */}
+              <section className="dashboard-community" aria-label="Bảng xếp hạng tuần" style={{ marginBottom: 'var(--space-4)', padding: '16px 20px', border: '1px solid var(--border-default)', borderRadius: '12px', background: 'var(--bg-neutral-primary)', boxShadow: '0 4px 20px rgba(0,0,0,0.01)' }}>
+                <div className="dashboard-panel-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-default)', paddingBottom: '12px', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Trophy size={18} style={{ color: 'var(--fg-brand)' }} />
+                    <h2 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-heading)', margin: 0 }}>
+                      Bảng xếp hạng tuần
+                    </h2>
+                  </div>
+                  <NextLink 
+                    href="/leaderboard"
+                    style={{ 
+                      textDecoration: 'none', 
+                      color: 'var(--fg-brand)', 
+                      fontWeight: 700, 
+                      fontSize: '13px', 
+                      display: 'inline-flex', 
+                      alignItems: 'center', 
+                      gap: '4px',
+                      transition: 'opacity 0.2s' 
+                    }}
+                  >
+                    Xem chi tiết <ArrowRight size={13} />
+                  </NextLink>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    {weeklyLeaders.slice(0, 3).map((entry, index) => (
+                      <div 
+                        key={entry.username} 
+                        style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '6px', 
+                          background: 'var(--bg-neutral-secondary-light)', 
+                          border: '1px solid var(--border-default)', 
+                          padding: '6px 12px', 
+                          borderRadius: '20px',
+                          fontSize: '12.5px',
+                        }}
+                      >
+                        <span style={{
+                          width: '18px',
+                          height: '18px',
+                          borderRadius: '50%',
+                          background: index === 0 ? '#fbbf24' : index === 1 ? '#cbd5e1' : '#d97706',
+                          color: '#fff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '10px',
+                          fontWeight: 900,
+                        }}>
+                          {index + 1}
+                        </span>
+                        <strong style={{ color: 'var(--text-heading)' }}>{entry.username}</strong>
+                        <span style={{ color: 'var(--text-body-subtle)', fontSize: '11.5px' }}>({entry.weeklyXp} XP)</span>
+                      </div>
+                    ))}
+                    {weeklyLeaders.length === 0 && (
+                      <span style={{ color: 'var(--text-body-subtle)', fontSize: '13px' }}>Chưa có điểm trong tuần này.</span>
+                    )}
+                  </div>
+                  <NextLink href="/leaderboard" className="btn btn-secondary btn-sm" style={{ padding: '8px 16px', fontSize: '12.5px' }}>
+                    Mở Bảng xếp hạng →
+                  </NextLink>
+                </div>
+              </section>
+
+              <section className="dashboard-return-grid" aria-label="Nhịp học của bạn">
+                {/* Left Column: Daily Tasks and Continued Learning */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div className="dashboard-missions" style={{ width: '100%' }}>
+                    <div className="dashboard-panel-heading">
+                      <div><CalendarDays size={18} /><h2>Nhiệm vụ hằng ngày</h2></div>
+                      <span style={{ fontWeight: 600, color: 'var(--fg-brand)' }}>10–15 phút</span>
+                    </div>
+                    
+                    <div className="dashboard-mission-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', padding: '12px 0' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                          <strong style={{ color: 'var(--text-heading)', fontSize: '14px' }}>{growth.dailyMission.title}</strong>
+                          <span className="badge badge-secondary" style={{ fontSize: '10px', padding: '2px 6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <Clock size={12} /> {growth.dailyMission.minutes} phút
+                          </span>
+                          <span className="badge badge-brand" style={{ fontSize: '10px', padding: '2px 6px' }}>+25 XP</span>
+                          {growth.dailyMission.completed && (
+                            <span className="badge badge-success" style={{ fontSize: '10px', padding: '2px 6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <CheckCircle2 size={12} style={{ color: 'var(--fg-success-strong)' }} /> Xong
+                            </span>
+                          )}
+                        </div>
+                        <p style={{ margin: 0, fontSize: '12.5px', color: 'var(--text-body-subtle)' }}>{growth.dailyMission.description}</p>
+                      </div>
+                      <NextLink href={growth.dailyMission.actionUrl} className={`btn ${growth.dailyMission.completed ? 'btn-secondary' : 'btn-primary'} btn-sm`} style={{ whiteSpace: 'nowrap' }}>
+                        {growth.dailyMission.completed ? 'Xem lại' : 'Bắt đầu'}
+                      </NextLink>
+                    </div>
+
+                    <div className="dashboard-mission-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', padding: '12px 0', borderTop: '1px solid var(--border-default)' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                          <strong style={{ color: 'var(--text-heading)', fontSize: '14px' }}>{growth.weeklyChallenge.title}</strong>
+                          <span className="badge badge-secondary" style={{ fontSize: '10px', padding: '2px 6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <Clock size={12} /> {growth.weeklyChallenge.minutes} phút
+                          </span>
+                          <span className="badge badge-brand" style={{ fontSize: '10px', padding: '2px 6px' }}>+50 XP</span>
+                          {growth.weeklyChallenge.completed && (
+                            <span className="badge badge-success" style={{ fontSize: '10px', padding: '2px 6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <CheckCircle2 size={12} style={{ color: 'var(--fg-success-strong)' }} /> Xong
+                            </span>
+                          )}
+                        </div>
+                        <p style={{ margin: 0, fontSize: '12.5px', color: 'var(--text-body-subtle)' }}>{growth.weeklyChallenge.description}</p>
+                      </div>
+                      <button 
+                        className={`btn ${growth.weeklyChallenge.completed ? 'btn-secondary' : 'btn-primary'} btn-sm`} 
+                        onClick={openWeeklyChallenge} 
+                        disabled={openingWeekly || growth.weeklyChallenge.completed}
+                        style={{ whiteSpace: 'nowrap' }}
+                      >
+                        {openingWeekly ? 'Đang tạo...' : growth.weeklyChallenge.completed ? 'Đã hoàn thành' : 'Bắt đầu'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {lessonResume && (!resume || resume.url !== lessonResume.url) && (
+                    <div style={{
+                      background: 'var(--bg-brand-softer)',
+                      border: '1px solid rgba(56,189,248,0.15)',
+                      borderRadius: '8px',
+                      padding: '16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                      width: '100%',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                        <div style={{ 
+                          width: '32px', 
+                          height: '32px', 
+                          borderRadius: '6px', 
+                          background: 'rgba(56,189,248,0.1)', 
+                          color: 'var(--fg-brand)', 
+                          display: 'grid', 
+                          placeItems: 'center',
+                          flexShrink: 0
+                        }}>
+                          <BookOpen size={16} />
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--fg-brand)', display: 'block' }}>
+                            Bài đang học
+                          </span>
+                          <strong style={{ fontSize: '13px', color: 'var(--text-heading)', display: 'block', margin: '2px 0 1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {lessonResume.title}
+                          </strong>
+                          <span style={{ fontSize: '11px', color: 'var(--text-body-subtle)' }}>
+                            Tiến độ: {lessonResume.progress}%
+                          </span>
+                        </div>
+                      </div>
+                      <NextLink href={lessonResume.url} className="btn btn-secondary btn-sm" style={{ whiteSpace: 'nowrap', padding: '6px 12px', fontSize: '12px' }}>
+                        Học tiếp
+                      </NextLink>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right Column: Streak, Freeze Status and Weekly Report */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div className="dashboard-rhythm" style={{ width: '100%', marginBottom: 0 }}>
+                    <div className="dashboard-rhythm-stat"><Flame size={19} /><div><strong>{growth.streak} ngày</strong><span>Chuỗi học hiện tại</span></div></div>
+                    <div className="dashboard-rhythm-stat"><Snowflake size={19} /><div><strong>{growth.freezeTickets} vé</strong><span>Bảo toàn chuỗi</span></div></div>
+                  </div>
+                  
+                  <div style={{
+                    background: 'var(--bg-neutral-secondary-light)',
+                    border: '1px solid var(--border-default)',
+                    borderRadius: '8px',
+                    padding: '12px 14px',
+                    fontSize: '12.5px',
+                    color: 'var(--text-body)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px'
+                  }}>
+                    <div>
+                      {growth.freezeTickets > 0 ? (
+                        <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
+                          <ShieldCheck size={14} style={{ color: 'var(--fg-success-strong)', flexShrink: 0 }} /> 
+                          <span style={{ color: 'var(--text-body)', lineHeight: 1.3 }}>
+                            <strong style={{ color: 'var(--fg-success-strong)' }}>Chuỗi được bảo vệ:</strong> Bạn có <strong>{growth.freezeTickets} vé</strong> bảo toàn.
+                          </span>
+                        </p>
+                      ) : (
+                        <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
+                          <AlertTriangle size={14} style={{ color: 'var(--fg-warning)', flexShrink: 0 }} /> 
+                          <span style={{ color: 'var(--text-body)', lineHeight: 1.3 }}>
+                            <strong style={{ color: 'var(--fg-warning)' }}>Không có vé dự phòng:</strong> Hãy duy trì học tập để tích lũy thêm.
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                    <div style={{ borderTop: '1px solid var(--border-default)', paddingTop: '6px', marginTop: '2px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', marginBottom: '4px' }}>
+                        <span>Vé tiếp theo:</span>
+                        <strong style={{ color: 'var(--text-heading)' }}>{growth.streak % 7}/7 ngày</strong>
+                      </div>
+                      <div style={{ width: '100%', height: '4px', background: 'var(--bg-neutral-tertiary)', borderRadius: '2px', overflow: 'hidden' }}>
+                        <div style={{ width: `${((growth.streak % 7) / 7) * 100}%`, height: '100%', background: 'var(--bg-brand)', borderRadius: '2px' }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="dashboard-insights" style={{ width: '100%' }}>
+                    <div className="dashboard-panel-heading">
+                      <div><TrendingUp size={18} /><h2>Báo cáo tuần</h2></div>
+                      <span style={{ fontWeight: 600, color: 'var(--fg-success-strong)' }}>+{growth.weeklyReport.xpGained} XP</span>
+                    </div>
+                    <div className="dashboard-weekly-numbers" style={{ display: 'flex', gap: '20px', padding: '10px 0', marginBottom: '12px' }}>
+                      <span><strong>{growth.weeklyReport.labsCompleted}</strong> lab</span>
+                      <span><strong>{growth.weeklyReport.lessonsCompleted}</strong> bài học</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12.5px' }}>
+                      <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <TrendingUp size={14} style={{ color: 'var(--fg-success-strong)' }} /> 
+                        <span><strong style={{ color: 'var(--text-heading)' }}>Kỹ năng đã tăng:</strong> <span style={{ color: 'var(--fg-success-strong)', fontWeight: 600 }}>{growth.weeklyReport.strongestSkill}</span></span>
+                      </p>
+                      <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Target size={14} style={{ color: 'var(--fg-danger-strong)' }} /> 
+                        <span><strong style={{ color: 'var(--text-heading)' }}>Điểm yếu cần chú ý:</strong> <span style={{ color: 'var(--fg-danger-strong)', fontWeight: 600 }}>{growth.weeklyReport.weakSkill}</span></span>
+                      </p>
+                      <p style={{ margin: 0, padding: '8px 12px', background: 'var(--bg-neutral-secondary)', borderLeft: '3px solid var(--border-brand)', borderRadius: '0 6px 6px 0' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                          <Lightbulb size={14} style={{ color: 'var(--fg-brand)' }} /> 
+                          <strong style={{ color: 'var(--text-heading)' }}>Bài nên học tiếp:</strong>
+                        </span>
+                        <span style={{ color: 'var(--text-body)', fontSize: '12px' }}>{growth.weeklyReport.recommendation}</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+              </section>
+
+              <section className="dashboard-competency" aria-label="Năng lực và thành tích" style={{ marginBottom: 'var(--space-6)' }}>
+                <div className="dashboard-xp-panel">
+                  <div className="dashboard-panel-heading"><div><Trophy size={18} /><h2>Cấp {growth.level} · {growth.levelTitle}</h2></div><strong>{growth.xp} XP</strong></div>
+                  <div className="dashboard-xp-track"><span style={{ width: `${((growth.xp % 500) / 500) * 100}%` }} /></div>
+                  <small>{500 - (growth.xp % 500)} XP tới cấp tiếp theo</small>
+                  <div className="dashboard-badges"><Award size={16} />{growth.badges.length ? growth.badges.slice(0, 4).map(badge => <span key={badge}>{badge}</span>) : <span>Hoàn thành lab đầu tiên để nhận huy hiệu</span>}</div>
+                </div>
+                <div className="dashboard-skill-panel">
+                  <div className="dashboard-panel-heading"><div><ShieldCheck size={18} /><h2>Bản đồ năng lực</h2></div><span>Từ kết quả lab</span></div>
+                  {growth.skills.length ? growth.skills.slice(0, 8).map(skill => <div className="dashboard-skill-row" key={skill.slug}><div><strong>{skill.name}</strong><small>Cấp {skill.level} · {skill.completedLabs} lab</small></div><div><span style={{ width: `${Math.min(100, skill.xp / 5)}%` }} /></div><b>{skill.xp} XP</b></div>) : <p className="dashboard-skill-empty">SQLi, XSS, Access Control và SSRF sẽ xuất hiện khi bạn hoàn thành lab tương ứng.</p>}
+                </div>
+              </section>
+
+
+              {attempts.length > 0 && (
+                <section className="animate-fade-in-up animate-delay-4" style={{ marginBottom: 'var(--space-6)' }}>
+                  <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <h2 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <FlaskConical size={28} style={{ color: 'var(--fg-brand)' }} /> Phiên thực hành của bạn
+                      </h2>
+                      <p className="section-subtitle">Lịch sử và tiến độ làm lab gần đây</p>
+                    </div>
+                    <NextLink href="/labs" className="btn btn-secondary btn-sm">
+                      Tất cả labs →
+                    </NextLink>
+                  </div>
+                  <div className="grid-3">
+                    {attempts.slice(0, 3).map((attempt) => (
+                      <RecentLabCard key={attempt.id} attempt={attempt} />
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
+          )}
         </>
-      )}
-      {/* Hero Section */}
-      <section className="animate-fade-in-up" style={{ marginBottom: 'var(--space-6)' }}>
-        <div className="hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', alignItems: 'center' }}>
-          <div>
-            <div className="badge badge-brand" style={{ marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <Lock size={12} /> Nền tảng học Pentest Web #1 Việt Nam
+      ) : (
+        <>
+          <section className="animate-fade-in-up" style={{ marginBottom: 'var(--space-6)' }}>
+            <div className="hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', alignItems: 'center' }}>
+              <div>
+                <h1 style={{ fontSize: '2.5rem', fontWeight: 900, lineHeight: 1.1, marginBottom: 'var(--space-2)', color: 'var(--text-heading)' }}>
+                  Học <span className="text-brand">Pentest Web</span> qua{' '}
+                  <span className="text-brand">Thực hành</span>
+                </h1>
+                <p style={{ fontSize: '1.0625rem', maxWidth: '50ch', marginBottom: 'var(--space-4)' }}>
+                  Nắm vững kỹ năng khai thác lỗ hổng bảo mật web từ cơ bản đến nâng cao.
+                  Tài liệu chi tiết kết hợp bài lab thực hành tương tác trực tiếp với Docker container.
+                </p>
+                <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                  <NextLink href="/labs" className="btn btn-primary btn-lg" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                    <FlaskConical size={18} /> Bắt đầu Lab
+                  </NextLink>
+                  <NextLink href="/learning" className="btn btn-secondary btn-lg" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                    <BookOpen size={18} /> Xem lộ trình
+                  </NextLink>
+                </div>
+              </div>
+              <TerminalHero />
             </div>
-            <h1 style={{ fontSize: '2.5rem', fontWeight: 900, lineHeight: 1.1, marginBottom: 'var(--space-2)', color: 'var(--text-heading)' }}>
-              Học <span className="text-brand">Pentest Web</span> qua{' '}
-              <span className="text-brand">Thực hành</span>
-            </h1>
-            <p style={{ fontSize: '1.0625rem', maxWidth: '50ch', marginBottom: 'var(--space-4)' }}>
-              Nắm vững kỹ năng khai thác lỗ hổng bảo mật web từ cơ bản đến nâng cao.
-              Tài liệu chi tiết kết hợp bài lab thực hành tương tác trực tiếp với Docker container.
-            </p>
-            <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-              <NextLink href="/labs" className="btn btn-primary btn-lg" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                <FlaskConical size={18} /> Bắt đầu Lab
+          </section>
+
+          <section className="animate-fade-in-up animate-delay-1" style={{ marginBottom: 'var(--space-6)' }}>
+            <div className="grid-4">
+              <StatCard value={String(stats.totalVulnerabilities)} label="Loại lỗ hổng" color="green" />
+              <StatCard value={String(stats.totalLabs)} label="Bài Lab thực hành" color="blue" />
+              <StatCard value="Yêu cầu đăng nhập" label="Hoàn thành" color="orange" />
+              <StatCard value="Yêu cầu đăng nhập" label="Tổng điểm" color="purple" />
+            </div>
+          </section>
+
+          <section className="animate-fade-in-up animate-delay-2" style={{ marginBottom: 'var(--space-6)' }}>
+            <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h2 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <ShieldAlert size={28} style={{ color: 'var(--fg-brand)' }} /> Lỗ hổng bảo mật
+                </h2>
+                <p className="section-subtitle">Khám phá và học cách khai thác các lỗ hổng web phổ biến nhất</p>
+              </div>
+              <NextLink href="/vulnerabilities" className="btn btn-secondary btn-sm">
+                Xem tất cả →
               </NextLink>
-              <NextLink href="/learning" className="btn btn-secondary btn-lg" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                <BookOpen size={18} /> Xem lộ trình
+            </div>
+            <div className="grid-4">
+              {loading ? (
+                Array(4).fill(0).map((_, i) => <div key={i} className="card" style={{ height: '140px', background: 'var(--bg-neutral-secondary-medium)', opacity: 0.5 }}></div>)
+              ) : (
+                vulns.slice(0, 4).map((vuln) => (
+                  <VulnMiniCard key={vuln.id} vuln={vuln} />
+                ))
+              )}
+            </div>
+          </section>
+
+          <section className="animate-fade-in-up animate-delay-3" style={{ marginBottom: 'var(--space-6)' }}>
+            <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h2 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <BookOpen size={28} style={{ color: 'var(--fg-brand)' }} /> Lộ trình học
+                </h2>
+                <p className="section-subtitle">Từ người mới bắt đầu đến chuyên gia pentest</p>
+              </div>
+              <NextLink href="/learning" className="btn btn-secondary btn-sm">
+                Xem tất cả →
               </NextLink>
             </div>
-          </div>
-          <TerminalHero />
-        </div>
-      </section>
-
-      {/* Stats */}
-      <section className="animate-fade-in-up animate-delay-1" style={{ marginBottom: 'var(--space-6)' }}>
-        <div className="grid-4">
-          <StatCard value={String(stats.totalVulnerabilities)} label="Loại lỗ hổng" color="green" />
-          <StatCard value={String(stats.totalLabs)} label="Bài Lab thực hành" color="blue" />
-          <StatCard value={isAuthenticated ? `${stats.completedLabs} labs` : 'Yêu cầu đăng nhập'} label="Hoàn thành" color="orange" />
-          <StatCard value={isAuthenticated ? `${stats.totalPoints} pts` : 'Yêu cầu đăng nhập'} label="Tổng điểm" color="purple" />
-        </div>
-      </section>
-
-      {/* Activity Heatmap (GitHub-style calendar) */}
-      {isAuthenticated && (
-        <section className="animate-fade-in-up" style={{ marginBottom: 'var(--space-6)' }}>
-          <ActivityHeatmap />
-        </section>
-      )}
-
-      {/* Vulnerability Categories */}
-      <section className="animate-fade-in-up animate-delay-2" style={{ marginBottom: 'var(--space-6)' }}>
-        <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h2 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ShieldAlert size={28} style={{ color: 'var(--fg-brand)' }} /> Lỗ hổng bảo mật
-            </h2>
-            <p className="section-subtitle">Khám phá và học cách khai thác các lỗ hổng web phổ biến nhất</p>
-          </div>
-          <NextLink href="/vulnerabilities" className="btn btn-secondary btn-sm">
-            Xem tất cả →
-          </NextLink>
-        </div>
-        <div className="grid-4">
-          {loading ? (
-            Array(4).fill(0).map((_, i) => <div key={i} className="card" style={{ height: '140px', background: 'var(--bg-neutral-secondary-medium)', opacity: 0.5 }}></div>)
-          ) : (
-            vulns.slice(0, 4).map((vuln) => (
-              <VulnMiniCard key={vuln.id} vuln={vuln} />
-            ))
-          )}
-        </div>
-      </section>
-
-      {/* Learning Paths */}
-      <section className="animate-fade-in-up animate-delay-3" style={{ marginBottom: 'var(--space-6)' }}>
-        <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h2 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <BookOpen size={28} style={{ color: 'var(--fg-brand)' }} /> Lộ trình học
-            </h2>
-            <p className="section-subtitle">Từ người mới bắt đầu đến chuyên gia pentest</p>
-          </div>
-          <NextLink href="/learning" className="btn btn-secondary btn-sm">
-            Xem tất cả →
-          </NextLink>
-        </div>
-        <div className="grid-3">
-          {loading ? (
-            Array(3).fill(0).map((_, i) => <div key={i} className="card" style={{ height: '160px', background: 'var(--bg-neutral-secondary-medium)', opacity: 0.5 }}></div>)
-          ) : (
-            paths.map((path) => (
-              <PathMiniCard key={path.id} path={path} />
-            ))
-          )}
-        </div>
-      </section>
-
-      {/* Recent Lab Attempts */}
-      {isAuthenticated && attempts.length > 0 && (
-        <section className="animate-fade-in-up animate-delay-4" style={{ marginBottom: 'var(--space-6)' }}>
-          <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h2 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FlaskConical size={28} style={{ color: 'var(--fg-brand)' }} /> Phiên thực hành của bạn
-              </h2>
-              <p className="section-subtitle">Lịch sử và tiến độ làm lab gần đây</p>
+            <div className="grid-3">
+              {loading ? (
+                Array(3).fill(0).map((_, i) => <div key={i} className="card" style={{ height: '160px', background: 'var(--bg-neutral-secondary-medium)', opacity: 0.5 }}></div>)
+              ) : (
+                paths.map((path) => (
+                  <PathMiniCard key={path.id} path={path} />
+                ))
+              )}
             </div>
-            <NextLink href="/labs" className="btn btn-secondary btn-sm">
-              Tất cả labs →
-            </NextLink>
-          </div>
-          <div className="grid-3">
-            {attempts.slice(0, 3).map((attempt) => (
-              <RecentLabCard key={attempt.id} attempt={attempt} />
-            ))}
-          </div>
-        </section>
+          </section>
+        </>
       )}
     </div>
   );

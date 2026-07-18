@@ -7,8 +7,10 @@ import com.sechub.entity.Lab;
 import com.sechub.entity.Lesson;
 import com.sechub.entity.User;
 import com.sechub.entity.UserProgress;
+import com.sechub.entity.GrowthProfile;
 import com.sechub.exception.BadRequestException;
 import com.sechub.repository.UserProgressRepository;
+import com.sechub.repository.GrowthProfileRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,12 +23,14 @@ public class PracticeService {
 
     private final UserService userService;
     private final UserProgressRepository progressRepository;
+    private final GrowthProfileRepository growthProfileRepository;
     private final OpenAiService openAiService;
 
     public PracticeService(UserService userService, UserProgressRepository progressRepository,
-                           OpenAiService openAiService) {
+                           GrowthProfileRepository growthProfileRepository, OpenAiService openAiService) {
         this.userService = userService;
         this.progressRepository = progressRepository;
+        this.growthProfileRepository = growthProfileRepository;
         this.openAiService = openAiService;
     }
 
@@ -50,15 +54,31 @@ public class PracticeService {
                 .findFirst()
                 .orElseThrow(() -> new BadRequestException(
                         "Các bài đã hoàn thành chưa có loại lỗ hổng phù hợp để tạo lab hằng ngày"));
+        
+        String track = growthProfileRepository.findByUserId(user.getId()).map(GrowthProfile::getRecommendedTrack).orElse("BEGINNER");
+        String adaptiveDifficulty = adaptiveDifficulty(lesson.getLearningPath().getDifficulty().name(), track);
+        
         String scenario = "LESSON TITLE: " + lesson.getTitle() + "\n"
                 + "LEARNING PATH: " + lesson.getLearningPath().getTitle() + "\n"
                 + "LESSON CONTENT: " + compact(lesson.getContentMarkdown(), 700) + "\n"
-                + "REQUIREMENT: Tạo thử thách hằng ngày ngắn, bám sát bài học và chỉ chạy trong sandbox.";
+                + "LEARNER TRACK: " + track + "\n"
+                + "REQUIREMENT: Tạo thử thách hằng ngày ngắn, bám sát bài học và chỉ chạy trong sandbox. Điều chỉnh độ phức tạp dựa trên trình độ.";
+                
         Lab lab = openAiService.generateAndSaveLab(
                 lesson.getVulnerability().getSlug(),
-                lesson.getLearningPath().getDifficulty().name(),
+                adaptiveDifficulty,
                 scenario);
         return new PracticeDeckDto(LocalDate.now(), List.of(), LabDto.fromEntity(lab), lessons.size());
+    }
+
+    private String adaptiveDifficulty(String requested, String track) {
+        int requestedLevel = switch (requested == null ? "BEGINNER" : requested.toUpperCase()) {
+            case "ADVANCED" -> 2; case "INTERMEDIATE" -> 1; default -> 0;
+        };
+        int learnerLevel = switch (track == null ? "BEGINNER" : track) {
+            case "PENTESTER" -> 2; case "WEB_DEVELOPER" -> 1; default -> 0;
+        };
+        return new String[]{"BEGINNER", "INTERMEDIATE", "ADVANCED"}[Math.max(requestedLevel, learnerLevel)];
     }
 
     private List<Lesson> completedLessons(User user) {

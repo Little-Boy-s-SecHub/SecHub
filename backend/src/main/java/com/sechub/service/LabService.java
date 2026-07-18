@@ -183,10 +183,12 @@ public class LabService {
             // Stop the Docker container since it's completed
             dockerService.stopContainer(attempt.getContainerId());
 
-            // Calculate score based on hints used
+            // Calculate score based on hints used (first hint is free, subsequent hints cost 5% each, minimum score is 50%)
             int basePoints = attempt.getLab().getPoints();
-            int hintPenalty = attempt.getHintsUsed() * (basePoints / 10);
-            attempt.setScore(Math.max(basePoints - hintPenalty, basePoints / 4));
+            int hintsUsed = attempt.getHintsUsed();
+            int penaltyPercent = hintsUsed > 0 ? (hintsUsed - 1) * 5 : 0;
+            int hintPenalty = (basePoints * penaltyPercent) / 100;
+            attempt.setScore(Math.max(basePoints - hintPenalty, basePoints / 2));
 
             activityService.incrementActivity(attempt.getUser().getId());
         } else {
@@ -252,6 +254,22 @@ public class LabService {
                     "Tham số nào khiến server tự tải một URL thay cho trình duyệt của bạn?",
                     "Có địa chỉ nội bộ hoặc endpoint metadata nào chỉ server mới truy cập được không?",
                     "Hãy quan sát khác biệt về status, thời gian và nội dung khi đổi host đích."};
+            case "csrf" -> new String[]{
+                    "Hành động nhạy cảm nào đang được thực hiện qua phương thức GET/POST? Yêu cầu này có chứa token bảo mật chống giả mạo nào không?",
+                    "Nếu một trang web của bên thứ ba tự động gửi yêu cầu này thay cho nạn nhân (khi họ đã đăng nhập), liệu server có chấp nhận không?",
+                    "Hãy thử tạo một form HTML đơn giản tự động gửi (auto-submit) request đó và kiểm tra phản hồi nhận được."};
+            case "command-injection" -> new String[]{
+                    "Tham số đầu vào nào đang được chuyển tiếp tới một lệnh hệ điều hành? Có ký tự điều khiển lệnh nào bị lọc không?",
+                    "Bạn có thể nối thêm lệnh mới bằng các ký tự đặc biệt như ';', '&&', hoặc '|' để kiểm tra phản hồi từ server không?",
+                    "Hãy thử chạy một lệnh đọc thư mục đơn giản (ví dụ: 'ls' hoặc 'dir') trước khi tìm cách đọc tệp flag nhạy cảm."};
+            case "file-upload" -> new String[]{
+                    "Server đang giới hạn phần mở rộng của tệp tải lên (extension) bằng những đuôi tệp nào? Kiểm tra này diễn ra ở client hay server?",
+                    "Bạn đã thử đổi tên tệp (ví dụ: '.php.jpg' hoặc '.phtml') hoặc thay đổi HTTP header 'Content-Type' khi tải tệp lên chưa?",
+                    "Làm cách nào để bạn kích hoạt hoặc truy cập trực tiếp vào tệp mã nguồn độc hại sau khi tải lên thành công?"};
+            case "auth-bypass" -> new String[]{
+                    "Ứng dụng đang quản lý phiên đăng nhập của bạn bằng cookie, session hay JWT token? Dữ liệu đó có thể giải mã hoặc chỉnh sửa không?",
+                    "Có tham số nào định vị quyền truy cập (như 'role=user' hoặc 'isAdmin=false') mà bạn có thể thay đổi trực tiếp trên request chưa?",
+                    "Hãy kiểm tra xem server có xác thực chữ ký (signature) của token hay chỉ đọc phần thông tin giải mã thô."};
             default -> new String[]{
                     "Hãy xác định ranh giới tin cậy: dữ liệu nào do người dùng kiểm soát và được server sử dụng ở đâu?",
                     "Thử thay đổi một tham số mỗi lần và so sánh status, nội dung, thời gian phản hồi.",
@@ -408,14 +426,23 @@ public class LabService {
 
     @Transactional
     public void expireOverdueAttempts() {
-        List<LabAttempt> overdue = new java.util.ArrayList<>(labAttemptRepository.findByStatusAndExpiresAtBefore(
+        List<LabAttempt> overdue = new java.util.ArrayList<>();
+        overdue.addAll(labAttemptRepository.findByStatusAndExpiresAtBefore(
                 LabAttempt.Status.RUNNING, LocalDateTime.now()));
-        for (LabAttempt running : labAttemptRepository.findByStatus(LabAttempt.Status.RUNNING)) {
-            boolean generated = running.getLab().getArtifactPath() != null && !running.getLab().getArtifactPath().isBlank();
-            if (generated && !dockerService.isContainerRunning(running.getContainerId()) && !overdue.contains(running)) {
-                overdue.add(running);
+        overdue.addAll(labAttemptRepository.findByStatusAndExpiresAtBefore(
+                LabAttempt.Status.STARTED, LocalDateTime.now()));
+        
+        List<LabAttempt> activeAttempts = new java.util.ArrayList<>();
+        activeAttempts.addAll(labAttemptRepository.findByStatus(LabAttempt.Status.RUNNING));
+        activeAttempts.addAll(labAttemptRepository.findByStatus(LabAttempt.Status.STARTED));
+        
+        for (LabAttempt active : activeAttempts) {
+            boolean generated = active.getLab().getArtifactPath() != null && !active.getLab().getArtifactPath().isBlank();
+            if (generated && !dockerService.isContainerRunning(active.getContainerId()) && !overdue.contains(active)) {
+                overdue.add(active);
             }
         }
+        
         for (LabAttempt attempt : overdue) {
             dockerService.stopContainer(attempt.getContainerId());
             attempt.setStatus(LabAttempt.Status.EXPIRED);

@@ -40,6 +40,65 @@ const LESSON_VULNERABILITY_RULES: Array<{ terms: string[]; slug: string }> = [
   { terms: ['privilege escalation', 'authentication bypass', 'auth bypass'], slug: 'auth-bypass' },
 ];
 
+const LESSON_METADATA_FALLBACKS: Record<string, { objective: string; minutes: number }> = {
+  "Giới thiệu về Bảo mật Web": {
+    objective: "Hiểu tổng quan về bảo mật ứng dụng web và 10 rủi ro bảo mật hàng đầu theo OWASP Top 10.",
+    minutes: 10
+  },
+  "HTTP và cách hoạt động của Web": {
+    objective: "Nắm rõ mô hình Client-Server, các phương thức HTTP cơ bản, Headers và cơ chế quản lý Session.",
+    minutes: 15
+  },
+  "SQL Injection cho người mới bắt đầu": {
+    objective: "Hiểu cơ chế lỗi SQL Injection cơ bản và cách kẻ tấn công thực hiện bypass trang đăng nhập.",
+    minutes: 15
+  },
+  "Cross-Site Scripting (XSS) cơ bản": {
+    objective: "Phân biệt 3 loại XSS (Reflected, Stored, DOM) và hiểu tác hại cùng cách phòng tránh cơ bản.",
+    minutes: 15
+  },
+  "CSRF và bảo vệ form": {
+    objective: "Hiểu cách tấn công giả mạo yêu cầu chéo trang (CSRF) và cơ chế phòng chống bằng Token.",
+    minutes: 15
+  },
+  "Kỹ thuật khai thác SQL Injection nâng cao": {
+    objective: "Nắm vững kỹ thuật khai thác Blind SQL Injection (Boolean-based, Time-based) và Union-based.",
+    minutes: 20
+  },
+  "IDOR - Truy cập trái phép dữ liệu": {
+    objective: "Hiểu lỗ hổng kiểm soát truy cập đối tượng trực tiếp (IDOR) và cách kiểm thử phát hiện lỗi.",
+    minutes: 15
+  },
+  "SSRF - Tấn công máy chủ gián tiếp": {
+    objective: "Tìm hiểu lỗ hổng SSRF (Server-Side Request Forgery), các kỹ thuật bypass filter và bảo vệ hệ thống.",
+    minutes: 20
+  },
+  "Command Injection - Thực thi lệnh hệ thống": {
+    objective: "Hiểu cơ chế lỗi chèn lệnh hệ điều hành (Command Injection), kỹ thuật khai thác blind và phòng chống.",
+    minutes: 20
+  },
+  "File Upload - Tải lên tệp không giới hạn": {
+    objective: "Nắm rõ rủi ro của tính năng tải tệp lên máy chủ, cách bypass whitelist extension và cách triển khai an toàn.",
+    minutes: 20
+  },
+  "Authentication Bypass - Bỏ qua xác thực": {
+    objective: "Tìm hiểu các kỹ thuật bypass cơ chế đăng nhập, lỗ hổng logic xác thực và bảo mật JWT.",
+    minutes: 25
+  },
+  "Bypass WAF và Security Controls": {
+    objective: "Học các kỹ thuật vượt qua tường lửa ứng dụng web (WAF) và cơ chế lọc đầu vào phổ biến.",
+    minutes: 25
+  },
+  "Attack Chains - Chuỗi khai thác lỗ hổng": {
+    objective: "Học cách kết hợp nhiều lỗi bảo mật nhỏ để tạo thành chuỗi tấn công (attack chains) chiếm quyền kiểm soát hệ thống.",
+    minutes: 30
+  },
+  "Bug Bounty Methodology - Phương pháp săn lỗi": {
+    objective: "Trang bị phương pháp luận tìm kiếm lỗ hổng thực tế, viết báo cáo chuyên nghiệp và quy trình bug bounty.",
+    minutes: 25
+  }
+};
+
 function resolveLessonVulnerability(lesson: Lesson, vulnerabilities: Vulnerability[]) {
   const linked = vulnerabilities.find(item => item.id === lesson.vulnerabilityId);
   if (linked) return linked;
@@ -64,6 +123,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
   const [practiceVulnerability, setPracticeVulnerability] = useState<Vulnerability | null>(null);
   const [generatingLab, setGeneratingLab] = useState(false);
   const [labError, setLabError] = useState<string | null>(null);
+  const [showCongrats, setShowCongrats] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -146,7 +206,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
     window.addEventListener('scroll', onScroll, { passive: true });
     const shouldResume = new URLSearchParams(window.location.search).get('resume') === '1';
     if (shouldResume) {
-      api.users.getResume().then(response => {
+      api.users.getResume(true).then(response => {
         if (response.data?.type === 'LESSON' && response.data.lessonId === lesson.id) {
           window.setTimeout(() => window.scrollTo({ top: response.data?.scrollY || 0, behavior: 'smooth' }), 120);
         }
@@ -174,6 +234,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
       if (res.success) {
         setLesson(prev => prev ? { ...prev, completed: true } : null);
         setAllLessons(prev => prev.map(l => l.id === lessonId ? { ...l, completed: true } : l));
+        setShowCongrats(true);
       }
     } catch (e: any) {
       alert(e.message || 'Lỗi khi cập nhật tiến độ bài học.');
@@ -210,7 +271,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
         scenario
       );
       if (result.success && result.data) {
-        router.push(`/labs/${result.data.id}`);
+        router.push(`/labs/${result.data.id}/play?pathId=${pathId}&lessonId=${lessonId}`);
       }
     } catch (e: any) {
       setLabError(e.message || 'Không thể tạo bài lab từ nội dung bài học.');
@@ -238,6 +299,9 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
 
   const currentIdx = allLessons.findIndex(l => l.id === lessonId);
   const nextLesson = currentIdx !== -1 && currentIdx < allLessons.length - 1 ? allLessons[currentIdx + 1] : null;
+
+  const resolvedObjective = lesson.learningObjective || LESSON_METADATA_FALLBACKS[lesson.title]?.objective || `Làm chủ lý thuyết và thực hành về ${lesson.title}`;
+  const resolvedMinutes = lesson.estimatedMinutes || LESSON_METADATA_FALLBACKS[lesson.title]?.minutes || 12;
 
   return (
     <div style={{ userSelect: 'text', width: '100%' }}>
@@ -357,13 +421,98 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
             </Link>
           </div>
 
-          <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', marginBottom: '22px', padding: '13px 15px', borderBlock: '1px solid var(--border-default)', color: 'var(--text-body)', fontSize: '13px' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}><Target size={15} style={{ color: 'var(--fg-brand)' }} /><strong>Mục tiêu:</strong> {lesson.learningObjective || `Hiểu và nhận diện ${lesson.title}`}</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}><Clock size={15} /><strong>{lesson.estimatedMinutes || 12} phút</strong></span>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+            gap: '16px', 
+            marginBottom: '28px', 
+            padding: '16px 20px', 
+            background: 'var(--bg-neutral-secondary)', 
+            border: '1px solid var(--border-default)', 
+            borderRadius: '10px',
+            color: 'var(--text-body)', 
+            fontSize: '13.5px' 
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+              <Target size={18} style={{ color: 'var(--fg-brand)', flexShrink: 0, marginTop: '2px' }} />
+              <div>
+                <strong style={{ color: 'var(--text-heading)', display: 'block', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>
+                  Mục tiêu chính
+                </strong>
+                <span>{resolvedObjective}</span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+              <Clock size={18} style={{ color: 'var(--text-body-subtle)', flexShrink: 0, marginTop: '2px' }} />
+              <div>
+                <strong style={{ color: 'var(--text-heading)', display: 'block', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>
+                  Thời lượng ước tính
+                </strong>
+                <span>{resolvedMinutes} phút đọc & hiểu</span>
+              </div>
+            </div>
           </div>
 
           {/* Rendered HTML */}
           <div className="lesson-prose" dangerouslySetInnerHTML={{ __html: htmlContent }} />
+          
+          {/* Practice section at the end of the lesson content */}
+          <div style={{ marginTop: '40px', paddingTop: '28px', borderTop: '1px solid var(--border-default)' }}>
+            <h3 style={{ fontSize: '1.0625rem', fontWeight: 800, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+              <PlayCircle size={20} style={{ color: 'var(--fg-brand)' }} /> Bài thực hành bám sát lý thuyết
+            </h3>
+            
+            {defaultLab ? (
+              <div className="card" style={{ background: 'var(--bg-brand-softer)', border: '1px solid rgba(56,189,248,0.2)', padding: '24px', display: 'grid', gridTemplateColumns: '1fr auto', gap: '20px', alignItems: 'center', margin: 0 }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <span className="badge badge-brand" style={{ fontSize: '10px' }}>Hệ thống</span>
+                    <span className={`badge ${defaultLab.difficulty === 'BEGINNER' ? 'badge-easy' : defaultLab.difficulty === 'INTERMEDIATE' ? 'badge-medium-diff' : 'badge-hard'}`} style={{ fontSize: '10px' }}>
+                      {defaultLab.difficulty === 'BEGINNER' ? 'Dễ' : defaultLab.difficulty === 'INTERMEDIATE' ? 'Trung bình' : 'Khó'}
+                    </span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-body-subtle)', fontWeight: 600 }}>+{defaultLab.points} XP</span>
+                  </div>
+                  <h4 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-heading)', margin: '0 0 6px 0' }}>
+                    {defaultLab.title}
+                  </h4>
+                  <p style={{ fontSize: '13.5px', color: 'var(--text-body-subtle)', lineHeight: 1.6, margin: 0 }}>
+                    {defaultLab.description}
+                  </p>
+                </div>
+                <Link 
+                  href={`/labs/${defaultLab.id}/play?pathId=${pathId}&lessonId=${lessonId}`}
+                  className="btn btn-primary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', whiteSpace: 'nowrap' }}
+                >
+                  <PlayCircle size={16} /> Bắt đầu thực hành ngay
+                </Link>
+              </div>
+            ) : (
+              <div className="card" style={{ background: 'var(--bg-neutral-secondary)', border: '1px solid var(--border-default)', padding: '24px', display: 'grid', gridTemplateColumns: '1fr auto', gap: '20px', alignItems: 'center', margin: 0 }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <span className="badge badge-secondary" style={{ fontSize: '10px' }}>AI Generated</span>
+                  </div>
+                  <h4 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-heading)', margin: '0 0 6px 0' }}>
+                    Tạo lab thực hành bằng AI
+                  </h4>
+                  <p style={{ fontSize: '13.5px', color: 'var(--text-body-subtle)', lineHeight: 1.6, margin: 0 }}>
+                    Chưa có lab hệ thống mặc định cho bài này. Bấm nút bên phải để AI dựng môi trường sandbox riêng bám sát kịch bản lý thuyết của bài học này.
+                  </p>
+                </div>
+                <button 
+                  className="btn btn-secondary"
+                  onClick={handleGenerateLessonLab}
+                  disabled={generatingLab || !practiceVulnerability}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', whiteSpace: 'nowrap' }}
+                >
+                  {generatingLab ? <LoaderCircle size={16} className="spin" /> : <Sparkles size={16} />}
+                  {generatingLab ? 'Đang khởi tạo...' : 'Dựng lab bằng AI'}
+                </button>
+              </div>
+            )}
+            {labError && <div className="lesson-lab-error" style={{ marginTop: '12px' }}>{labError}</div>}
+          </div>
           
           {/* Footer Navigation */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-default)', paddingTop: '24px', marginTop: '32px' }}>
@@ -411,7 +560,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
               )}
               <div className="lesson-lab-actions">
                 {defaultLab && (
-                  <Link href={`/labs/${defaultLab.id}`} className="btn btn-primary lesson-lab-button">
+                  <Link href={`/labs/${defaultLab.id}/play?pathId=${pathId}&lessonId=${lessonId}`} className="btn btn-primary lesson-lab-button">
                     <PlayCircle size={16} /> Làm lab mặc định
                   </Link>
                 )}
@@ -488,6 +637,115 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
         </div>
 
       </div>
+
+      {showCongrats && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(15, 23, 42, 0.7)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px',
+        }}>
+          <div style={{
+            background: 'var(--bg-neutral-primary)',
+            border: '1px solid var(--border-default)',
+            borderRadius: '16px',
+            padding: '32px',
+            maxWidth: '480px',
+            width: '100%',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 20px rgba(56, 189, 248, 0.1)',
+            textAlign: 'center',
+            animation: 'scale-up 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+            color: 'var(--text-body)',
+          }}>
+            <style>{`
+              @keyframes scale-up {
+                from { transform: scale(0.95); opacity: 0; }
+                to { transform: scale(1); opacity: 1; }
+              }
+            `}</style>
+            
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              background: 'rgba(56, 189, 248, 0.1)',
+              border: '2px solid var(--border-brand)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 20px',
+              color: 'var(--fg-brand)',
+            }}>
+              <Sparkles size={28} />
+            </div>
+
+            <h2 style={{ fontSize: '1.375rem', fontWeight: 800, color: 'var(--text-heading)', marginBottom: '8px' }}>
+              Chúc mừng bạn!
+            </h2>
+            
+            <p style={{ fontSize: '14px', lineHeight: 1.6, color: 'var(--text-body-subtle)', marginBottom: '24px' }}>
+              Bạn đã hoàn thành lý thuyết bài học <strong>{lesson.title}</strong>. Hãy thực hành ngay để làm chủ kỹ năng này nhé!
+            </p>
+
+            {defaultLab && (
+              <div style={{
+                background: 'var(--bg-neutral-secondary)',
+                border: '1px solid var(--border-default)',
+                borderRadius: '8px',
+                padding: '14px',
+                textAlign: 'left',
+                marginBottom: '20px',
+              }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--fg-brand)', display: 'block', marginBottom: '4px' }}>
+                  Bài thực hành mặc định
+                </span>
+                <strong style={{ fontSize: '14px', color: 'var(--text-heading)', display: 'block', marginBottom: '2px' }}>
+                  {defaultLab.title}
+                </strong>
+                <span style={{ fontSize: '12px', color: 'var(--text-body-subtle)' }}>
+                  Phần thưởng: +{defaultLab.points} XP
+                </span>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {defaultLab && (
+                <Link 
+                  href={`/labs/${defaultLab.id}/play?pathId=${pathId}&lessonId=${lessonId}`}
+                  className="btn btn-primary"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px' }}
+                >
+                  <PlayCircle size={16} /> Làm lab mặc định
+                </Link>
+              )}
+              <button 
+                className="btn btn-secondary" 
+                onClick={handleGenerateLessonLab} 
+                disabled={generatingLab || !practiceVulnerability}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px' }}
+              >
+                {generatingLab ? <LoaderCircle size={16} className="spin" /> : <Sparkles size={16} />}
+                {generatingLab ? 'Đang tạo kịch bản...' : 'AI tạo lab riêng biệt'}
+              </button>
+              <button 
+                className="btn btn-tertiary" 
+                onClick={() => setShowCongrats(false)}
+                style={{ marginTop: '4px', fontSize: '13px', background: 'transparent', border: 'none', color: 'var(--text-body-subtle)', cursor: 'pointer' }}
+              >
+                Để sau
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

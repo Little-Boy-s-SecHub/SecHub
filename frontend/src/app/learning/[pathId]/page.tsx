@@ -58,6 +58,7 @@ export default function LearningPathDetailPage({ params }: { params: Promise<{ p
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [resumeLessonId, setResumeLessonId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadPathData() {
@@ -78,13 +79,19 @@ export default function LearningPathDetailPage({ params }: { params: Promise<{ p
         let fetchedLessons = lessonsRes.success ? lessonsRes.data : [];
 
         if (isAuthenticated) {
-          const progressRes = await api.progress.getPathProgress(pathId);
+          const [progressRes, resumeRes] = await Promise.all([
+            api.progress.getPathProgress(pathId),
+            api.users.getResume(true)
+          ]);
           if (progressRes.success && progressRes.data) {
             const completedMap = new Map(progressRes.data.map(p => [p.lessonId, p.completed]));
             fetchedLessons = fetchedLessons.map((l: any) => ({
               ...l,
               completed: !!completedMap.get(l.id)
             }));
+          }
+          if (resumeRes.success && resumeRes.data?.type === 'LESSON') {
+            setResumeLessonId(resumeRes.data.lessonId || null);
           }
         }
 
@@ -221,68 +228,77 @@ export default function LearningPathDetailPage({ params }: { params: Promise<{ p
       </h2>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-        {lessons.map((lesson, index) => (
-          <div
-            key={lesson.id}
-            className="card animate-fade-in-up"
-            style={{
-              animationDelay: `${index * 0.04}s`,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-3)',
-              padding: 'var(--space-2) var(--space-3)',
-              cursor: 'pointer',
-              opacity: lesson.completed ? 0.75 : 1,
-            }}
-            onClick={() => router.push(`/learning/${pathId}/lessons/${lesson.id}`)}
-          >
-            {/* Lesson number / check */}
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '50%',
-              background: lesson.completed ? 'rgba(0, 122, 85, 0.1)' : 'var(--bg-neutral-tertiary)',
-              border: `2px solid ${lesson.completed ? 'var(--border-success)' : 'var(--border-default-medium)'}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 700,
-              fontSize: '0.875rem',
-              color: lesson.completed ? 'var(--fg-success-strong)' : 'var(--text-body-subtle)',
-              flexShrink: 0,
-            }}>
-              {lesson.completed ? '✓' : index + 1}
-            </div>
-
-            {/* Content */}
-            <div style={{ flex: 1 }}>
+        {lessons.map((lesson, index) => {
+          const isCurrent = lesson.id === resumeLessonId;
+          return (
+            <div
+              key={lesson.id}
+              className="card animate-fade-in-up"
+              style={{
+                animationDelay: `${index * 0.04}s`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-3)',
+                padding: 'var(--space-2) var(--space-3)',
+                cursor: 'pointer',
+                opacity: lesson.completed && !isCurrent ? 0.75 : 1,
+                border: isCurrent ? '1px solid var(--border-brand)' : '1px solid var(--border-default)',
+                background: isCurrent ? 'rgba(56, 189, 248, 0.02)' : 'var(--bg-neutral-primary)',
+              }}
+              onClick={() => router.push(`/learning/${pathId}/lessons/${lesson.id}${isCurrent ? '?resume=1' : ''}`)}
+            >
+              {/* Lesson number / check */}
               <div style={{
-                fontWeight: 600,
-                fontSize: '0.9375rem',
-                color: 'var(--text-heading)',
-                marginBottom: '2px',
-                textDecoration: lesson.completed ? 'line-through' : 'none',
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: lesson.completed ? 'rgba(0, 122, 85, 0.1)' : isCurrent ? 'rgba(56, 189, 248, 0.1)' : 'var(--bg-neutral-tertiary)',
+                border: `2px solid ${lesson.completed ? 'var(--border-success)' : isCurrent ? 'var(--border-brand)' : 'var(--border-default-medium)'}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 700,
+                fontSize: '0.875rem',
+                color: lesson.completed ? 'var(--fg-success-strong)' : isCurrent ? 'var(--fg-brand-strong)' : 'var(--text-body-subtle)',
+                flexShrink: 0,
               }}>
-                {lesson.title}
+                {lesson.completed ? '✓' : index + 1}
               </div>
-              <div style={{ fontSize: '0.8125rem', color: 'var(--text-body-subtle)' }}>
-                {lesson.vulnerabilityName ? `Liên quan đến: ${lesson.vulnerabilityName}` : 'Bài giảng lý thuyết nhập môn'}
+  
+              {/* Content */}
+              <div style={{ flex: 1 }}>
+                <div style={{
+                  fontWeight: 600,
+                  fontSize: '0.9375rem',
+                  color: 'var(--text-heading)',
+                  marginBottom: '2px',
+                  textDecoration: lesson.completed && !isCurrent ? 'line-through' : 'none',
+                }}>
+                  {lesson.title}
+                </div>
+                <div style={{ fontSize: '0.8125rem', color: 'var(--text-body-subtle)' }}>
+                  {lesson.vulnerabilityName ? `Liên quan đến: ${lesson.vulnerabilityName}` : 'Bài giảng lý thuyết nhập môn'}
+                </div>
               </div>
-            </div>
-
-            {/* Complete status or actions */}
-            {!lesson.completed && isAuthenticated && (
-              <span style={{ fontSize: '11px', padding: '4px 8px', background: 'var(--bg-brand-softer)', color: 'var(--fg-brand)', borderRadius: 'var(--radius-sm)', fontWeight: 600 }}>
-                Đọc bài học
-              </span>
-            )}
+  
+              {/* Complete status or actions */}
+              {isCurrent ? (
+                <span style={{ fontSize: '11px', padding: '4px 8px', background: 'var(--bg-brand-softer)', color: 'var(--fg-brand-strong)', borderRadius: 'var(--radius-sm)', fontWeight: 800, border: '1px solid var(--border-brand-subtle)' }}>
+                  Đang học dở
+                </span>
+              ) : !lesson.completed && isAuthenticated ? (
+                <span style={{ fontSize: '11px', padding: '4px 8px', background: 'var(--bg-brand-softer)', color: 'var(--fg-brand)', borderRadius: 'var(--radius-sm)', fontWeight: 600 }}>
+                  Đọc bài học
+                </span>
+              ) : null}
 
             {/* Arrow */}
             <span style={{ color: 'var(--text-body-subtle)', display: 'flex', alignItems: 'center' }}>
               <ChevronRight size={16} />
             </span>
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

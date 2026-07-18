@@ -15,6 +15,11 @@ describe('NewUserOnboarding', () => {
       fireEvent.click(screen.getByRole('button', { name: index === 4 ? /Xem lộ trình/ : /Tiếp tục/ }));
     }
     await waitFor(() => expect(api.growth.submitAssessment).toHaveBeenCalledWith([0, 0, 0, 0, 0]));
+    
+    // Đợi màn hình kết quả lộ trình đề xuất xuất hiện và nhấn nút học
+    await screen.findByText('Đánh giá hoàn tất');
+    fireEvent.click(screen.getByRole('button', { name: /Bắt đầu lộ trình học ngay/ }));
+    
     expect(complete).toHaveBeenCalledWith(overview);
   });
 });

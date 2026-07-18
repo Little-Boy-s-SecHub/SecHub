@@ -18,8 +18,14 @@ describe('LabCompletionFeedback', () => {
   beforeEach(() => { Object.assign(navigator, { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) }, share: undefined }); });
   it('hiển thị số liệu thật và lab tiếp theo', () => {
     render(<LabCompletionFeedback feedback={feedback} attempt={attempt} onHarder={vi.fn()} creatingHarder={false} />);
-    expect(screen.getByText('20 phút')).toBeInTheDocument(); expect(screen.getByText('90 XP')).toBeInTheDocument();
+    expect(screen.getByText('20 phút')).toBeInTheDocument(); expect(screen.getByText(/Kỹ năng đạt được/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Lab tiếp theo: SQLi nâng cao/ })).toHaveAttribute('href', '/labs/next-1');
+  });
+  it('hiển thị nút quay lại bài học và liên kết lộ trình tùy chỉnh nếu truyền pathId và lessonId', () => {
+    render(<LabCompletionFeedback feedback={feedback} attempt={attempt} onHarder={vi.fn()} creatingHarder={false} pathId="path-123" lessonId="lesson-456" />);
+    expect(screen.getByRole('link', { name: /Quay lại bài học/ })).toHaveAttribute('href', '/learning/path-123/lessons/lesson-456');
+    expect(screen.getByRole('link', { name: /Tiếp tục lộ trình/ })).toHaveAttribute('href', '/learning/path-123');
+    expect(screen.getByRole('link', { name: /Lab tiếp theo: SQLi nâng cao/ })).toHaveAttribute('href', '/labs/next-1?pathId=path-123&lessonId=lesson-456');
   });
   it('tạo bản chia sẻ không chứa flag hoặc payload', async () => {
     render(<LabCompletionFeedback feedback={feedback} attempt={{ ...attempt, flagSubmitted: 'SecHub{secret}' }} onHarder={vi.fn()} creatingHarder={false} />);

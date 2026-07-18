@@ -92,7 +92,12 @@ public class OpenAiService {
 
     public List<PracticeCardDto> generatePracticeCards(List<Lesson> lessons) {
         if (defaultApiKey != null && !defaultApiKey.isBlank()) {
-            return requestPracticeCards(lessons, defaultApiKey);
+            try {
+                return requestPracticeCards(lessons, defaultApiKey);
+            } catch (Exception e) {
+                log.warn("Codex card generation failed, falling back to local template cards", e);
+                return localPracticeCards(lessons);
+            }
         }
         return localPracticeCards(lessons);
     }

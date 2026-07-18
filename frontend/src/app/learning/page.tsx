@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { BookOpen, Clock, CheckCircle2 } from 'lucide-react';
+import { BookOpen, Clock, CheckCircle2, Sparkles } from 'lucide-react';
 import { api, LearningPath } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import PageBackLink from '@/components/PageBackLink';
@@ -11,6 +11,7 @@ export default function LearningPage() {
   const { isAuthenticated } = useAuth();
   const [paths, setPaths] = useState<LearningPath[]>([]);
   const [loading, setLoading] = useState(true);
+  const [recommendedTrack, setRecommendedTrack] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadPaths() {
@@ -18,6 +19,12 @@ export default function LearningPage() {
         const res = await api.learningPaths.getAll();
         if (res.success) {
           setPaths(res.data);
+        }
+        if (isAuthenticated) {
+          const overviewRes = await api.growth.getOverview();
+          if (overviewRes.success && overviewRes.data) {
+            setRecommendedTrack(overviewRes.data.recommendedTrack);
+          }
         }
       } catch (e) {
         console.error('Failed to load learning paths:', e);
@@ -27,7 +34,7 @@ export default function LearningPage() {
     }
 
     loadPaths();
-  }, []);
+  }, [isAuthenticated]);
 
   return (
     <div>
@@ -62,17 +69,32 @@ export default function LearningPage() {
             const diffLabel = path.difficulty === 'BEGINNER' ? 'Cơ bản' : 
                              path.difficulty === 'INTERMEDIATE' ? 'Trung bình' : 'Nâng cao';
 
+            const isRecommended = (recommendedTrack === 'BEGINNER' && path.difficulty === 'BEGINNER') ||
+                                  (recommendedTrack === 'WEB_DEVELOPER' && path.difficulty === 'INTERMEDIATE') ||
+                                  (recommendedTrack === 'PENTESTER' && path.difficulty === 'ADVANCED');
+
             return (
               <Link key={path.id} href={`/learning/${path.id}`} style={{ textDecoration: 'none' }}>
                 <div
                   className="card animate-fade-in-up"
-                  style={{ animationDelay: `${index * 0.08}s`, cursor: 'pointer' }}
+                  style={{ 
+                    animationDelay: `${index * 0.08}s`, 
+                    cursor: 'pointer',
+                    border: isRecommended ? '1px solid var(--border-brand)' : '1px solid var(--border-default)',
+                    boxShadow: isRecommended ? '0 4px 20px rgba(56, 189, 248, 0.08)' : 'var(--shadow-sm)',
+                    background: isRecommended ? 'rgba(56, 189, 248, 0.02)' : 'var(--bg-neutral-primary)',
+                  }}
                 >
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 'var(--space-4)', alignItems: 'center' }}>
                     <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-2)', flexWrap: 'wrap' }}>
                         <span className="path-card-number">Lộ trình {index + 1}</span>
                         <span className={`badge ${diffClass}`}>{diffLabel}</span>
+                        {isRecommended && (
+                          <span className="badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 800, background: 'var(--bg-brand-softer)', color: 'var(--fg-brand-strong)', border: '1px solid var(--border-brand-subtle)' }}>
+                            <Sparkles size={11} /> Khuyên dùng cho bạn
+                          </span>
+                        )}
                       </div>
                       <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: 'var(--space-1)' }}>
                         {path.title}

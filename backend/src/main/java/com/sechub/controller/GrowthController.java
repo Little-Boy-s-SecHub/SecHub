@@ -10,5 +10,8 @@ public class GrowthController{
  @PostMapping("/weekly-lab") public ResponseEntity<ApiResponse<LabDto>> weekly(@AuthenticationPrincipal UserDetails u){return ResponseEntity.ok(ApiResponse.success(service.weeklyLab(u.getUsername())));}
  @PostMapping("/harder/{attemptId}") public ResponseEntity<ApiResponse<LabDto>> harder(@PathVariable UUID attemptId,@AuthenticationPrincipal UserDetails u){return ResponseEntity.ok(ApiResponse.success(service.harderVariant(u.getUsername(),attemptId)));}
  @GetMapping("/public/{username}") public ResponseEntity<ApiResponse<PublicProfileDto>> profile(@PathVariable String username){return ResponseEntity.ok(ApiResponse.success(service.publicProfile(username)));}
+ @GetMapping("/public/{username}/activities") public ResponseEntity<ApiResponse<List<com.sechub.dto.UserActivityDto>>> publicActivities(@PathVariable String username){return ResponseEntity.ok(ApiResponse.success(service.publicProfileActivities(username)));}
  @GetMapping("/leaderboard") public ResponseEntity<ApiResponse<List<LeaderboardEntryDto>>> board(@RequestParam(required=false) String track){return ResponseEntity.ok(ApiResponse.success(service.leaderboard(track)));}
+ @PutMapping("/track") public ResponseEntity<ApiResponse<GrowthOverviewDto>> updateTrack(@RequestBody Map<String, String> body, @AuthenticationPrincipal UserDetails u){return ResponseEntity.ok(ApiResponse.success(service.updateTrack(u.getUsername(),body.get("track"))));}
+ @PostMapping("/reset-onboarding") public ResponseEntity<ApiResponse<GrowthOverviewDto>> resetOnboarding(@AuthenticationPrincipal UserDetails u){return ResponseEntity.ok(ApiResponse.success(service.resetOnboarding(u.getUsername())));}
 }

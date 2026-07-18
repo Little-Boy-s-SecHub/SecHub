@@ -20,17 +20,20 @@ public class UserService {
     private final LabRepository labRepository;
     private final UserProgressRepository progressRepository;
     private final LabAttemptRepository labAttemptRepository;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     public UserService(UserRepository userRepository,
                        LessonRepository lessonRepository,
                        LabRepository labRepository,
                        UserProgressRepository progressRepository,
-                       LabAttemptRepository labAttemptRepository) {
+                       LabAttemptRepository labAttemptRepository,
+                       org.springframework.security.crypto.password.PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.lessonRepository = lessonRepository;
         this.labRepository = labRepository;
         this.progressRepository = progressRepository;
         this.labAttemptRepository = labAttemptRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional(readOnly = true)
@@ -84,5 +87,28 @@ public class UserService {
     public User findByUsername(String username) {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng", "username", username));
+    }
+
+    @Transactional
+    public void changePassword(String username, com.sechub.dto.ChangePasswordRequest request) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng", "username", username));
+        
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+            throw new com.sechub.exception.BadRequestException("Mật khẩu hiện tại không đúng");
+        }
+        
+        user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public UserDto updateAvatar(String username, String avatarUrl) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng", "username", username));
+        
+        user.setAvatarUrl(avatarUrl);
+        User updated = userRepository.save(user);
+        return UserDto.fromEntity(updated);
     }
 }

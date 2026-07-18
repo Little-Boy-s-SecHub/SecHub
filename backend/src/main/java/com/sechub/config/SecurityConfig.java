@@ -48,6 +48,11 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(exceptions -> exceptions
                 .authenticationEntryPoint((request, response, authException) -> {
+                    String origin = request.getHeader("Origin");
+                    if (origin != null) {
+                        response.setHeader("Access-Control-Allow-Origin", origin);
+                        response.setHeader("Access-Control-Allow-Credentials", "true");
+                    }
                     response.setStatus(HttpStatus.UNAUTHORIZED.value());
                     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                     response.setCharacterEncoding("UTF-8");
@@ -55,6 +60,11 @@ public class SecurityConfig {
                         ApiResponse.error("Phiên đăng nhập đã hết hạn hoặc token không hợp lệ"));
                 })
                 .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    String origin = request.getHeader("Origin");
+                    if (origin != null) {
+                        response.setHeader("Access-Control-Allow-Origin", origin);
+                        response.setHeader("Access-Control-Allow-Credentials", "true");
+                    }
                     response.setStatus(HttpStatus.FORBIDDEN.value());
                     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                     response.setCharacterEncoding("UTF-8");
