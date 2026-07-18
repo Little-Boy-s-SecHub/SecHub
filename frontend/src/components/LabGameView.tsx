@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
 import LabSimulator from '@/components/LabSimulator';
 import { useTranslation } from '@/context/LanguageContext';
+import { GAME_OBSTACLES, getHintPositions } from '@/components/labGameLayout';
 
 interface LabGameViewProps {
   hints: string[];
@@ -86,47 +87,17 @@ export default function LabGameView({
   }, [flagResult]);
 
   // Map obstacles definitions (bounding boxes)
-  const obstacles = [
-    { x: 80, y: 60, width: 80, height: 40, label: language === 'vi' ? 'Bàn Nhiệm Vụ' : 'Mission Desk' },
-    { x: 360, y: 60, width: 80, height: 40, label: language === 'vi' ? 'Bàn Thực Hành' : 'Practice Desk' },
-    { x: 640, y: 60, width: 80, height: 40, label: language === 'vi' ? 'Bàn Nộp FLAG' : 'FLAG Submit Desk' },
-    { x: 200, y: 120, width: 80, height: 80, label: language === 'vi' ? 'Tủ Rack 1' : 'Server Rack 1' },
-    { x: 520, y: 120, width: 80, height: 80, label: language === 'vi' ? 'Tủ Rack 2' : 'Server Rack 2' },
-    { x: 200, y: 320, width: 80, height: 100, label: language === 'vi' ? 'Tủ Rack 3' : 'Server Rack 3' },
-    { x: 520, y: 320, width: 80, height: 100, label: language === 'vi' ? 'Tủ Rack 4' : 'Server Rack 4' },
-    { x: 360, y: 300, width: 80, height: 40, label: language === 'vi' ? 'Bàn Console Dưới' : 'Lower Console Desk' },
-  ];
+  const obstacleLabels = language === 'vi'
+    ? ['Bàn Nhiệm Vụ', 'Bàn Thực Hành', 'Bàn Nộp FLAG', 'Tủ Rack 1', 'Tủ Rack 2', 'Tủ Rack 3', 'Tủ Rack 4', 'Bàn Console Dưới']
+    : ['Mission Desk', 'Practice Desk', 'FLAG Submit Desk', 'Server Rack 1', 'Server Rack 2', 'Server Rack 3', 'Server Rack 4', 'Lower Console Desk'];
+  const obstacles = GAME_OBSTACLES.map((obstacle, index) => ({ ...obstacle, label: obstacleLabels[index] }));
 
   // Hint stations are distributed in rows so every LabSpec maps to the game automatically.
   const mentorColors = ['#00a3ff', '#ff2d55', '#af52de', '#10b981', '#f59e0b', '#06b6d4', '#f43f5e', '#8b5cf6'];
-  const mentorPosition = (hintIndex: number) => {
-    if (hints.length === 1) return { x: 388, y: 205 };
-    if (hintIndex === 0) return { x: 228, y: 205 };
-    if (hintIndex === hints.length - 1) return { x: 548, y: 205 };
-
-    const middleCount = hints.length - 2;
-    const middleIndex = hintIndex - 1;
-    const rowCount = Math.ceil(middleCount / 4);
-    let consumed = 0;
-    for (let row = 0; row < rowCount; row++) {
-      const remaining = middleCount - consumed;
-      const remainingRows = rowCount - row;
-      const itemsInRow = Math.ceil(remaining / remainingRows);
-      if (middleIndex < consumed + itemsInRow) {
-        const column = middleIndex - consumed;
-        const horizontalGap = 600 / (itemsInRow + 1);
-        return {
-          x: 88 + horizontalGap * (column + 1),
-          y: rowCount === 1 ? 355 : 285 + row * 90,
-        };
-      }
-      consumed += itemsInRow;
-    }
-    return { x: 388, y: 355 };
-  };
+  const mentorPositions = getHintPositions(hints.length);
 
   const baseMentors = hints.map((_, hintIndex) => {
-    const position = mentorPosition(hintIndex);
+    const position = mentorPositions[hintIndex];
     return {
       x: position.x,
       y: position.y,

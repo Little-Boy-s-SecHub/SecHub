@@ -5,7 +5,7 @@ import java.util.*;
 @RestController @RequestMapping("/api/growth")
 public class GrowthController{
  private final GrowthService service;public GrowthController(GrowthService service){this.service=service;}
- @GetMapping public ResponseEntity<ApiResponse<GrowthOverviewDto>> overview(@AuthenticationPrincipal UserDetails u){return ResponseEntity.ok(ApiResponse.success(service.overview(u.getUsername())));}
+ @GetMapping({"", "/overview"}) public ResponseEntity<ApiResponse<GrowthOverviewDto>> overview(@AuthenticationPrincipal UserDetails u){return ResponseEntity.ok(ApiResponse.success(service.overview(u.getUsername())));}
  @PostMapping("/assessment") public ResponseEntity<ApiResponse<GrowthOverviewDto>> assess(@RequestBody AssessmentRequest r,@AuthenticationPrincipal UserDetails u){return ResponseEntity.ok(ApiResponse.success(service.assess(u.getUsername(),r)));}
  @PostMapping("/weekly-lab") public ResponseEntity<ApiResponse<LabDto>> weekly(@AuthenticationPrincipal UserDetails u){return ResponseEntity.ok(ApiResponse.success(service.weeklyLab(u.getUsername())));}
  @PostMapping("/harder/{attemptId}") public ResponseEntity<ApiResponse<LabDto>> harder(@PathVariable UUID attemptId,@AuthenticationPrincipal UserDetails u){return ResponseEntity.ok(ApiResponse.success(service.harderVariant(u.getUsername(),attemptId)));}
