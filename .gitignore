@@ -30,3 +30,7 @@ Thumbs.db
 # Local configuration files
 **/application-local.properties
 **/.env
+
+# Temporary scratch files
+scratch/
+

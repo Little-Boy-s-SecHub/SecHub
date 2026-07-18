@@ -6,7 +6,10 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "flashcards")
+@Table(name = "flashcards", indexes = {
+    @Index(name = "idx_flashcard_user_review", columnList = "user_id,next_review_at"),
+    @Index(name = "idx_flashcard_user_last_review", columnList = "user_id,last_reviewed_at")
+})
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Flashcard {
     @Id @GeneratedValue(strategy = GenerationType.UUID)

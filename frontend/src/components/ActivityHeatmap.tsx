@@ -41,7 +41,7 @@ export default function ActivityHeatmap({ username, noWrapper }: { username?: st
     fetchActivities();
   }, [username]);
 
-  const calculateStreaks = (data: Activity[]) => {
+  function calculateStreaks(data: Activity[]) {
     if (!data || data.length === 0) return;
 
     // Filter active days (count > 0) and sort chronologically
@@ -104,7 +104,7 @@ export default function ActivityHeatmap({ username, noWrapper }: { username?: st
     start.setHours(0, 0, 0, 0);
     const end = new Date();
     end.setHours(0, 0, 0, 0);
-    let currentCheck = new Date(start);
+    const currentCheck = new Date(start);
 
     while (currentCheck <= end) {
       const dateStr = formatDate(currentCheck);
@@ -124,7 +124,7 @@ export default function ActivityHeatmap({ username, noWrapper }: { username?: st
       currentStreak: current,
       longestStreak: Math.max(longest, current)
     });
-  };
+  }
 
   // Generate 365 days grid starting 364 days ago aligned to Sunday
   const generateGrid = () => {

@@ -1,0 +1,6 @@
+target
+runtime
+.git
+.idea
+*.log
+src/test

@@ -32,8 +32,8 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    @Value("${app.cors.allowed-origins}")
-    private String allowedOrigins;
+    @Value("${app.cors.allowed-origin-patterns}")
+    private String allowedOriginPatterns;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
@@ -48,11 +48,6 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(exceptions -> exceptions
                 .authenticationEntryPoint((request, response, authException) -> {
-                    String origin = request.getHeader("Origin");
-                    if (origin != null) {
-                        response.setHeader("Access-Control-Allow-Origin", origin);
-                        response.setHeader("Access-Control-Allow-Credentials", "true");
-                    }
                     response.setStatus(HttpStatus.UNAUTHORIZED.value());
                     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                     response.setCharacterEncoding("UTF-8");
@@ -60,11 +55,6 @@ public class SecurityConfig {
                         ApiResponse.error("Phiên đăng nhập đã hết hạn hoặc token không hợp lệ"));
                 })
                 .accessDeniedHandler((request, response, accessDeniedException) -> {
-                    String origin = request.getHeader("Origin");
-                    if (origin != null) {
-                        response.setHeader("Access-Control-Allow-Origin", origin);
-                        response.setHeader("Access-Control-Allow-Credentials", "true");
-                    }
                     response.setStatus(HttpStatus.FORBIDDEN.value());
                     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                     response.setCharacterEncoding("UTF-8");
@@ -79,6 +69,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/labs/attempts/*/feedback").authenticated()
                 // Public endpoints
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**").permitAll()
                 .requestMatchers("/api/lab-runtime/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/vulnerabilities/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/learning-paths/**").permitAll()
@@ -102,7 +93,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
+        configuration.setAllowedOriginPatterns(Arrays.stream(allowedOriginPatterns.split(","))
+                .map(String::trim).filter(value -> !value.isEmpty()).toList());
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

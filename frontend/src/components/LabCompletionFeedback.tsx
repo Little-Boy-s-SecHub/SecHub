@@ -19,7 +19,7 @@ export default function LabCompletionFeedback({
   lessonId?: string;
 }) {
   const { language } = useTranslation();
-  const elapsed = Math.max(1, Math.round((new Date(attempt.completedAt || Date.now()).getTime() - new Date(attempt.startedAt).getTime()) / 60000));
+  const elapsed = Math.max(1, Math.round((new Date(attempt.completedAt ?? attempt.startedAt).getTime() - new Date(attempt.startedAt).getTime()) / 60000));
   const shareResult = async () => {
     const text = language === 'vi'
       ? `Tôi vừa hoàn thành lab ${attempt.labTitle} trên SecHub: ${attempt.score} XP, ${elapsed} phút, ${attempt.hintsUsed} gợi ý. Kỹ năng: ${feedback.vulnerabilityName}.`

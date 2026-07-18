@@ -33,9 +33,10 @@ public class GrowthService {
         List<LabAttempt> all=attempts.findByUserIdOrderByStartedAtDesc(user.getId());
         List<LabAttempt> completed=all.stream().filter(a->a.getStatus()==LabAttempt.Status.COMPLETED).toList();
         List<UserProgress> learned=progress.findByUserIdAndCompletedTrue(user.getId());
+        List<Lab> publishedLabs=labs.findByStatus(LearningPath.PublicationStatus.PUBLISHED);
         int totalScore=completed.stream().mapToInt(a->Optional.ofNullable(a.getScore()).orElse(0)).sum();
         int xp=totalScore+learned.size()*25; int level=1+xp/500;
-        List<GrowthOverviewDto.SkillDto> skills=skills(completed);
+        List<GrowthOverviewDto.SkillDto> skills=skills(completed,publishedLabs);
         List<String> badges=badges(skills,completed.size(),learned.size(),completed);
         int streak=streak(user,profile); int weekLabs=(int)completed.stream().filter(a->a.getCompletedAt()!=null&&a.getCompletedAt().isAfter(weekStart)).count();
         int weekLessons=(int)learned.stream().filter(p->p.getCompletedAt()!=null&&p.getCompletedAt().isAfter(weekStart)).count();
@@ -45,11 +46,7 @@ public class GrowthService {
         String recommendation = "Ôn tập chuyên đề bằng flashcard và các bài thực hành lab.";
         if (!"Hoàn thành lab đầu tiên".equals(weak) && !"Chưa có".equals(weak)) {
             java.util.Set<UUID> completedLessonIds = learned.stream().map(p -> p.getLesson().getId()).collect(Collectors.toSet());
-            final String finalWeak = weak;
-            var weakLessons = lessonRepository.findAll().stream()
-                    .filter(l -> l.getVulnerability() != null)
-                    .filter(l -> l.getVulnerability().getName().equalsIgnoreCase(finalWeak) || l.getVulnerability().getSlug().equalsIgnoreCase(finalWeak))
-                    .toList();
+            var weakLessons = lessonRepository.findByVulnerabilityNameOrSlug(weak);
             
             var uncompletedLesson = weakLessons.stream()
                     .filter(l -> !completedLessonIds.contains(l.getId()))
@@ -70,8 +67,7 @@ public class GrowthService {
                 ||completed.stream().anyMatch(a->a.getCompletedAt()!=null&&a.getCompletedAt().toLocalDate().equals(LocalDate.now())&&a.getLab().getTitle().startsWith("Daily "));
         boolean weeklyDone=completed.stream().anyMatch(a->a.getCompletedAt()!=null&&a.getCompletedAt().isAfter(weekStart)&&a.getLab().getTitle().startsWith("Weekly "));
         List<String> notices = new ArrayList<>();
-        labs.findAll().stream()
-                .filter(l -> l.getStatus() == LearningPath.PublicationStatus.PUBLISHED)
+        publishedLabs.stream()
                 .filter(l -> !l.getTitle().startsWith("Daily ") && !l.getTitle().startsWith("Weekly "))
                 .sorted(Comparator.comparing(Lab::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
                 .limit(1)
@@ -80,8 +76,7 @@ public class GrowthService {
         if (notices.isEmpty()) {
             java.util.Set<UUID> completedLabIds = completed.stream().map(a -> a.getLab().getId()).collect(java.util.stream.Collectors.toSet());
             final String finalWeak = weak;
-            var weakLab = labs.findAll().stream()
-                    .filter(l -> l.getStatus() == LearningPath.PublicationStatus.PUBLISHED)
+            var weakLab = publishedLabs.stream()
                     .filter(l -> !l.getTitle().startsWith("Daily ") && !l.getTitle().startsWith("Weekly "))
                     .filter(l -> l.getVulnerability().getName().toLowerCase().contains(finalWeak.toLowerCase()) || finalWeak.toLowerCase().contains(l.getVulnerability().getName().toLowerCase()))
                     .filter(l -> !completedLabIds.contains(l.getId()))
@@ -89,8 +84,7 @@ public class GrowthService {
             if (weakLab.isPresent()) {
                 notices.add("Gợi ý cho bạn: Luyện tập lab về " + weakLab.get().getVulnerability().getName() + ": " + weakLab.get().getTitle());
             } else {
-                labs.findAll().stream()
-                        .filter(l -> l.getStatus() == LearningPath.PublicationStatus.PUBLISHED)
+                publishedLabs.stream()
                         .filter(l -> !l.getTitle().startsWith("Daily ") && !l.getTitle().startsWith("Weekly "))
                         .filter(l -> !completedLabIds.contains(l.getId()))
                         .findFirst()
@@ -180,7 +174,10 @@ public class GrowthService {
     }
 
     private List<GrowthOverviewDto.SkillDto> skills(List<LabAttempt> completed){
-        var allVulns = labs.findAll().stream()
+        return skills(completed, labs.findByStatus(LearningPath.PublicationStatus.PUBLISHED));
+    }
+    private List<GrowthOverviewDto.SkillDto> skills(List<LabAttempt> completed, List<Lab> availableLabs){
+        var allVulns = availableLabs.stream()
                 .map(Lab::getVulnerability)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toMap(Vulnerability::getSlug, v -> v, (v1, v2) -> v1))
