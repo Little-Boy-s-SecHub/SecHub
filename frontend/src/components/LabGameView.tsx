@@ -152,7 +152,12 @@ export default function LabGameView({
   // Detect mobile device
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setIsMobile('ontouchstart' in window || navigator.maxTouchPoints > 0);
+      const updateMobileState = () => {
+        setIsMobile(window.matchMedia('(max-width: 640px)').matches || 'ontouchstart' in window || navigator.maxTouchPoints > 0);
+      };
+      updateMobileState();
+      window.addEventListener('resize', updateMobileState);
+      return () => window.removeEventListener('resize', updateMobileState);
     }
   }, []);
 
@@ -227,6 +232,8 @@ export default function LabGameView({
     setTypedText('');
     setTypingIndex(0);
   };
+
+  const getStepNumber = (name: string) => name.match(/^\d+/)?.[0] ?? name;
 
   // Typewriter effect
   useEffect(() => {
@@ -1616,6 +1623,19 @@ export default function LabGameView({
             const isCurrentActive = activeNpcNameState === npc.name;
             const isSpecial = npc.hintIndex >= 98;
             const isUnlockable = !isSpecial && npc.hintIndex === revealedHints;
+            const isLockedHint = !isSpecial && npc.hintIndex > revealedHints;
+            const isRevealedHint = !isSpecial && npc.hintIndex < revealedHints;
+            const stepNumber = getStepNumber(npc.name);
+            const labelText = npc.name.replace(/^\d+\.\s*/, '');
+            const chipColor = isSpecial
+              ? npc.color
+              : isLockedHint
+                ? '#64748b'
+                : isUnlockable
+                  ? '#fbbf24'
+                  : isRevealedHint
+                    ? '#22c55e'
+                    : npc.color;
             
             // Calculate percentage coords mapping to 800x480 canvas aspect ratio
             const leftPct = ((npc.x + npc.width / 2) / 800) * 100;
@@ -1628,71 +1648,86 @@ export default function LabGameView({
                   position: 'absolute',
                   left: `${leftPct}%`,
                   top: `${topPct}%`,
-                  transform: 'translate(-50%, -105%)',
+                  transform: 'translate(-50%, -118%)',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  gap: '2px',
+                  gap: '3px',
                   zIndex: isCurrentActive ? 30 : 20,
                   transition: 'all 0.15s ease',
                 }}
               >
-                {isUnlockable && (
-                  <div style={{
-                    fontSize: 'clamp(9px, 1.2vw, 12px)',
-                    fontFamily: '"Courier New", Courier, monospace',
-                    color: '#fbbf24',
-                    background: 'rgba(234, 179, 8, 0.15)',
-                    border: '1.5px solid #eab308',
-                    borderRadius: '4px',
-                    padding: '2px 6px',
-                    fontWeight: 'bold',
-                    letterSpacing: '0.8px',
-                    textTransform: 'uppercase',
-                    marginBottom: '2px',
-                    boxShadow: '0 0 10px rgba(234,179,8,0.25)',
-                    textShadow: '0 0 4px rgba(234,179,8,0.4)',
-                  }}>
-                    {language === 'vi' ? 'GỢI Ý MỞ' : 'HINT UNLOCKED'}
-                  </div>
-                )}
-
                 <div style={{
-                  background: isCurrentActive ? 'rgba(9, 13, 22, 0.95)' : 'rgba(9, 13, 22, 0.85)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: isCurrentActive ? '7px' : '0',
+                  width: isCurrentActive ? 'auto' : '28px',
+                  minWidth: isCurrentActive ? '92px' : '28px',
+                  maxWidth: isCurrentActive ? 'min(220px, 44vw)' : '28px',
+                  minHeight: isCurrentActive ? '30px' : '28px',
+                  background: isCurrentActive ? 'rgba(9, 13, 22, 0.96)' : 'rgba(9, 13, 22, 0.82)',
                   border: isCurrentActive 
-                    ? `2px solid ${npc.color}` 
-                    : '1.5px solid rgba(255, 255, 255, 0.2)',
-                  borderRadius: '6px',
-                  padding: '4px 10px',
-                  fontSize: 'clamp(11px, 1.6vw, 15px)',
+                    ? `2px solid ${chipColor}`
+                    : `1.5px solid ${chipColor}`,
+                  borderRadius: isCurrentActive ? '7px' : '999px',
+                  padding: isCurrentActive ? '5px 10px' : '0',
+                  fontSize: '12px',
+                  lineHeight: 1.15,
                   fontWeight: 800,
                   fontFamily: '"Courier New", Courier, monospace',
                   color: isCurrentActive ? '#ffffff' : '#e2e8f0',
-                  whiteSpace: 'nowrap',
-                  letterSpacing: '0.6px',
+                  letterSpacing: '0px',
                   boxShadow: isCurrentActive 
-                    ? `0 0 14px ${npc.color}66` 
-                    : '0 2px 6px rgba(0, 0, 0, 0.5)',
+                    ? `0 0 14px ${chipColor}66`
+                    : isUnlockable
+                      ? `0 0 14px ${chipColor}66, 0 2px 6px rgba(0, 0, 0, 0.5)`
+                      : '0 2px 6px rgba(0, 0, 0, 0.5)',
                   backdropFilter: 'blur(3px)',
+                  opacity: isLockedHint && !isCurrentActive ? 0.7 : 1,
                   textRendering: 'geometricPrecision',
                   textShadow: isCurrentActive 
-                    ? `0 0 6px ${npc.color}88` 
+                    ? `0 0 6px ${chipColor}88`
                     : '0 1px 2px rgba(0,0,0,0.8)',
                 }}>
-                  {npc.name}
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flex: '0 0 auto',
+                    width: isCurrentActive ? '19px' : '100%',
+                    height: isCurrentActive ? '19px' : '100%',
+                    borderRadius: '999px',
+                    background: isCurrentActive ? chipColor : 'transparent',
+                    color: isCurrentActive ? '#020617' : chipColor,
+                    fontSize: isCurrentActive ? '11px' : '13px',
+                    fontWeight: 900,
+                  }}>
+                    {stepNumber}
+                  </span>
+                  {isCurrentActive && (
+                    <span style={{
+                      whiteSpace: 'normal',
+                      overflowWrap: 'anywhere',
+                      textAlign: 'left',
+                      maxWidth: '168px',
+                    }}>
+                      {labelText}
+                    </span>
+                  )}
                 </div>
 
                 {isCurrentActive && (
                   <div style={{
-                    fontSize: 'clamp(9px, 1.1vw, 11px)',
+                    fontSize: '10px',
                     fontFamily: '"Courier New", Courier, monospace',
                     color: '#ffffff',
-                    background: npc.color,
+                    background: chipColor,
                     borderRadius: '4px',
                     padding: '2px 8px',
                     fontWeight: 900,
-                    letterSpacing: '0.5px',
-                    boxShadow: `0 2px 6px rgba(0,0,0,0.4), 0 0 8px ${npc.color}44`,
+                    letterSpacing: '0px',
+                    boxShadow: `0 2px 6px rgba(0,0,0,0.4), 0 0 8px ${chipColor}44`,
                     marginTop: '2px',
                     textShadow: '0 1px 2px rgba(0,0,0,0.5)',
                   }}>
@@ -1740,7 +1775,7 @@ export default function LabGameView({
           fontSize: '11px',
           fontFamily: '"Courier New", Courier, monospace',
           color: '#00f2fe',
-          display: 'flex',
+          display: isMobile ? 'none' : 'flex',
           gap: '16px',
           alignItems: 'center',
           pointerEvents: 'none',

@@ -400,14 +400,17 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
     return (
       <div style={{ 
         position: 'relative', 
-        width: '100vw', 
-        height: '100vh', 
+        width: '100%',
+        maxWidth: '100vw',
+        minHeight: '100dvh',
+        boxSizing: 'border-box',
         background: 'radial-gradient(circle, #0f172a 0%, #030712 100%)', 
         display: 'flex', 
-        alignItems: 'center', 
+        alignItems: 'flex-start',
         justifyContent: 'center',
-        padding: '20px',
-        overflow: 'hidden'
+        padding: 'clamp(10px, 2vw, 20px)',
+        overflowX: 'hidden',
+        overflowY: 'auto'
       }}>
         {/* Neon Marquee Keyframes & Button styles */}
         <style>{`
@@ -457,6 +460,29 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
             transform: translateY(3px) !important;
             box-shadow: 0 1px 0 rgba(0,0,0,0.6) !important;
           }
+          @media (max-width: 560px) {
+            .arcade-control-deck {
+              align-items: stretch !important;
+              flex-direction: column !important;
+              gap: 14px !important;
+              padding: 14px 16px !important;
+            }
+            .arcade-joystick-row {
+              justify-content: center !important;
+            }
+            .arcade-push-buttons {
+              flex-wrap: wrap !important;
+              gap: 12px !important;
+              justify-content: center !important;
+              width: 100% !important;
+            }
+            .arcade-push-buttons .arcade-btn {
+              width: 54px !important;
+              height: 40px !important;
+              font-size: 8px !important;
+              letter-spacing: 0 !important;
+            }
+          }
         `}</style>
 
         {/* 3D Retro Arcade Cabinet Frame */}
@@ -470,7 +496,8 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          position: 'relative'
+          position: 'relative',
+          flex: '0 0 auto'
         }}>
           {/* Cabinet Marquee Header (Glowing neon style) */}
           <div style={{
@@ -480,6 +507,8 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            gap: '12px',
+            flexWrap: 'wrap',
             boxShadow: 'inset 0 0 25px rgba(0,242,254,0.15)'
           }}>
             <div style={{ display: 'flex', gap: '4px' }}>
@@ -492,10 +521,12 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
               color: '#00f2fe',
               margin: 0,
               fontFamily: 'var(--font-mono)',
-              fontSize: '15px',
+              fontSize: 'clamp(12px, 1.8vw, 15px)',
               fontWeight: 'bold',
-              letterSpacing: '2.5px',
-              textTransform: 'uppercase'
+              letterSpacing: '1.2px',
+              textTransform: 'uppercase',
+              textAlign: 'center',
+              flex: '1 1 220px'
             }}>
               SEC-GATE 3000 RETRO CONSOLE
             </h2>
@@ -563,9 +594,9 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
             justifyContent: 'space-between',
             position: 'relative',
             boxShadow: 'inset 0 4px 0 rgba(255,255,255,0.1)'
-          }}>
+          }} className="arcade-control-deck">
             {/* Visual Joystick assembly */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div className="arcade-joystick-row" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <div style={{
                 position: 'relative',
                 width: '60px',
@@ -605,7 +636,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
             </div>
 
             {/* Glowing Retro Push Buttons */}
-            <div style={{ display: 'flex', gap: '18px', alignItems: 'center' }}>
+            <div className="arcade-push-buttons" style={{ display: 'flex', gap: '18px', alignItems: 'center' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                 <button
                   className="arcade-btn btn-blue"
