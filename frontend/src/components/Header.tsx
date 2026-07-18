@@ -5,6 +5,7 @@ import { Menu, Search, Bell, LogOut, User as UserIcon, Shield, KeyRound, Image a
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/context/LanguageContext';
 import Link from 'next/link';
+import { resolveApiUrl } from '@/lib/api';
 
 export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
   const { user, isAuthenticated, logout, updateUser } = useAuth();
@@ -55,7 +56,7 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
 
     const fetchNotifications = async () => {
       try {
-        const res = await fetch('/api/growth/overview', {
+        const res = await fetch(resolveApiUrl('/growth/overview'), {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('sechub_token')}`
           }
@@ -123,7 +124,7 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
 
     setPasswordLoading(true);
     try {
-      const res = await fetch('/api/users/me/password', {
+      const res = await fetch(resolveApiUrl('/users/me/password'), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -158,7 +159,7 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
     setAvatarLoading(true);
 
     try {
-      const res = await fetch('/api/users/me/avatar', {
+      const res = await fetch(resolveApiUrl('/users/me/avatar'), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

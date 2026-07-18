@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ENTITY_SIZE, GAME_HEIGHT, GAME_OBSTACLES, GAME_WIDTH, getHintPositions, rectsOverlap } from './labGameLayout';
 
 describe('2D lab hint layout', () => {
-  it.each([1, 2, 3, 4, 5, 8, 12])('keeps %i hint characters on walkable floor', (count) => {
+  it.each([1, 2, 3, 4, 5, 8, 12, 16, 20])('keeps %i hint characters on walkable floor', (count) => {
     const positions = getHintPositions(count);
     expect(positions).toHaveLength(count);
     positions.forEach(position => {
