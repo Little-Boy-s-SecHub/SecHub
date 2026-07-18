@@ -1486,7 +1486,7 @@ label {
 }
 
 .lab-workspace-body {
-  padding: 0 24px 24px;
+  padding: 0 0 24px;
 }
 
 .lab-workspace-grid {
@@ -1550,7 +1550,7 @@ label {
   .lab-workspace-grid { grid-template-columns: 1fr; }
   .lab-workspace-header { position: static !important; padding: 10px 14px !important; }
   .lab-workspace-header > div { flex-wrap: wrap; }
-  .lab-workspace-body { padding: 0 12px 16px; }
+  .lab-workspace-body { padding: 0 0 16px; }
 }
 
 @media (max-width: 480px) {

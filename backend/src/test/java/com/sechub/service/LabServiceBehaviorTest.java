@@ -11,6 +11,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import static org.assertj.core.api.Assertions.*;
@@ -33,7 +34,7 @@ class LabServiceBehaviorTest {
         attempt=LabAttempt.builder().id(UUID.randomUUID()).user(user).lab(lab).status(LabAttempt.Status.RUNNING)
                 .startedAt(LocalDateTime.now().minusMinutes(20)).expiresAt(LocalDateTime.now().plusMinutes(40))
                 .containerId("container-1").hintsUsed(0).build();
-        when(attempts.findById(attempt.getId())).thenReturn(Optional.of(attempt));
+        lenient().when(attempts.findById(attempt.getId())).thenReturn(Optional.of(attempt));
         lenient().when(attempts.save(any())).thenAnswer(invocation->invocation.getArgument(0));
     }
 
@@ -63,5 +64,39 @@ class LabServiceBehaviorTest {
                 .isInstanceOf(BadRequestException.class).hasMessageContaining("không chính xác");
         assertThat(attempt.getStatus()).isEqualTo(LabAttempt.Status.RUNNING);
         verify(docker,never()).stopContainer(any());
+    }
+
+    @Test void existingRunningAttemptUsesLabEstimatedMinutes() {
+        lab.setEstimatedMinutes(45);
+        LocalDateTime started = LocalDateTime.now().minusMinutes(5).withNano(0);
+        LabAttempt staleAttempt = LabAttempt.builder().id(UUID.randomUUID()).user(user).lab(lab)
+                .status(LabAttempt.Status.RUNNING).startedAt(started).expiresAt(started.plusMinutes(90))
+                .containerId("container-old").runtimeToken("runtime-token").hintsUsed(0).build();
+        when(labs.findById(lab.getId())).thenReturn(Optional.of(lab));
+        when(users.findByUsername("student")).thenReturn(user);
+        when(attempts.findFirstByUserIdAndLabIdAndStatus(user.getId(), lab.getId(), LabAttempt.Status.RUNNING))
+                .thenReturn(Optional.of(staleAttempt));
+
+        LabAttemptDto result = service.startLab(lab.getId(), "student");
+
+        assertThat(result.expiresAt()).isEqualTo(started.plusMinutes(45));
+        assertThat(staleAttempt.getExpiresAt()).isEqualTo(started.plusMinutes(45));
+        verify(docker, never()).startContainer(any(), anyInt(), any(), any());
+    }
+
+    @Test void listingAttemptsAlsoSyncsRunningAttemptDuration() {
+        lab.setEstimatedMinutes(30);
+        LocalDateTime started = LocalDateTime.now().minusMinutes(8).withNano(0);
+        LabAttempt staleAttempt = LabAttempt.builder().id(UUID.randomUUID()).user(user).lab(lab)
+                .status(LabAttempt.Status.RUNNING).startedAt(started).expiresAt(started.plusMinutes(90))
+                .containerId("container-old").runtimeToken("runtime-token").hintsUsed(0).build();
+        when(users.findByUsername("student")).thenReturn(user);
+        when(attempts.findByUserIdAndLabId(user.getId(), lab.getId())).thenReturn(List.of(staleAttempt));
+
+        List<LabAttemptDto> result = service.getLabAttempts(lab.getId(), "student");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).expiresAt()).isEqualTo(started.plusMinutes(30));
+        assertThat(staleAttempt.getExpiresAt()).isEqualTo(started.plusMinutes(30));
     }
 }

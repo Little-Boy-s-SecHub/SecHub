@@ -1,6 +1,7 @@
 package com.sechub.dto;
 
 import com.sechub.entity.Lab;
+import com.sechub.support.LabDurationPolicy;
 
 import java.util.UUID;
 
@@ -33,7 +34,7 @@ public record LabDto(
             lab.getArtifactPath() != null && !lab.getArtifactPath().isBlank(),
             lab.getDockerPort(),
             lab.getHintsJson(),
-            lab.getEstimatedMinutes(),
+            LabDurationPolicy.sessionMinutes(lab),
             lab.getPoints(),
             lab.getStatus().name()
         );

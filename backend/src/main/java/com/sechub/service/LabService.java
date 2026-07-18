@@ -11,6 +11,7 @@ import com.sechub.exception.BadRequestException;
 import com.sechub.exception.ResourceNotFoundException;
 import com.sechub.repository.LabAttemptRepository;
 import com.sechub.repository.LabRepository;
+import com.sechub.support.LabDurationPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -26,10 +27,7 @@ import java.util.UUID;
 public class LabService {
 
     private static final Logger log = LoggerFactory.getLogger(LabService.class);
-    private static final int MIN_LAB_DURATION = 15;
-    private static final int MAX_LAB_DURATION = 90;
     private static final int EXTENSION_WINDOW_MINUTES = 10;
-    private static final int EXTENSION_MINUTES = 30;
 
     private final LabRepository labRepository;
     private final LabAttemptRepository labAttemptRepository;
@@ -96,10 +94,9 @@ public class LabService {
         var existing = labAttemptRepository.findFirstByUserIdAndLabIdAndStatus(
                 user.getId(), labId, LabAttempt.Status.RUNNING);
         if (existing.isPresent()) {
-            LabAttempt running = existing.get();
-            if (running.getExpiresAt() == null) {
-                running.setExpiresAt(LocalDateTime.now().plusMinutes(labDuration(lab)));
-                running = labAttemptRepository.save(running);
+            LabAttempt running = syncActiveAttemptDuration(existing.get());
+            if (running.getStatus() != LabAttempt.Status.RUNNING && running.getStatus() != LabAttempt.Status.STARTED) {
+                return createLabAttempt(lab, user);
             }
             if (running.getRuntimeToken() == null || running.getRuntimeToken().isBlank()) {
                 running.setRuntimeToken(UUID.randomUUID().toString().replace("-", ""));
@@ -108,13 +105,18 @@ public class LabService {
             return LabAttemptDto.fromEntity(running);
         }
 
+        return createLabAttempt(lab, user);
+    }
+
+    private LabAttemptDto createLabAttempt(Lab lab, User user) {
+        LocalDateTime startedAt = LocalDateTime.now();
         // Create the attempt record first (status STARTED) to get a database ID
         LabAttempt attempt = LabAttempt.builder()
                 .user(user)
                 .lab(lab)
                 .status(LabAttempt.Status.STARTED)
-                .startedAt(LocalDateTime.now())
-                .expiresAt(LocalDateTime.now().plusMinutes(labDuration(lab)))
+                .startedAt(startedAt)
+                .expiresAt(LabDurationPolicy.expiresAt(startedAt, lab, 0))
                 .build();
         attempt = labAttemptRepository.save(attempt);
 
@@ -284,20 +286,22 @@ public class LabService {
         };
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<LabAttemptDto> getUserAttempts(String username) {
         User user = userService.findByUsername(username);
         return labAttemptRepository.findByUserIdOrderByStartedAtDesc(user.getId())
                 .stream()
+                .map(this::syncActiveAttemptDuration)
                 .map(LabAttemptDto::fromEntity)
                 .toList();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<LabAttemptDto> getLabAttempts(UUID labId, String username) {
         User user = userService.findByUsername(username);
         return labAttemptRepository.findByUserIdAndLabId(user.getId(), labId)
                 .stream()
+                .map(this::syncActiveAttemptDuration)
                 .map(LabAttemptDto::fromEntity)
                 .toList();
     }
@@ -335,7 +339,7 @@ public class LabService {
         if (attempt.getExpiresAt() == null || attempt.getExpiresAt().isAfter(now.plusMinutes(EXTENSION_WINDOW_MINUTES))) {
             throw new BadRequestException("Chỉ có thể xin thêm thời gian khi phiên còn dưới 10 phút");
         }
-        attempt.setExpiresAt(attempt.getExpiresAt().plusMinutes(EXTENSION_MINUTES));
+        attempt.setExpiresAt(attempt.getExpiresAt().plusMinutes(LabDurationPolicy.EXTENSION_MINUTES));
         attempt.setExtensionCount(1);
         return LabAttemptDto.fromEntity(labAttemptRepository.save(attempt));
     }
@@ -474,9 +478,31 @@ public class LabService {
         }
     }
 
-    /** Return session duration based on the lab's estimated time, clamped to a safe range. */
-    private int labDuration(Lab lab) {
-        int minutes = lab.getEstimatedMinutes() != null ? lab.getEstimatedMinutes() : 30;
-        return Math.max(MIN_LAB_DURATION, Math.min(MAX_LAB_DURATION, minutes));
+    private LabAttempt syncActiveAttemptDuration(LabAttempt attempt) {
+        if (attempt.getStatus() != LabAttempt.Status.RUNNING && attempt.getStatus() != LabAttempt.Status.STARTED) {
+            return attempt;
+        }
+
+        boolean changed = false;
+        if (attempt.getStartedAt() == null) {
+            attempt.setStartedAt(LocalDateTime.now());
+            changed = true;
+        }
+
+        LocalDateTime expectedExpiry = LabDurationPolicy.expiresAt(
+                attempt.getStartedAt(), attempt.getLab(), attempt.getExtensionCount());
+        if (attempt.getExpiresAt() == null || !attempt.getExpiresAt().equals(expectedExpiry)) {
+            attempt.setExpiresAt(expectedExpiry);
+            changed = true;
+        }
+
+        if (!expectedExpiry.isAfter(LocalDateTime.now())) {
+            dockerService.stopContainer(attempt.getContainerId());
+            attempt.setStatus(LabAttempt.Status.EXPIRED);
+            attempt.setCompletedAt(LocalDateTime.now());
+            changed = true;
+        }
+
+        return changed ? labAttemptRepository.save(attempt) : attempt;
     }
 }
