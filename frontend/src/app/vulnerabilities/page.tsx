@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ShieldAlert } from 'lucide-react';
 import { api, Vulnerability } from '@/lib/api';
+import { useTranslation } from '@/context/LanguageContext';
 import VulnIcon from '@/components/VulnIcon';
 import PageBackLink from '@/components/PageBackLink';
 
 export default function VulnerabilitiesPage() {
+  const { language } = useTranslation();
   const [vulns, setVulns] = useState<Vulnerability[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -30,13 +32,16 @@ export default function VulnerabilitiesPage() {
 
   return (
     <div>
-      <PageBackLink href="/" label="Quay lại Dashboard" />
+      <PageBackLink href="/" label={language === 'vi' ? 'Quay lại Dashboard' : 'Back to Dashboard'} />
       <div className="section-header">
         <h1 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <ShieldAlert size={28} style={{ color: 'var(--fg-brand)' }} /> Lỗ hổng bảo mật
+          <ShieldAlert size={28} style={{ color: 'var(--fg-brand)' }} /> {language === 'vi' ? 'Lỗ hổng bảo mật' : 'Vulnerabilities'}
         </h1>
         <p className="section-subtitle">
-          Tìm hiểu chi tiết về các lỗ hổng bảo mật web phổ biến nhất, cách khai thác và phòng chống.
+          {language === 'vi'
+            ? 'Tìm hiểu chi tiết về các lỗ hổng bảo mật web phổ biến nhất, cách khai thác và phòng chống.'
+            : 'Learn in detail about the most common web security vulnerabilities, how they are exploited, and how to prevent them.'
+          }
         </p>
       </div>
 
@@ -53,9 +58,9 @@ export default function VulnerabilitiesPage() {
                                   vuln.severity === 'HIGH' ? 'badge-high' : 
                                   vuln.severity === 'MEDIUM' ? 'badge-medium' : 'badge-low';
 
-            const severityLabel = vuln.severity === 'CRITICAL' ? 'Cực kỳ nghiêm trọng' :
-                                  vuln.severity === 'HIGH' ? 'Cao' :
-                                  vuln.severity === 'MEDIUM' ? 'Trung bình' : 'Thấp';
+            const severityLabel = vuln.severity === 'CRITICAL' ? (language === 'vi' ? 'Cực kỳ nghiêm trọng' : 'Critical') :
+                                  vuln.severity === 'HIGH' ? (language === 'vi' ? 'Cao' : 'High') :
+                                  vuln.severity === 'MEDIUM' ? (language === 'vi' ? 'Trung bình' : 'Medium') : (language === 'vi' ? 'Thấp' : 'Low');
 
             return (
               <Link
@@ -79,7 +84,7 @@ export default function VulnerabilitiesPage() {
                   <div className="vuln-card-desc">{vuln.description}</div>
                   <div className="vuln-card-footer" style={{ marginTop: 'auto', paddingTop: 'var(--space-2)' }}>
                     <span className={`badge ${severityClass}`}>{severityLabel}</span>
-                    <span className="vuln-card-labs">{vuln.labCount || 0} labs →</span>
+                    <span className="vuln-card-labs">{vuln.labCount || 0} {language === 'vi' ? 'phòng lab' : 'labs'} →</span>
                   </div>
                 </div>
               </Link>
