@@ -253,20 +253,15 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
 
   const handleRevealHint = async () => {
     if (!currentAttempt) return;
-    if (!mentor) {
-      await handleAskMentor();
-      return;
-    }
     try {
       const res = await api.labs.useHint(currentAttempt.id);
       if (res.success) {
         setRevealedHints(res.data.hintsUsed);
         setCurrentAttempt(res.data);
-        setMentor(null);
         setOpenHintIndexes(prev => new Set(prev).add(res.data.hintsUsed - 1));
       }
     } catch (e: any) {
-      alert(e.message || (language === 'vi' ? 'Không thể tải gợi ý.' : 'Failed to load hints.'));
+      setApiError(e.message || (language === 'vi' ? 'Không thể tải gợi ý.' : 'Failed to load hints.'));
     }
   };
 
@@ -276,7 +271,6 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
     try {
       const guidance = (await api.labs.getMentor(currentAttempt.id)).data;
       setMentor(guidance);
-      if (viewMode === 'game') window.alert(language === 'vi' ? `AI Mentor hỏi bạn:\n\n${guidance.question}\n\nHãy suy nghĩ trước, sau đó bấm GỢI Ý lần nữa nếu vẫn cần.` : `AI Mentor asks you:\n\n${guidance.question}\n\nThink first, then click HINT again if you still need it.`);
     }
     catch (e: any) { setApiError(e.message || (language === 'vi' ? 'Mentor chưa thể phản hồi.' : 'Mentor cannot respond right now.')); }
     finally { setAskingMentor(false); }
@@ -986,10 +980,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
                   onClick={handleRevealHint}
                   style={{ marginTop: '10px', width: '100%', padding: '8px' }}
                 >
-                  {mentor 
-                    ? (language === 'vi' ? `Mở gợi ý tiếp theo (-${lab.points / 10} điểm)` : `Unlock next hint (-${lab.points / 10} pts)`) 
-                    : (language === 'vi' ? 'Nhận câu hỏi từ AI mentor trước' : 'Get a question from AI mentor first')
-                  }
+                  {language === 'vi' ? `Mở gợi ý tiếp theo (-${lab.points / 10} điểm)` : `Unlock next hint (-${lab.points / 10} pts)`}
                 </button>
               )}
             </div>
