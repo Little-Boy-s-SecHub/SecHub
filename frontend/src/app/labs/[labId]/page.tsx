@@ -25,7 +25,7 @@ import {
   Gamepad2,
   LayoutGrid
 } from 'lucide-react';
-import { api, Lab, LabAttempt } from '@/lib/api';
+import { api, Lab, LabAttempt, parseBackendDate } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/context/LanguageContext';
 import LabSimulator from '@/components/LabSimulator';
@@ -70,7 +70,7 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
           if (attemptsRes.success && attemptsRes.data) {
             const running = attemptsRes.data.find(a => {
               if (a.status !== 'RUNNING' && a.status !== 'STARTED') return false;
-              if (a.expiresAt && new Date(a.expiresAt) < new Date()) return false;
+              if (a.expiresAt && parseBackendDate(a.expiresAt) < new Date()) return false;
               return true;
             });
             const completed = attemptsRes.data.find(a => a.status === 'COMPLETED');

@@ -226,6 +226,15 @@ export function resolveApiUrl(path: string): string {
   return `${baseUrlWithSlash}${cleanPath}`;
 }
 
+export function parseBackendDate(dateStr: string | Date | undefined | null): Date {
+  if (!dateStr) return new Date();
+  if (dateStr instanceof Date) return dateStr;
+  if (typeof dateStr === 'string' && !dateStr.endsWith('Z') && !dateStr.includes('+') && !/-\d{2}:\d{2}$/.test(dateStr)) {
+    return new Date(`${dateStr}Z`);
+  }
+  return new Date(dateStr);
+}
+
 export const api = {
   auth: {
     login: async (username: string, password: string) => {

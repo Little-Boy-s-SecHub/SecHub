@@ -21,7 +21,7 @@ import {
   Zap,
   Keyboard
 } from 'lucide-react';
-import { api, Lab, Vulnerability, LabAttempt } from '@/lib/api';
+import { api, Lab, Vulnerability, LabAttempt, parseBackendDate } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/context/LanguageContext';
 import PageBackLink from '@/components/PageBackLink';
@@ -483,7 +483,7 @@ export default function LabsPage() {
     }
     const active = attempts.find(a => {
       if (a.status !== 'RUNNING' && a.status !== 'STARTED') return false;
-      if (a.expiresAt && new Date(a.expiresAt) < new Date()) return false;
+      if (a.expiresAt && parseBackendDate(a.expiresAt) < new Date()) return false;
       return true;
     });
     if (active) {

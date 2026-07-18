@@ -27,7 +27,7 @@ import {
   Target,
   Lightbulb
 } from 'lucide-react';
-import { api, Vulnerability, LearningPath, Lab, LabAttempt, ResumeLearning, GrowthOverview, LeaderboardEntry } from '@/lib/api';
+import { api, Vulnerability, LearningPath, Lab, LabAttempt, ResumeLearning, GrowthOverview, LeaderboardEntry, parseBackendDate } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/context/LanguageContext';
 import VulnIcon from '@/components/VulnIcon';
@@ -137,7 +137,7 @@ function PathMiniCard({ path }: { path: LearningPath }) {
 
 function RecentLabCard({ attempt }: { attempt: LabAttempt }) {
   const { language } = useTranslation();
-  const isExpired = attempt.expiresAt && new Date(attempt.expiresAt) < new Date();
+  const isExpired = attempt.expiresAt && parseBackendDate(attempt.expiresAt) < new Date();
   const statusContent = attempt.status === 'COMPLETED' ? (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--fg-success-strong)' }}>
       <CheckCircle2 size={14} /> {language === 'vi' ? 'Hoàn thành' : 'Completed'}
@@ -160,7 +160,7 @@ function RecentLabCard({ attempt }: { attempt: LabAttempt }) {
           {statusContent}
         </div>
         <div className="lab-card-title">{attempt.labTitle}</div>
-        <div className="lab-card-desc">{language === 'vi' ? 'Bắt đầu lúc' : 'Started at'}: {new Date(attempt.startedAt).toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}</div>
+        <div className="lab-card-desc">{language === 'vi' ? 'Bắt đầu lúc' : 'Started at'}: {parseBackendDate(attempt.startedAt).toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US')}</div>
         <div className="lab-card-meta" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           <span className="lab-card-meta-item" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             <Trophy size={12} /> {attempt.score} {language === 'vi' ? 'điểm' : 'pts'}

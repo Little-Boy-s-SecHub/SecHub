@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ArrowRight, BookOpen, CheckCircle2, Code2, Share2, ShieldCheck, Sparkles, Wrench } from 'lucide-react';
-import { LabAttempt, LabFeedback } from '@/lib/api';
+import { LabAttempt, LabFeedback, parseBackendDate } from '@/lib/api';
 import { useTranslation } from '@/context/LanguageContext';
 
 export default function LabCompletionFeedback({
@@ -19,7 +19,7 @@ export default function LabCompletionFeedback({
   lessonId?: string;
 }) {
   const { language } = useTranslation();
-  const elapsed = Math.max(1, Math.round((new Date(attempt.completedAt ?? attempt.startedAt).getTime() - new Date(attempt.startedAt).getTime()) / 60000));
+  const elapsed = Math.max(1, Math.round((parseBackendDate(attempt.completedAt ?? attempt.startedAt).getTime() - parseBackendDate(attempt.startedAt).getTime()) / 60000));
   const shareResult = async () => {
     const text = language === 'vi'
       ? `Tôi vừa hoàn thành lab ${attempt.labTitle} trên SecHub: ${attempt.score} XP, ${elapsed} phút, ${attempt.hintsUsed} gợi ý. Kỹ năng: ${feedback.vulnerabilityName}.`

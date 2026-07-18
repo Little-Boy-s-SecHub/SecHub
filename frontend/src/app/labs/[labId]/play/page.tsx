@@ -24,7 +24,7 @@ import {
   ,RotateCcw
   ,Sparkles
 } from 'lucide-react';
-import { api, Lab, LabAttempt, LabFeedback, MentorGuidance, resolveApiUrl } from '@/lib/api';
+import { api, Lab, LabAttempt, LabFeedback, MentorGuidance, resolveApiUrl, parseBackendDate } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/context/LanguageContext';
 import LabSimulator from '@/components/LabSimulator';
@@ -103,7 +103,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
           if (attemptsRes.success && attemptsRes.data) {
             const running = attemptsRes.data.find(a => {
               if (a.status !== 'RUNNING' && a.status !== 'STARTED') return false;
-              if (a.expiresAt && new Date(a.expiresAt) < new Date()) return false;
+              if (a.expiresAt && parseBackendDate(a.expiresAt) < new Date()) return false;
               return true;
             });
             const completed = attemptsRes.data.find(a => a.status === 'COMPLETED');
@@ -157,7 +157,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
   useEffect(() => {
     if (labStatus !== 'running' || !currentAttempt?.expiresAt) return;
     const updateRemaining = () => {
-      const seconds = Math.max(0, Math.ceil((new Date(currentAttempt.expiresAt!).getTime() - Date.now()) / 1000));
+      const seconds = Math.max(0, Math.ceil((parseBackendDate(currentAttempt.expiresAt!).getTime() - Date.now()) / 1000));
       setRemainingSeconds(seconds);
       if (seconds === 0) setLabStatus('expired');
     };
