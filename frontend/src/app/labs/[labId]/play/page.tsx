@@ -398,6 +398,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
   }
 
   const isSimulated = currentAttempt?.containerId?.startsWith('sim-');
+  const useLegacySimulator = isSimulated && !lab.generated;
   const activeRuntimeUrl = currentAttempt?.runtimeUrl ? resolveApiUrl(currentAttempt.runtimeUrl) : undefined;
 
   if (viewMode === 'game') {
@@ -549,7 +550,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
               onSubmitFlag={handleSubmitFlag}
               flagResult={flagResult}
               vulnerabilityName={lab.vulnerabilityName}
-              isSimulated={isSimulated}
+              isSimulated={useLegacySimulator}
               dockerPort={lab.dockerPort}
               runtimeUrl={activeRuntimeUrl}
               apiError={apiError}
@@ -845,7 +846,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
                   {t('labDetail.startingSandbox')}
                 </p>
               </div>
-            ) : isSimulated ? (
+            ) : useLegacySimulator ? (
               <LabSimulator 
                 dockerPort={lab.dockerPort} 
                 flag={apiError || 'FLAG{sechub_simulated_success}'}

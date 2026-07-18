@@ -1,5 +1,7 @@
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8888/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ??
+  (process.env.NODE_ENV === "production"
+    ? "https://isolation-letters-related-reduce.trycloudflare.com/api"
+    : "http://localhost:8888/api");
 
 export interface ApiResponse<T> {
   success: boolean;
