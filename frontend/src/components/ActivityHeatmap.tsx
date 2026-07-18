@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { Flame, Calendar, Award } from 'lucide-react';
+import { useTranslation } from '@/context/LanguageContext';
 
 interface Activity {
   date: string; // YYYY-MM-DD
@@ -10,6 +11,7 @@ interface Activity {
 }
 
 export default function ActivityHeatmap({ username, noWrapper }: { username?: string; noWrapper?: boolean }) {
+  const { language } = useTranslation();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -146,19 +148,19 @@ export default function ActivityHeatmap({ username, noWrapper }: { username?: st
   };
 
   const getRankName = (contributions: number) => {
-    if (contributions === 0) return 'Newbie (Người mới)';
-    if (contributions < 5) return 'Script Kiddie (Lính mới)';
-    if (contributions < 15) return 'Junior Pentester (Thực tập sinh)';
-    if (contributions < 30) return 'Security Specialist (Chuyên gia)';
-    return 'Elite Hacker (Hacker tinh nhuệ)';
+    if (contributions === 0) return language === 'vi' ? 'Newbie (Người mới)' : 'Newbie';
+    if (contributions < 5) return language === 'vi' ? 'Script Kiddie (Lính mới)' : 'Script Kiddie';
+    if (contributions < 15) return language === 'vi' ? 'Junior Pentester (Thực tập sinh)' : 'Junior Pentester';
+    if (contributions < 30) return language === 'vi' ? 'Security Specialist (Chuyên gia)' : 'Security Specialist';
+    return language === 'vi' ? 'Elite Hacker (Hacker tinh nhuệ)' : 'Elite Hacker';
   };
 
   const getRankDescription = (contributions: number) => {
-    if (contributions === 0) return 'Hãy hoàn thành bài học đầu tiên để kích hoạt xếp hạng!';
-    if (contributions < 5) return 'Đang tìm hiểu về các lỗ hổng bảo mật cơ bản.';
-    if (contributions < 15) return 'Đã quen với việc vận hành các bài lab pentest thực tế.';
-    if (contributions < 30) return 'Nắm vững kiến thức chuyên sâu và giải quyết các lab khó.';
-    return 'Bậc thầy bảo mật! Bạn đã làm chủ hầu hết thử thách trên SecHub.';
+    if (contributions === 0) return language === 'vi' ? 'Hãy hoàn thành bài học đầu tiên để kích hoạt xếp hạng!' : 'Complete your first lesson to activate ranking!';
+    if (contributions < 5) return language === 'vi' ? 'Đang tìm hiểu về các lỗ hổng bảo mật cơ bản.' : 'Learning basic security vulnerabilities.';
+    if (contributions < 15) return language === 'vi' ? 'Đã quen với việc vận hành các bài lab pentest thực tế.' : 'Familiar with running hands-on pentest labs.';
+    if (contributions < 30) return language === 'vi' ? 'Nắm vững kiến thức chuyên sâu và giải quyết các lab khó.' : 'Mastering deep concepts and solving harder labs.';
+    return language === 'vi' ? 'Bậc thầy bảo mật! Bạn đã làm chủ hầu hết thử thách trên SecHub.' : 'Security master! You have conquered most challenges on SecHub.';
   };
 
   const getNextRankLimit = (contributions: number) => {
@@ -179,7 +181,7 @@ export default function ActivityHeatmap({ username, noWrapper }: { username?: st
   if (loading) {
     return (
       <div className="card" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-body-subtle)' }}>
-        Đang tải lịch hoạt động...
+        {language === 'vi' ? 'Đang tải lịch hoạt động...' : 'Loading activity history...'}
       </div>
     );
   }
@@ -188,7 +190,9 @@ export default function ActivityHeatmap({ username, noWrapper }: { username?: st
   const activityMap = new Map(activities.map(a => [a.date, a.count]));
 
   // Month labels helper
-  const months = ['Th 1', 'Th 2', 'Th 3', 'Th 4', 'Th 5', 'Th 6', 'Th 7', 'Th 8', 'Th 9', 'Th 10', 'Th 11', 'Th 12'];
+  const months = language === 'vi'
+    ? ['Th 1', 'Th 2', 'Th 3', 'Th 4', 'Th 5', 'Th 6', 'Th 7', 'Th 8', 'Th 9', 'Th 10', 'Th 11', 'Th 12']
+    : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const monthLabels: { label: string; index: number }[] = [];
   
   gridDates.forEach((date, idx) => {
@@ -271,7 +275,9 @@ export default function ActivityHeatmap({ username, noWrapper }: { username?: st
             <Calendar size={20} />
           </div>
           <div>
-            <div style={{ fontSize: '11px', color: 'var(--text-body-subtle)', fontWeight: 500 }}>TỔNG HOẠT ĐỘNG</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-body-subtle)', fontWeight: 500 }}>
+              {language === 'vi' ? 'TỔNG HOẠT ĐỘNG' : 'TOTAL CONTRIBUTIONS'}
+            </div>
             <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-heading)' }}>{stats.totalContributions}</div>
           </div>
         </div>
@@ -282,8 +288,12 @@ export default function ActivityHeatmap({ username, noWrapper }: { username?: st
             <Flame size={20} />
           </div>
           <div>
-            <div style={{ fontSize: '11px', color: 'var(--text-body-subtle)', fontWeight: 500 }}>CHUỖI HIỆN TẠI</div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-heading)' }}>{stats.currentStreak} ngày</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-body-subtle)', fontWeight: 500 }}>
+              {language === 'vi' ? 'CHUỖI HIỆN TẠI' : 'CURRENT STREAK'}
+            </div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-heading)' }}>
+              {stats.currentStreak} {language === 'vi' ? 'ngày' : stats.currentStreak === 1 ? 'day' : 'days'}
+            </div>
           </div>
         </div>
 
@@ -293,8 +303,12 @@ export default function ActivityHeatmap({ username, noWrapper }: { username?: st
             <Award size={20} />
           </div>
           <div>
-            <div style={{ fontSize: '11px', color: 'var(--text-body-subtle)', fontWeight: 500 }}>CHUỖI DÀI NHẤT</div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-heading)' }}>{stats.longestStreak} ngày</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-body-subtle)', fontWeight: 500 }}>
+              {language === 'vi' ? 'CHUỖI DÀI NHẤT' : 'LONGEST STREAK'}
+            </div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-heading)' }}>
+              {stats.longestStreak} {language === 'vi' ? 'ngày' : stats.longestStreak === 1 ? 'day' : 'days'}
+            </div>
           </div>
         </div>
 
@@ -302,7 +316,7 @@ export default function ActivityHeatmap({ username, noWrapper }: { username?: st
 
       {/* Heatmap Grid title */}
       <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-heading)', margin: '0 0 16px 0' }}>
-        Lịch sử năng suất đóng góp học tập
+        {language === 'vi' ? 'Lịch sử năng suất đóng góp học tập' : 'Learning activity and contribution history'}
       </h3>
 
       {/* Heatmap Split Layout */}
@@ -325,11 +339,11 @@ export default function ActivityHeatmap({ username, noWrapper }: { username?: st
             {/* Day of week labels */}
             <div style={{ display: 'grid', gridTemplateRows: 'repeat(7, 10px)', gap: '3px', fontSize: '9px', color: 'var(--text-body-subtle)', fontWeight: 600, justifyItems: 'end', paddingRight: '2px' }}>
               <span></span>
-              <span>T2</span>
+              <span>{language === 'vi' ? 'T2' : 'Mon'}</span>
               <span></span>
-              <span>T4</span>
+              <span>{language === 'vi' ? 'T4' : 'Wed'}</span>
               <span></span>
-              <span>T6</span>
+              <span>{language === 'vi' ? 'T6' : 'Fri'}</span>
               <span></span>
             </div>
 
@@ -354,6 +368,14 @@ export default function ActivityHeatmap({ username, noWrapper }: { username?: st
                   bgColor = 'var(--bg-success)';       // Deepest green
                 }
 
+                const dateDisplay = language === 'vi'
+                  ? date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                  : date.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+
+                const tooltipText = language === 'vi'
+                  ? `${count} hoạt động vào ${dateDisplay}`
+                  : `${count} ${count === 1 ? 'activity' : 'activities'} on ${dateDisplay}`;
+
                 return (
                   <div
                     key={dateStr}
@@ -361,7 +383,7 @@ export default function ActivityHeatmap({ username, noWrapper }: { username?: st
                     style={{ background: bgColor }}
                   >
                     <div className="heatmap-tooltip">
-                      {count} hoạt động vào {date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                      {tooltipText}
                     </div>
                   </div>
                 );
@@ -372,13 +394,13 @@ export default function ActivityHeatmap({ username, noWrapper }: { username?: st
 
           {/* Legend */}
           <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'var(--text-body-subtle)', marginTop: '12px' }}>
-            <span>Ít</span>
+            <span>{language === 'vi' ? 'Ít' : 'Less'}</span>
             <div style={{ width: '10px', height: '10px', borderRadius: '2px', background: 'var(--bg-neutral-tertiary)' }} />
             <div style={{ width: '10px', height: '10px', borderRadius: '2px', background: 'rgba(0, 122, 85, 0.25)' }} />
             <div style={{ width: '10px', height: '10px', borderRadius: '2px', background: 'rgba(0, 122, 85, 0.5)' }} />
             <div style={{ width: '10px', height: '10px', borderRadius: '2px', background: 'rgba(0, 122, 85, 0.75)' }} />
             <div style={{ width: '10px', height: '10px', borderRadius: '2px', background: 'var(--bg-success)' }} />
-            <span>Nhiều</span>
+            <span>{language === 'vi' ? 'Nhiều' : 'More'}</span>
           </div>
 
         </div>
@@ -398,7 +420,9 @@ export default function ActivityHeatmap({ username, noWrapper }: { username?: st
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ fontSize: '1.75rem', lineHeight: 1 }}>🥷</span>
             <div>
-              <div style={{ fontSize: '10px', color: 'var(--text-body-subtle)', fontWeight: 700, letterSpacing: '0.05em' }}>DANH HIỆU HACKER</div>
+              <div style={{ fontSize: '10px', color: 'var(--text-body-subtle)', fontWeight: 700, letterSpacing: '0.05em' }}>
+                {language === 'vi' ? 'DANH HIỆU HACKER' : 'HACKER TITLE'}
+              </div>
               <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--fg-brand)' }}>
                 {getRankName(stats.totalContributions)}
               </div>
@@ -412,8 +436,8 @@ export default function ActivityHeatmap({ username, noWrapper }: { username?: st
           {/* Level Progress */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: 'var(--text-body-subtle)', fontWeight: 600, marginBottom: '4px' }}>
-              <span>Cấp độ tiếp theo</span>
-              <span>{stats.totalContributions} / {getNextRankLimit(stats.totalContributions)} Hoạt động</span>
+              <span>{language === 'vi' ? 'Cấp độ tiếp theo' : 'Next level'}</span>
+              <span>{stats.totalContributions} / {getNextRankLimit(stats.totalContributions)} {language === 'vi' ? 'Hoạt động' : 'Activities'}</span>
             </div>
             <div style={{ height: '6px', background: 'var(--bg-neutral-tertiary)', borderRadius: '3px', overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${getProgressPercent(stats.totalContributions)}%`, background: 'var(--fg-brand)', borderRadius: '3px', transition: 'width 0.5s ease' }} />

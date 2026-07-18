@@ -35,15 +35,18 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
 
   const share = async () => {
     if (!profile) return;
+    const shareText = language === 'vi'
+      ? profile.shareText
+      : `${profile.username} achieved level ${profile.level} on SecHub with ${profile.completedLabs} completed lab${profile.completedLabs === 1 ? '' : 's'}. Do not share flags or payloads.`;
     const data = {
       title: language === 'vi' ? `Hồ sơ năng lực SecHub - ${profile.username}` : `SecHub Competency Profile - ${profile.username}`,
-      text: profile.shareText,
+      text: shareText,
       url: window.location.href
     };
     if (navigator.share) {
       await navigator.share(data);
     } else {
-      await navigator.clipboard.writeText(`${data.text}\nXem chi tiết tại: ${data.url}`);
+      await navigator.clipboard.writeText(`${data.text}\n${language === 'vi' ? 'Xem chi tiết tại:' : 'View details at:'} ${data.url}`);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     }
@@ -241,7 +244,9 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
           <span style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-body-subtle)', letterSpacing: '0.1em' }}>{language === 'vi' ? 'Chứng chỉ danh dự được trao cho' : 'Honorary certificate awarded to'}</span>
           <div className="certificate-name" style={{ fontSize: '38px', fontWeight: 900, color: 'var(--fg-brand)', margin: '12px 0', letterSpacing: '-0.02em' }}>{profile.username}</div>
           <p style={{ maxWidth: '600px', margin: '0 auto 24px auto', fontSize: '15px', color: 'var(--text-body)', lineHeight: 1.6 }}>
-            {profile.shareText}
+            {language === 'vi'
+              ? profile.shareText
+              : `${profile.username} achieved level ${profile.level} on SecHub with ${profile.completedLabs} completed lab${profile.completedLabs === 1 ? '' : 's'}. Do not share flags or payloads.`}
           </p>
         </div>
 

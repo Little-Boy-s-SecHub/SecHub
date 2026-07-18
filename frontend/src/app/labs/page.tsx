@@ -206,150 +206,151 @@ export default function LabsPage() {
   const [wizardGoal, setWizardGoal] = useState('');
 
   const appOptions = [
-    { value: 'ecommerce', label: 'Cửa hàng trực tuyến (E-commerce)' },
-    { value: 'social', label: 'Mạng xã hội (Social Network)' },
-    { value: 'cms', label: 'Hệ thống Quản lý Nội dung (Blog/CMS)' },
-    { value: 'hr', label: 'Hệ thống Quản trị Nội bộ (HR/ERP)' },
+    { value: 'ecommerce', label: language === 'vi' ? 'Cửa hàng trực tuyến (E-commerce)' : 'E-commerce Online Store' },
+    { value: 'social', label: language === 'vi' ? 'Mạng xã hội (Social Network)' : 'Social Network' },
+    { value: 'cms', label: language === 'vi' ? 'Hệ thống Quản lý Nội dung (Blog/CMS)' : 'Content Management System (Blog/CMS)' },
+    { value: 'hr', label: language === 'vi' ? 'Hệ thống Quản trị Nội bộ (HR/ERP)' : 'Internal Management System (HR/ERP)' },
   ];
 
   const getWizardOptions = (vulnSlug: string) => {
+    const isVi = language === 'vi';
     switch (vulnSlug) {
       case 'sql-injection':
         return {
           features: [
-            { value: 'login', label: 'Trang đăng nhập thành viên (Bypass Auth)' },
-            { value: 'search', label: 'Thanh tìm kiếm sản phẩm (Search SQLi)' },
-            { value: 'category', label: 'Bộ lọc danh mục hàng hóa (Category Filter)' },
-            { value: 'details', label: 'Trang xem chi tiết đơn hàng (ID Parameter)' },
-            { value: 'orderby', label: 'Trang báo cáo doanh thu (Order By Injection)' },
+            { value: 'login', label: isVi ? 'Trang đăng nhập thành viên (Bypass Auth)' : 'User Login Page (Bypass Auth)' },
+            { value: 'search', label: isVi ? 'Thanh tìm kiếm sản phẩm (Search SQLi)' : 'Product Search Bar (Search SQLi)' },
+            { value: 'category', label: isVi ? 'Bộ lọc danh mục hàng hóa (Category Filter)' : 'Category Filter (Category Filter)' },
+            { value: 'details', label: isVi ? 'Trang xem chi tiết đơn hàng (ID Parameter)' : 'Order Details Page (ID Parameter)' },
+            { value: 'orderby', label: isVi ? 'Trang báo cáo doanh thu (Order By Injection)' : 'Revenue Report Page (Order By Injection)' },
           ],
           goals: [
-            { value: 'bypass', label: 'Bypass đăng nhập để chiếm quyền Admin' },
-            { value: 'dump_users', label: 'Đọc toàn bộ thông tin tài khoản và mật khẩu (Dump users)' },
-            { value: 'read_db', label: 'Trích xuất thông tin thẻ tín dụng từ database' },
-            { value: 'read_files', label: 'Đọc tệp tin cấu hình nhạy cảm trên máy chủ qua SQLi' },
+            { value: 'bypass', label: isVi ? 'Bypass đăng nhập để chiếm quyền Admin' : 'Bypass authentication to gain Admin rights' },
+            { value: 'dump_users', label: isVi ? 'Đọc toàn bộ thông tin tài khoản và mật khẩu (Dump users)' : 'Extract all accounts and credentials (Dump users)' },
+            { value: 'read_db', label: isVi ? 'Trích xuất thông tin thẻ tín dụng từ database' : 'Extract credit card information from database' },
+            { value: 'read_files', label: isVi ? 'Đọc tệp tin cấu hình nhạy cảm trên máy chủ qua SQLi' : 'Read sensitive configuration files on the server via SQLi' },
           ]
         };
       case 'xss':
         return {
           features: [
-            { value: 'comment', label: 'Khung viết bình luận dưới bài viết (Stored XSS)' },
-            { value: 'search', label: 'Thanh tìm kiếm từ khóa (Reflected XSS)' },
-            { value: 'chat', label: 'Trang chat trực tuyến hỗ trợ khách hàng' },
-            { value: 'profile', label: 'Trang sửa đổi mô tả tiểu sử cá nhân (Bio)' },
-            { value: 'editor', label: 'Trình soạn thảo văn bản của bài viết (Rich Text Editor)' },
+            { value: 'comment', label: isVi ? 'Khung viết bình luận dưới bài viết (Stored XSS)' : 'Comment section under posts (Stored XSS)' },
+            { value: 'search', label: isVi ? 'Thanh tìm kiếm từ khóa (Reflected XSS)' : 'Keyword search bar (Reflected XSS)' },
+            { value: 'chat', label: isVi ? 'Trang chat trực tuyến hỗ trợ khách hàng' : 'Customer support online chat room' },
+            { value: 'profile', label: isVi ? 'Trang sửa đổi mô tả tiểu sử cá nhân (Bio)' : 'Bio edit page (Bio)' },
+            { value: 'editor', label: isVi ? 'Trình soạn thảo văn bản của bài viết (Rich Text Editor)' : 'Post rich text editor (Rich Text Editor)' },
           ],
           goals: [
-            { value: 'cookie', label: 'Đánh cắp Cookie phiên đăng nhập của quản trị viên' },
-            { value: 'redirect', label: 'Chèn mã độc tự động chuyển hướng sang trang giả mạo' },
-            { value: 'deface', label: 'Thay đổi giao diện trang web (Deface trang chủ)' },
-            { value: 'spam', label: 'Tự động gửi tin nhắn spam hoặc kết bạn hàng loạt' },
+            { value: 'cookie', label: isVi ? 'Đánh cắp Cookie phiên đăng nhập của quản trị viên' : 'Steal admin session cookies' },
+            { value: 'redirect', label: isVi ? 'Chèn mã độc tự động chuyển hướng sang trang giả mạo' : 'Inject malicious script to redirect to phishing site' },
+            { value: 'deface', label: isVi ? 'Thay đổi giao diện trang web (Deface trang chủ)' : 'Deface main website layout (Deface homepage)' },
+            { value: 'spam', label: isVi ? 'Tự động gửi tin nhắn spam hoặc kết bạn hàng loạt' : 'Send spam messages or mass friend requests' },
           ]
         };
       case 'csrf':
         return {
           features: [
-            { value: 'password_change', label: 'Trang đổi mật khẩu tài khoản' },
-            { value: 'transfer', label: 'Chức năng chuyển khoản tiền tệ' },
-            { value: 'email_update', label: 'Cập nhật email nhận mã khôi phục' },
-            { value: 'delete_account', label: 'Trang gửi yêu cầu xóa tài khoản' },
-            { value: 'one_click_buy', label: 'Chức năng mua hàng tự động bằng 1-Click' },
+            { value: 'password_change', label: isVi ? 'Trang đổi mật khẩu tài khoản' : 'Password change page' },
+            { value: 'transfer', label: isVi ? 'Chức năng chuyển khoản tiền tệ' : 'Money transfer function' },
+            { value: 'email_update', label: isVi ? 'Cập nhật email nhận mã khôi phục' : 'Update recovery email' },
+            { value: 'delete_account', label: isVi ? 'Trang gửi yêu cầu xóa tài khoản' : 'Deactivate/Delete account page' },
+            { value: 'one_click_buy', label: isVi ? 'Chức năng mua hàng tự động bằng 1-Click' : '1-Click automatic checkout buy button' },
           ],
           goals: [
-            { value: 'bypass_pass', label: 'Lừa Admin đổi mật khẩu để chiếm đoạt tài khoản' },
-            { value: 'force_trans', label: 'Ép nạn nhân thực hiện giao dịch chuyển tiền trái phép' },
-            { value: 'hijack_email', label: 'Đổi email liên kết sang email của kẻ tấn công' },
-            { value: 'escalate', label: 'Tự động nâng quyền tài khoản nạn nhân lên Moderator' },
+            { value: 'bypass_pass', label: isVi ? 'Lừa Admin đổi mật khẩu để chiếm đoạt tài khoản' : 'Force Admin to change password to takeover account' },
+            { value: 'force_trans', label: isVi ? 'Ép nạn nhân thực hiện giao dịch chuyển tiền trái phép' : 'Force victim to execute unauthorized transaction' },
+            { value: 'hijack_email', label: isVi ? 'Đổi email liên kết sang email của kẻ tấn công' : 'Hijack link email to attacker email' },
+            { value: 'escalate', label: isVi ? 'Tự động nâng quyền tài khoản nạn nhân lên Moderator' : 'Automatically escalate user privilege to Moderator' },
           ]
         };
       case 'idor':
         return {
           features: [
-            { value: 'invoice', label: 'Tải hóa đơn mua hàng dạng PDF (Invoice ID)' },
-            { value: 'profile', label: 'Trang thông tin tài khoản cá nhân (User ID)' },
-            { value: 'message', label: 'Hộp thư tin nhắn trò chuyện cá nhân (Chat ID)' },
-            { value: 'api', label: 'API cập nhật số điện thoại người dùng' },
-            { value: 'cart', label: 'Chi tiết giỏ hàng đang chờ thanh toán' },
+            { value: 'invoice', label: isVi ? 'Tải hóa đơn mua hàng dạng PDF (Invoice ID)' : 'Download invoice PDF (Invoice ID)' },
+            { value: 'profile', label: isVi ? 'Trang thông tin tài khoản cá nhân (User ID)' : 'User profile details page (User ID)' },
+            { value: 'message', label: isVi ? 'Hộp thư tin nhắn trò chuyện cá nhân (Chat ID)' : 'Private message inbox (Chat ID)' },
+            { value: 'api', label: isVi ? 'API cập nhật số điện thoại người dùng' : 'API endpoint to update user phone' },
+            { value: 'cart', label: isVi ? 'Chi tiết giỏ hàng đang chờ thanh toán' : 'Checkout shopping cart details' },
           ],
           goals: [
-            { value: 'read_others', label: 'Xem thông tin cá nhân của toàn bộ người dùng khác' },
-            { value: 'download_invoices', label: 'Tải toàn bộ hóa đơn thanh toán của người khác' },
-            { value: 'takeover', label: 'Đổi mật khẩu hoặc số điện thoại để chiếm đoạt tài khoản bất kỳ' },
-            { value: 'read_chat', label: 'Xem trộm lịch sử tin nhắn riêng tư của người dùng khác' },
+            { value: 'read_others', label: isVi ? 'Xem thông tin cá nhân của toàn bộ người dùng khác' : 'Read personal data of other users' },
+            { value: 'download_invoices', label: isVi ? 'Tải toàn bộ hóa đơn thanh toán của người khác' : 'Download private invoices of other customers' },
+            { value: 'takeover', label: isVi ? 'Đổi mật khẩu hoặc số điện thoại để chiếm đoạt tài khoản bất kỳ' : 'Update credentials to takeover arbitrary accounts' },
+            { value: 'read_chat', label: isVi ? 'Xem trộm lịch sử tin nhắn riêng tư của người dùng khác' : 'Snoop other users private chat logs' },
           ]
         };
       case 'ssrf':
         return {
           features: [
-            { value: 'preview', label: 'Tải ảnh đại diện từ link URL bên ngoài' },
-            { value: 'webhook', label: 'Chức năng cấu hình Webhook URL nhận thông báo' },
-            { value: 'import', label: 'Nhập dữ liệu JSON/XML từ đường dẫn bên ngoài' },
-            { value: 'link_preview', label: 'Trang xem trước nội dung liên kết (Link Preview)' },
+            { value: 'preview', label: isVi ? 'Tải ảnh đại diện từ link URL bên ngoài' : 'Load user avatar from external URL link' },
+            { value: 'webhook', label: isVi ? 'Chức năng cấu hình Webhook URL nhận thông báo' : 'Webhook URL endpoint configuration' },
+            { value: 'import', label: isVi ? 'Nhập dữ liệu JSON/XML từ đường dẫn bên ngoài' : 'Import JSON/XML feeds from external resource' },
+            { value: 'link_preview', label: isVi ? 'Trang xem trước nội dung liên kết (Link Preview)' : 'Link preview card builder (Link Preview)' },
           ],
           goals: [
-            { value: 'metadata', label: 'Đọc dữ liệu cấu hình nhạy cảm từ Cloud Metadata (AWS/GCP)' },
-            { value: 'portscan', label: 'Quét các cổng dịch vụ đang chạy ngầm trong mạng nội bộ' },
-            { value: 'file_read', label: 'Đọc file hệ thống cục bộ (/etc/passwd) thông qua file://' },
-            { value: 'internal_post', label: 'Thực hiện tấn công gửi POST request tới API nội bộ' },
+            { value: 'metadata', label: isVi ? 'Đọc dữ liệu cấu hình nhạy cảm từ Cloud Metadata (AWS/GCP)' : 'Fetch cloud instance configuration from Metadata API (AWS/GCP)' },
+            { value: 'portscan', label: isVi ? 'Quét các cổng dịch vụ đang chạy ngầm trong mạng nội bộ' : 'Scan open ports inside the internal network' },
+            { value: 'file_read', label: isVi ? 'Đọc file hệ thống cục bộ (/etc/passwd) thông qua file://' : 'Read local system files (/etc/passwd) via file:// scheme' },
+            { value: 'internal_post', label: isVi ? 'Thực hiện tấn công gửi POST request tới API nội bộ' : 'Trigger unauthorized POST requests to internal APIs' },
           ]
         };
       case 'command-injection':
         return {
           features: [
-            { value: 'ping', label: 'Công cụ kiểm tra kết nối mạng (Ping utility)' },
-            { value: 'converter', label: 'Trang chuyển đổi định dạng ảnh/video (FFmpeg)' },
-            { value: 'compress', label: 'Hệ thống nén tệp tin thành file ZIP để tải xuống' },
-            { value: 'backup', label: 'Chức năng sao lưu cơ sở dữ liệu hệ thống' },
+            { value: 'ping', label: isVi ? 'Công cụ kiểm tra kết nối mạng (Ping utility)' : 'Network diagnostic ping tool (Ping utility)' },
+            { value: 'converter', label: isVi ? 'Trang chuyển đổi định dạng ảnh/video (FFmpeg)' : 'Media format converter service (FFmpeg)' },
+            { value: 'compress', label: isVi ? 'Hệ thống nén tệp tin thành file ZIP để tải xuống' : 'Compress files to download ZIP archive' },
+            { value: 'backup', label: isVi ? 'Chức năng sao lưu cơ sở dữ liệu hệ thống' : 'Database backup system scheduler' },
           ],
           goals: [
-            { value: 'read_etc', label: 'Đọc các file cấu hình hệ thống (/etc/passwd)' },
-            { value: 'reverse_shell', label: 'Tạo kết nối ngược (Reverse Shell) về máy kẻ tấn công' },
-            { value: 'os_info', label: 'Liệt kê các tiến trình đang chạy và thông tin hệ điều hành' },
-            { value: 'modify_code', label: 'Xóa hoặc sửa đổi mã nguồn ứng dụng trên máy chủ' },
+            { value: 'read_etc', label: isVi ? 'Đọc các file cấu hình hệ thống (/etc/passwd)' : 'Read system files like /etc/passwd' },
+            { value: 'reverse_shell', label: isVi ? 'Tạo kết nối ngược (Reverse Shell) về máy kẻ tấn công' : 'Spawn reverse shell connection back to attacker listener' },
+            { value: 'os_info', label: isVi ? 'Liệt kê các tiến trình đang chạy và thông tin hệ điều hành' : 'Enumerate running OS processes and host details' },
+            { value: 'modify_code', label: isVi ? 'Xóa hoặc sửa đổi mã nguồn ứng dụng trên máy chủ' : 'Deface or inject malicious payloads directly into source code' },
           ]
         };
       case 'file-upload':
         return {
           features: [
-            { value: 'avatar', label: 'Trang tải lên ảnh đại diện cá nhân (Avatar)' },
-            { value: 'document', label: 'Đăng tải tài liệu hướng dẫn định dạng PDF/DOCX' },
-            { value: 'zip', label: 'Tải lên tệp tin nén chứa tài nguyên (ZIP)' },
-            { value: 'assignment', label: 'Cổng nộp bài tập thực hành của học sinh' },
+            { value: 'avatar', label: isVi ? 'Trang tải lên ảnh đại diện cá nhân (Avatar)' : 'Avatar profile upload page (Avatar)' },
+            { value: 'document', label: isVi ? 'Đăng tải tài liệu hướng dẫn định dạng PDF/DOCX' : 'PDF/DOCX instructions guide uploader' },
+            { value: 'zip', label: isVi ? 'Tải lên tệp tin nén chứa tài nguyên (ZIP)' : 'Compressed ZIP file archive uploader' },
+            { value: 'assignment', label: isVi ? 'Cổng nộp bài tập thực hành của học sinh' : 'Classroom assignment file submission portal' },
           ],
           goals: [
-            { value: 'webshell', label: 'Tải lên file webshell (PHP/JSP) để thực thi lệnh từ xa' },
-            { value: 'stored_xss', label: 'Lưu trữ tệp tin độc hại để thực hiện Stored XSS' },
-            { value: 'disk_dos', label: 'Gây cạn kiệt dung lượng đĩa cứng của máy chủ (DoS)' },
-            { value: 'bypass_filter', label: 'Bypass bộ lọc đuôi file bằng cách ngụy trang extension' },
+            { value: 'webshell', label: isVi ? 'Tải lên file webshell (PHP/JSP) để thực thi lệnh từ xa' : 'Upload webshell (PHP/JSP) to execute remote commands' },
+            { value: 'stored_xss', label: isVi ? 'Lưu trữ tệp tin độc hại để thực hiện Stored XSS' : 'Host HTML page for Stored XSS execution' },
+            { value: 'disk_dos', label: isVi ? 'Gây cạn kiệt dung lượng đĩa cứng của máy chủ (DoS)' : 'Trigger Server Disk Exhaustion (DoS)' },
+            { value: 'bypass_filter', label: isVi ? 'Bypass bộ lọc đuôi file bằng cách ngụy trang extension' : 'Bypass validation filters using double extension masking' },
           ]
         };
       case 'auth-bypass':
         return {
           features: [
-            { value: 'admin_panel', label: 'Trang quản trị dành riêng cho quản trị viên' },
-            { value: 'password_reset', label: 'Trang khôi phục mật khẩu qua câu hỏi bảo mật' },
-            { value: 'otp_api', label: 'API xác thực OTP đăng nhập' },
-            { value: 'payment_gateway', label: 'Cổng thanh toán và xác nhận giao dịch' },
+            { value: 'admin_panel', label: isVi ? 'Trang quản trị dành riêng cho quản trị viên' : 'Admin panel reserved for administration staff' },
+            { value: 'password_reset', label: isVi ? 'Trang khôi phục mật khẩu qua câu hỏi bảo mật' : 'Password recovery via security questions page' },
+            { value: 'otp_api', label: isVi ? 'API xác thực OTP đăng nhập' : 'API endpoint for MFA OTP validation' },
+            { value: 'payment_gateway', label: isVi ? 'Cổng thanh toán và xác nhận giao dịch' : 'Payment checkout confirmation webhook' },
           ],
           goals: [
-            { value: 'login_bypass', label: 'Đăng nhập trực tiếp làm Admin mà không cần mật khẩu' },
-            { value: 'mfa_bypass', label: 'Bypass xác thực 2 lớp (2FA/OTP) bằng brute force' },
-            { value: 'admin_url', label: 'Bypass kiểm tra quyền để truy cập trực tiếp URL Admin' },
-            { value: 'session_hijack', label: 'Giả mạo Token/Cookie người dùng khác để mạo danh phiên' },
+            { value: 'login_bypass', label: isVi ? 'Đăng nhập trực tiếp làm Admin mà không cần mật khẩu' : 'Login directly as Administrator without password' },
+            { value: 'mfa_bypass', label: isVi ? 'Bypass xác thực 2 lớp (2FA/OTP) bằng brute force' : 'Brute force MFA/OTP verification codes' },
+            { value: 'admin_url', label: isVi ? 'Bypass kiểm tra quyền để truy cập trực tiếp URL Admin' : 'Access secret Admin paths directly bypassing router filters' },
+            { value: 'session_hijack', label: isVi ? 'Giả mạo Token/Cookie người dùng khác để mạo danh phiên' : 'Forge session Cookies or JWT tokens to masquerade identity' },
           ]
         };
       default:
         return {
           features: [
-            { value: 'upload', label: 'Chức năng tải lên tập tin đính kèm' },
-            { value: 'admin', label: 'Bảng điều khiển quản trị hệ thống' },
-            { value: 'reset', label: 'Trang yêu cầu cấp lại mật khẩu tài khoản' },
-            { value: 'search_general', label: 'Thanh tìm kiếm dữ liệu chung' },
+            { value: 'upload', label: isVi ? 'Chức năng tải lên tập tin đính kèm' : 'Attachment file uploader component' },
+            { value: 'admin', label: isVi ? 'Bảng điều khiển quản trị hệ thống' : 'Admin panel dashboard' },
+            { value: 'reset', label: isVi ? 'Trang yêu cầu cấp lại mật khẩu tài khoản' : 'Account password reset page' },
+            { value: 'search_general', label: isVi ? 'Thanh tìm kiếm dữ liệu chung' : 'Global search database query' },
           ],
           goals: [
-            { value: 'read', label: 'Bypass cơ chế kiểm tra quyền hạn để đọc file mật' },
-            { value: 'execute', label: 'Tải tệp tin thực thi để chạy lệnh shell từ xa' },
-            { value: 'privilege', label: 'Leo thang đặc quyền lên tài khoản cấp cao hơn' },
+            { value: 'read', label: isVi ? 'Bypass cơ chế kiểm tra quyền hạn để đọc file mật' : 'Bypass access validation to read private file' },
+            { value: 'execute', label: isVi ? 'Tải tệp tin thực thi để chạy lệnh shell từ xa' : 'Execute arbitrary terminal commands remotely' },
+            { value: 'privilege', label: isVi ? 'Leo thang đặc quyền lên tài khoản cấp cao hơn' : 'Escalate privileges to administrative level' },
           ]
         };
     }
@@ -404,25 +405,26 @@ export default function LabsPage() {
   const handleAiGenerate = async () => {
     setAiError('');
     setAiGenerating(true);
+    const isVi = language === 'vi';
     setAiStatusLogs([
-      '[*] Khởi tạo Codex 5.6 agent...',
-      `[*] Xác nhận lỗ hổng bảo mật: ${aiVulnSlug}`,
-      `[*] Thiết lập độ khó: ${aiDifficulty}`
+      isVi ? '[*] Khởi tạo Codex 5.6 agent...' : '[*] Initializing Codex 5.6 agent...',
+      isVi ? `[*] Xác nhận lỗ hổng bảo mật: ${aiVulnSlug}` : `[*] Confirming vulnerability: ${aiVulnSlug}`,
+      isVi ? `[*] Thiết lập độ khó: ${aiDifficulty}` : `[*] Setting difficulty level: ${aiDifficulty}`
     ]);
 
     const addLog = (msg: string) => {
       setAiStatusLogs(prev => [...prev, msg]);
     };
 
-    setTimeout(() => addLog('[*] Đang phân tích kịch bản tấn công của người dùng...'), 600);
-    setTimeout(() => addLog('[*] Đang tạo LabSpec có cấu trúc bằng GPT-5.6 Sol...'), 1200);
-    setTimeout(() => addLog('[*] Đang sinh source và Docker artifact từ template an toàn...'), 2000);
+    setTimeout(() => addLog(isVi ? '[*] Đang phân tích kịch bản tấn công của người dùng...' : '[*] Analyzing user-specified attack scenario...'), 600);
+    setTimeout(() => addLog(isVi ? '[*] Đang tạo LabSpec có cấu trúc bằng GPT-5.6 Sol...' : '[*] Drafting structured LabSpec schema via GPT-5.6 Sol...'), 1200);
+    setTimeout(() => addLog(isVi ? '[*] Đang sinh source và Docker artifact từ template an toàn...' : '[*] Generating safe source templates and Docker artifacts...'), 2000);
 
     try {
       const res = await api.labs.generateWithAi(aiVulnSlug, aiDifficulty, useWizard ? generatedScenario : aiScenario);
       if (res.success && res.data) {
-        addLog('[+] Sinh bài lab thành công từ AI!');
-        addLog('[+] Đã lưu metadata và source lab; sẵn sàng build khi người học bắt đầu.');
+        addLog(isVi ? '[+] Sinh bài lab thành công từ AI!' : '[+] AI Lab generation completed successfully!');
+        addLog(isVi ? '[+] Đã lưu metadata và source lab; sẵn sàng build khi người học bắt đầu.' : '[+] Metadata and lab sources saved; ready to spin up Docker container.');
         
         setTimeout(() => {
           setLabs(prev => [res.data, ...prev]);
@@ -432,11 +434,11 @@ export default function LabsPage() {
           setAiStatusLogs([]);
         }, 1500);
       } else {
-        throw new Error(res.message || 'Lỗi không rõ khi sinh bài lab từ AI.');
+        throw new Error(res.message || (isVi ? 'Lỗi không rõ khi sinh bài lab từ AI.' : 'Unknown error occurred during AI lab generation.'));
       }
     } catch (e: any) {
       console.error(e);
-      setAiError(e.message || 'Không thể kết nối đến máy chủ hoặc API Key không hợp lệ.');
+      setAiError(e.message || (isVi ? 'Không thể kết nối đến máy chủ hoặc API Key không hợp lệ.' : 'Failed to reach API server or invalid API key configuration.'));
       setAiGenerating(false);
     }
   };
@@ -458,14 +460,17 @@ export default function LabsPage() {
   };
 
   const handleDeleteGeneratedLab = async (lab: Lab) => {
-    if (!lab.generated || !window.confirm(`Xoá bài lab AI "${lab.title}"? Các phiên đang chạy của lab này cũng sẽ dừng.`)) return;
+    const confirmMsg = language === 'vi'
+      ? `Xoá bài lab AI "${lab.title}"? Các phiên đang chạy của lab này cũng sẽ dừng.`
+      : `Delete AI lab "${lab.title}"? Active sessions for this lab will also be stopped.`;
+    if (!lab.generated || !window.confirm(confirmMsg)) return;
     setDeletingLabId(lab.id);
     try {
       await api.labs.deleteGenerated(lab.id);
       setLabs(current => current.filter(item => item.id !== lab.id));
       setMyAttempts(current => current.filter(attempt => attempt.labId !== lab.id));
     } catch (e: any) {
-      alert(e.message || 'Không thể xoá bài lab.');
+      alert(e.message || (language === 'vi' ? 'Không thể xoá bài lab.' : 'Failed to delete lab.'));
     } finally {
       setDeletingLabId(null);
     }

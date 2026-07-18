@@ -182,12 +182,12 @@ export const en = {
     congratsTitle: "Congratulations on Completing the Lesson!",
     congratsDesc: "You have mastered the core theoretical concepts. Now, solidify your knowledge with hands-on practice.",
     choosePracticeMode: "Choose your practice mode:",
-    practiceDefaultLab: "Explruit default system Lab",
+    practiceDefaultLab: "Exploit default system Lab",
     practiceAiLab: "Generate custom AI Sandbox",
     closeModal: "Close",
     completeLessonButton: "Complete Lesson",
     nextLessonButton: "Next Lesson →",
-    createAiSandbox: "Dựng lab bằng AI",
+    createAiSandbox: "Generate AI Sandbox",
     backToSyllabus: "← Back to Path"
   },
   review: {
