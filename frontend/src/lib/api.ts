@@ -222,6 +222,10 @@ async function request<T>(
 
 export function resolveApiUrl(path: string): string {
   const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+  if (cleanPath.startsWith('api/')) {
+    const origin = new URL(API_BASE_URL).origin;
+    return `${origin}/${cleanPath}`;
+  }
   const baseUrlWithSlash = API_BASE_URL.endsWith('/') ? API_BASE_URL : `${API_BASE_URL}/`;
   return `${baseUrlWithSlash}${cleanPath}`;
 }

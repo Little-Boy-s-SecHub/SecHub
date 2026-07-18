@@ -33,11 +33,14 @@ public class LabRuntimeProxyService {
 
     private final LabAttemptRepository attemptRepository;
     private final DockerService dockerService;
+    private final SimulatedLabRuntimeService simulatedRuntime;
     private final HttpClient httpClient;
 
-    public LabRuntimeProxyService(LabAttemptRepository attemptRepository, DockerService dockerService) {
+    public LabRuntimeProxyService(LabAttemptRepository attemptRepository, DockerService dockerService,
+                                  SimulatedLabRuntimeService simulatedRuntime) {
         this.attemptRepository = attemptRepository;
         this.dockerService = dockerService;
+        this.simulatedRuntime = simulatedRuntime;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(3))
                 .followRedirects(HttpClient.Redirect.NEVER)
@@ -51,6 +54,10 @@ public class LabRuntimeProxyService {
                 || (attempt.getExpiresAt() != null && !attempt.getExpiresAt().isAfter(LocalDateTime.now()))
                 || !dockerService.isContainerRunning(attempt.getContainerId())) {
             throw new ResponseStatusException(GONE, "Phiên lab đã kết thúc");
+        }
+
+        if (attempt.getContainerId() != null && attempt.getContainerId().startsWith("sim-")) {
+            return simulatedRuntime.handle(attempt, body, incoming);
         }
 
         try {
