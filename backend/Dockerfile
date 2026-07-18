@@ -10,6 +10,5 @@ RUN addgroup -S sechub && adduser -S sechub -G sechub
 WORKDIR /app
 COPY --from=build /workspace/target/sechub-backend-*.jar app.jar
 RUN mkdir -p /app/runtime/generated-labs && chown -R sechub:sechub /app
-USER sechub
 EXPOSE 8888
 ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-jar", "/app/app.jar"]

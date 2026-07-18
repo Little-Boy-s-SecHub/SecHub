@@ -221,7 +221,9 @@ async function request<T>(
 }
 
 export function resolveApiUrl(path: string): string {
-  return new URL(path, API_BASE_URL).toString();
+  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+  const baseUrlWithSlash = API_BASE_URL.endsWith('/') ? API_BASE_URL : `${API_BASE_URL}/`;
+  return `${baseUrlWithSlash}${cleanPath}`;
 }
 
 export const api = {
