@@ -70,17 +70,7 @@ jobs:
           git fetch origin main
           git checkout main
           git pull --ff-only origin main
-          cd backend
-          mvn --batch-mode -DskipTests package
-          systemctl restart sechub-backend
-          for attempt in {1..30}; do
-            if curl --fail --silent http://127.0.0.1:8888/actuator/health | grep -q '"status":"UP"'; then
-              exit 0
-            fi
-            sleep 2
-          done
-          journalctl -u sechub-backend -n 80 --no-pager
-          exit 1
+          bash backend/deploy/deploy-vps.sh
           REMOTE
 
       - name: Wait for backend health
