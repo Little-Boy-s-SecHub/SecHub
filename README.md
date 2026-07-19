@@ -5,26 +5,74 @@
 [![Backend](https://img.shields.io/badge/Backend-Railway-purple?logo=railway)](https://railway.app/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-> **Learn by doing, not by Googling flags.**  
+> **Learn by doing, not by Googling flags.**
 > SecHub uses AI to generate unique vulnerable environments for every lab session. Each flag is different, each code structure is different — learners must actually understand the vulnerability to exploit it.
 
 ---
 
-## 🚀 Features
+## Features
 
 | Feature | Description |
 |---|---|
-| **🤖 Dynamic AI Labs** | Every lab session generates unique vulnerable source code via OpenAI. Flags and code structures change per attempt — no two sessions are identical. |
-| **🐳 Isolated Containers** | Each lab runs in its own Docker container. Fully sandboxed, auto-destroyed on completion or timeout. |
-| **📚 83 Lessons** | Covering 11 OWASP categories from Broken Access Control to API Security. Available in English and Vietnamese. |
-| **🏆 Leaderboard & Progress** | Track your learning journey. Compare progress with other learners. |
-| **💡 AI Hints** | Stuck? The AI analyzes your progress and provides contextual hints without giving away the answer. |
-| **🌐 Bilingual (EN/VI)** | Full i18n support. Learning materials and UI in both English and Vietnamese. |
-| **✍️ Author Studio** | Create and publish your own vulnerability lessons and lab templates. |
+| **Dynamic AI Labs** | Every lab session generates unique vulnerable source code via OpenAI. Flags and code structures change per attempt — no two sessions are identical. |
+| **Custom Lab Builder** | Describe your desired lab scenario in natural language. Choose the tech stack, vulnerability type, difficulty, and WAF rules — the AI builds a fully customized environment for you. |
+| **Isolated Containers** | Each lab runs in its own Docker container. Fully sandboxed, auto-destroyed on completion or timeout. |
+| **83 Lessons** | Covering 11 OWASP categories from Broken Access Control to API Security. Available in English and Vietnamese. |
+| **Leaderboard & Progress** | Track your learning journey. Compare progress with other learners. |
+| **AI Hints** | Stuck? The AI analyzes your progress and provides contextual hints without giving away the answer. |
+| **Bilingual (EN/VI)** | Full i18n support. Learning materials and UI in both English and Vietnamese. |
+| **Author Studio** | Create and publish your own vulnerability lessons and lab templates. |
 
 ---
 
-## 📁 Project Structure
+## Custom Lab Builder — How It Works
+
+The Custom Lab Builder lets users describe in natural language exactly what kind of vulnerable environment they want:
+
+```
+USER PROMPT (natural language)
+
+"I want a Node.js Express app with a REST API.
+ The /api/profile endpoint should be vulnerable to
+ IDOR — any authenticated user can access other users'
+ profiles by changing the ID parameter. Use MongoDB.
+ Add a basic JWT auth system. Difficulty: medium."
+
+         |
+         v
+
+AI ENGINE (OpenAiService)
+
+1. Parse user intent — vulnerability type, stack, rules
+2. Generate complete app source code
+3. Embed unique flag (e.g., FLAG{a7x9k2...})
+4. Generate Dockerfile + startup script
+5. Calibrate difficulty (e.g., add partial input filters)
+
+         |
+         v
+
+DOCKER ORCHESTRATOR (DockerService)
+
+- Build image from generated code
+- Spin up isolated container
+- Expose unique port to user
+- Auto-destroy on timeout or flag submission
+```
+
+**Customizable parameters:**
+
+| Parameter | Options / Examples |
+|---|---|
+| **Vulnerability Type** | SQLi, XSS, CSRF, SSRF, IDOR, SSTI, Command Injection, Deserialization... |
+| **Tech Stack** | PHP + MySQL, Node.js + MongoDB, Python Flask + SQLite, Java Spring... |
+| **Difficulty** | Easy (no filtering) · Medium (basic WAF) · Hard (advanced WAF + encoding) |
+| **Specific Constraints** | "Block `UNION` keyword", "Only blind injection", "Add rate limiting"... |
+| **Scenario Context** | "E-commerce checkout", "Hospital patient records", "Bank transfer API"... |
+
+---
+
+## Project Structure
 
 ```
 SecHub/
@@ -38,17 +86,20 @@ SecHub/
 │   │   ├── controller/               # 15 REST endpoints
 │   │   │   ├── AuthController        # Login / Register
 │   │   │   ├── LabController         # Start / Stop / Submit labs
-│   │   │   ├── AiController          # AI hint & generation endpoints
+│   │   │   ├── AiController          # AI hint & custom lab endpoints
 │   │   │   ├── SyncController        # GitHub content sync
 │   │   │   ├── ProgressController    # User progress tracking
 │   │   │   ├── GrowthController      # Analytics & growth metrics
-│   │   │   └── ...                   # 9 more controllers
+│   │   │   ├── AuthorController      # Content authoring
+│   │   │   ├── ReviewController      # Peer review system
+│   │   │   └── ...                   # 7 more controllers
 │   │   ├── service/
-│   │   │   ├── OpenAiService         # GPT integration for lab generation
+│   │   │   ├── OpenAiService         # GPT integration — lab gen + custom builder
 │   │   │   ├── LabService            # Lab lifecycle management
-│   │   │   ├── DockerService         # Container orchestration
 │   │   │   ├── LabArtifactService    # Generated code management
-│   │   │   ├── LabTemplateCatalog    # Vulnerability templates
+│   │   │   ├── LabTemplateCatalog    # Vulnerability template library
+│   │   │   ├── DockerService         # Container orchestration
+│   │   │   ├── SimulatedLabRuntime   # Simulated runtime for testing
 │   │   │   └── ...                   # 20+ service classes
 │   │   ├── entity/                   # JPA entities
 │   │   ├── repository/               # Spring Data repos
@@ -69,7 +120,8 @@ SecHub/
 │       │   ├── profile/              # User profile
 │       │   ├── vulnerabilities/      # Vulnerability reference
 │       │   ├── login/ & register/    # Authentication pages
-│       │   └── review/               # Peer review system
+│       │   ├── review/               # Peer review system
+│       │   └── growth/               # Growth & analytics
 │       ├── components/               # Reusable UI components
 │       ├── context/                  # Auth & Language providers
 │       ├── translations/             # EN/VI i18n strings
@@ -82,7 +134,7 @@ SecHub/
 
 ---
 
-## 🛠️ Local Development Setup
+## Local Development Setup
 
 ### Prerequisites
 
@@ -103,7 +155,6 @@ cd SecHub
 ### 2. Database
 
 ```bash
-# Start PostgreSQL via Docker
 docker run -d --name sechub-db \
   -e POSTGRES_DB=sechub_db \
   -e POSTGRES_USER=postgres \
@@ -115,12 +166,8 @@ docker run -d --name sechub-db \
 
 ```bash
 cd backend
-
-# Copy and configure environment variables
 cp .env.example .env
 # Edit .env — set your OPENAI_API_KEY, database credentials, JWT secret
-
-# Run the backend
 ./mvnw spring-boot:run
 ```
 
@@ -130,7 +177,7 @@ The API will be available at `http://localhost:8888`.
 
 | Variable | Description |
 |---|---|
-| `OPENAI_API_KEY` | Required. Your OpenAI API key for lab generation. |
+| `OPENAI_API_KEY` | **Required.** Your OpenAI API key for lab generation & custom builder. |
 | `OPENAI_MODEL` | Model to use (default: `gpt-4o-mini`) |
 | `SPRING_DATASOURCE_URL` | PostgreSQL connection string |
 | `JWT_SECRET` | Secret for JWT token signing (min 32 chars) |
@@ -149,49 +196,33 @@ The frontend will be available at `http://localhost:3000`.
 
 ---
 
-## 🧪 Testing
+## Testing
 
-### Frontend
 ```bash
+# Frontend
 cd frontend
 npm run test              # Run unit tests
 npm run test:coverage     # With coverage report
 npm run lint              # ESLint check
-```
 
-### Backend
-```bash
+# Backend
 cd backend
 ./mvnw test               # JUnit tests
-```
 
-### Performance (k6)
-```bash
+# Performance (k6)
 cd performance
-# Windows
-.\run-k6.ps1
-# Linux/Mac
-k6 run k6/smoke.js
+.\run-k6.ps1              # Windows
+k6 run k6/smoke.js        # Linux/Mac
 ```
 
 ---
 
-## 🏗️ Architecture Overview
+## Architecture Overview
 
-See the [Organization Profile](https://github.com/Little-Boy-s-SecHub/.github/blob/main/profile/README.md) for the full system architecture diagram showing how the AI generation, Docker orchestration, and data sync pipelines work together.
-
----
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Ensure all tests pass (`npm run test` and `./mvnw test`)
-4. Ensure CI passes (lint + test + build)
-5. Submit a Pull Request
+See the [Organization Profile](https://github.com/Little-Boy-s-SecHub/.github/blob/main/profile/README.md) for the full system architecture diagram and detailed data flow explanation.
 
 ---
 
-## 📜 License
+## License
 
 This project is built for the [Open AI Build Week Hackathon](https://openai.devpost.com/resources).
