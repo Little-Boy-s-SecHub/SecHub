@@ -54,7 +54,8 @@ class OpenAiServiceTest {
                 "downgrade-attacks",
                 "BEGINNER",
                 "LESSON TITLE: Downgrade Attacks\nLESSON CONTENT: TLS downgrade and weak negotiation",
-                "vi");
+                "vi",
+                null);
 
         assertThat(lab.getVulnerability()).isEqualTo(authBypass);
         assertThat(lab.getDifficulty()).isEqualTo(LearningPath.Difficulty.BEGINNER);
