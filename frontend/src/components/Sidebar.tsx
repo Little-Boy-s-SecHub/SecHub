@@ -84,8 +84,18 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
 
       <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
         {/* Logo */}
-        <div className="sidebar-logo">
-          <div className="sidebar-logo-icon">SH</div>
+        <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <img 
+            src="/logo.jpg" 
+            alt="SecHub Logo" 
+            style={{ 
+              width: '32px', 
+              height: '32px', 
+              borderRadius: '50%', 
+              objectFit: 'cover',
+              border: '1.5px solid var(--border-default)'
+            }} 
+          />
           <span className="sidebar-logo-text">SecHub</span>
         </div>
 
