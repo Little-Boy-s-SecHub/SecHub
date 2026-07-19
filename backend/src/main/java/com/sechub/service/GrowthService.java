@@ -33,7 +33,9 @@ public class GrowthService {
         List<LabAttempt> all=attempts.findByUserIdOrderByStartedAtDesc(user.getId());
         List<LabAttempt> completed=all.stream().filter(a->a.getStatus()==LabAttempt.Status.COMPLETED).toList();
         List<UserProgress> learned=progress.findByUserIdAndCompletedTrue(user.getId());
-        List<Lab> publishedLabs=labs.findByStatus(LearningPath.PublicationStatus.PUBLISHED);
+        List<Lab> publishedLabs=labs.findByStatus(LearningPath.PublicationStatus.PUBLISHED).stream()
+                .filter(l -> l.getAuthor() == null || l.getAuthor().getId().equals(user.getId()))
+                .toList();
         int totalScore=completed.stream().mapToInt(a->Optional.ofNullable(a.getScore()).orElse(0)).sum();
         int xp=totalScore+learned.size()*25; int level=1+xp/500;
         List<GrowthOverviewDto.SkillDto> skills=skills(completed,publishedLabs);

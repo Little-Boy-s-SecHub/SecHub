@@ -54,9 +54,10 @@ public class LabService {
     }
 
     @Transactional(readOnly = true)
-    public List<LabDto> getAllLabs() {
+    public List<LabDto> getAllLabs(String username) {
         return labRepository.findByStatus(com.sechub.entity.LearningPath.PublicationStatus.PUBLISHED)
                 .stream()
+                .filter(lab -> lab.getAuthor() == null || (username != null && lab.getAuthor().getUsername().equals(username)))
                 .sorted(Comparator
                         .comparing((Lab lab) -> lab.getArtifactPath() != null && !lab.getArtifactPath().isBlank())
                         .reversed()
@@ -75,10 +76,11 @@ public class LabService {
     }
 
     @Transactional(readOnly = true)
-    public List<LabDto> getByVulnerabilityId(UUID vulnerabilityId) {
+    public List<LabDto> getByVulnerabilityId(UUID vulnerabilityId, String username) {
         return labRepository.findByVulnerabilityId(vulnerabilityId)
                 .stream()
                 .filter(lab -> lab.getStatus() == com.sechub.entity.LearningPath.PublicationStatus.PUBLISHED)
+                .filter(lab -> lab.getAuthor() == null || (username != null && lab.getAuthor().getUsername().equals(username)))
                 .map(LabDto::fromEntity)
                 .toList();
     }

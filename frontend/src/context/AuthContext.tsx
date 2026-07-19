@@ -55,6 +55,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setToken(null);
       setUser(null);
       setLoading(false);
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
     };
     window.addEventListener('sechub_logout', handleAutoLogout);
     return () => {
@@ -97,6 +100,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     api.auth.logout();
     setToken(null);
     setUser(null);
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
   };
 
   const updateUser = (updatedUser: User) => {

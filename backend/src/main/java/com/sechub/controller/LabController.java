@@ -22,8 +22,9 @@ public class LabController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<LabDto>>> getAll() {
-        return ResponseEntity.ok(ApiResponse.success(labService.getAllLabs()));
+    public ResponseEntity<ApiResponse<List<LabDto>>> getAll(@AuthenticationPrincipal UserDetails userDetails) {
+        String username = userDetails != null ? userDetails.getUsername() : null;
+        return ResponseEntity.ok(ApiResponse.success(labService.getAllLabs(username)));
     }
 
     @GetMapping("/{id}")
