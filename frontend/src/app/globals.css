@@ -172,7 +172,26 @@ html,
 html.light,
 html[data-theme='light'],
 body {
-  color-scheme: only light;
+  color-scheme: light only !important;
+}
+
+/* Prevent browser Auto Dark Mode (Opera GX, Edge, Firefox) from inverting colors */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: light only !important;
+  }
+  html, body {
+    background-color: #FAF6F0 !important;
+    color: #2C2215 !important;
+    color-scheme: light only !important;
+  }
+  .card, .sidebar, .header, .main-content {
+    background-color: var(--bg-neutral-primary-soft) !important;
+    color: var(--text-body) !important;
+  }
+  img, svg, video {
+    filter: none !important;
+  }
 }
 
 /* --------------------------------------------------------------------------

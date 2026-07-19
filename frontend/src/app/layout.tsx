@@ -20,10 +20,6 @@ export const metadata: Metadata = {
     shortcut: '/logo.jpg',
     apple: '/logo.jpg',
   },
-  other: {
-    'color-scheme': 'only light',
-    'supported-color-schemes': 'only light',
-  },
 };
 
 export default function RootLayout({
@@ -32,11 +28,34 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi" className={`${beVietnamPro.variable} light`} suppressHydrationWarning data-theme="light" data-scroll-behavior="smooth" style={{ colorScheme: 'only light' }}>
+    <html
+      lang="vi"
+      className={`${beVietnamPro.variable} light`}
+      suppressHydrationWarning
+      data-theme="light"
+      data-color-mode="light"
+      data-scroll-behavior="smooth"
+      style={{ colorScheme: 'light only', backgroundColor: '#FAF6F0', color: '#2C2215' }}
+    >
       <head>
-        <meta name="color-scheme" content="only light" />
-        <meta name="supported-color-schemes" content="only light" />
+        <meta name="color-scheme" content="light only" />
+        <meta name="supported-color-schemes" content="light only" />
         <meta name="darkreader-lock" />
+        <meta name="theme-color" content="#FAF6F0" />
+        {/* Aggressive light mode lock — prevents Opera GX, Edge, Firefox Auto Dark Mode */}
+        <style dangerouslySetInnerHTML={{ __html: `
+          :root, html, html.light, html[data-theme="light"], body {
+            color-scheme: light only !important;
+          }
+          @media (prefers-color-scheme: dark) {
+            :root, html, body {
+              color-scheme: light only !important;
+              background-color: #FAF6F0 !important;
+              color: #2C2215 !important;
+            }
+            img, svg, video { filter: none !important; }
+          }
+        `}} />
       </head>
       <body style={{ fontFamily: 'var(--font-sans), sans-serif', backgroundColor: '#FAF6F0', color: '#6B5C4A' }}>
         <AuthProvider>
