@@ -15,6 +15,11 @@ const beVietnamPro = Be_Vietnam_Pro({
 export const metadata: Metadata = {
   title: 'SecHub - Nền tảng Học Pentest Web',
   description: 'Học khai thác lỗ hổng bảo mật web qua tài liệu lý thuyết và bài lab thực hành tương tác. SQL Injection, XSS, CSRF, và nhiều hơn nữa.',
+  icons: {
+    icon: '/logo.jpg',
+    shortcut: '/logo.jpg',
+    apple: '/logo.jpg',
+  }
 };
 
 export default function RootLayout({
