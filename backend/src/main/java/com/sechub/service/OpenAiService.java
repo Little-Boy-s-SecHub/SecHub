@@ -45,7 +45,7 @@ public class OpenAiService {
     @Value("${app.openai.api-key:}")
     private String defaultApiKey;
 
-    @Value("${app.openai.model:gpt-5.6-sol}")
+    @Value("${app.openai.model}")
     private String model;
 
     @Value("${app.openai.base-url:https://api.openai.com/v1}")

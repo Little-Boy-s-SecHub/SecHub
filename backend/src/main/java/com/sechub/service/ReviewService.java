@@ -23,7 +23,7 @@ public class ReviewService {
     private final OpenAiService openAiService;
     private final ObjectMapper mapper;
     private final ActivityService activityService;
-    @Value("${app.openai.model:gpt-5.6-sol}") private String model;
+    @Value("${app.openai.model}") private String model;
 
     public ReviewService(FlashcardRepository cards, UserProgressRepository progress,
             VulnerabilityRepository vulnerabilities, LabRepository labs, UserService users,

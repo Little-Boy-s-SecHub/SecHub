@@ -422,7 +422,7 @@ export default function LabsPage() {
     setAiGenerating(true);
     const isVi = language === 'vi';
     setAiStatusLogs([
-      isVi ? '[*] Khởi tạo Codex 5.6 agent...' : '[*] Initializing Codex 5.6 agent...',
+      isVi ? '[*] Khởi tạo GPT-5.6 Terra...' : '[*] Initializing GPT-5.6 Terra...',
       isVi ? `[*] Xác nhận lỗ hổng bảo mật: ${aiVulnSlug}` : `[*] Confirming vulnerability: ${aiVulnSlug}`,
       isVi ? `[*] Thiết lập độ khó: ${aiDifficulty}` : `[*] Setting difficulty level: ${aiDifficulty}`
     ]);
@@ -432,7 +432,7 @@ export default function LabsPage() {
     };
 
     setTimeout(() => addLog(isVi ? '[*] Đang phân tích kịch bản tấn công của người dùng...' : '[*] Analyzing user-specified attack scenario...'), 600);
-    setTimeout(() => addLog(isVi ? '[*] Đang tạo LabSpec có cấu trúc bằng GPT-5.6 Sol...' : '[*] Drafting structured LabSpec schema via GPT-5.6 Sol...'), 1200);
+    setTimeout(() => addLog(isVi ? '[*] Đang tạo LabSpec có cấu trúc bằng GPT-5.6 Terra...' : '[*] Drafting structured LabSpec schema via GPT-5.6 Terra...'), 1200);
     setTimeout(() => addLog(isVi ? '[*] Đang sinh source và Docker artifact từ template an toàn...' : '[*] Generating safe source templates and Docker artifacts...'), 2000);
 
     const baseScenario = useWizard ? generatedScenario : aiScenario;
@@ -561,7 +561,7 @@ export default function LabsPage() {
               color: '#ffffff'
             }}
           >
-            <Sparkles size={16} /> {language === 'vi' ? 'Tạo Lab bằng Codex 5.6' : 'Generate Lab with Codex 5.6'}
+            <Sparkles size={16} /> {language === 'vi' ? 'Tạo Lab bằng GPT-5.6 Terra' : 'Generate Lab with GPT-5.6 Terra'}
           </button>
         )}
       </div>
@@ -909,7 +909,7 @@ export default function LabsPage() {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <BrainCircuit size={22} style={{ color: 'var(--fg-brand)' }} />
-                <span style={{ fontWeight: 800, fontSize: '1.125rem', color: 'var(--text-heading)' }}>AI Lab Generator (Codex 5.6)</span>
+                <span style={{ fontWeight: 800, fontSize: '1.125rem', color: 'var(--text-heading)' }}>AI Lab Generator (GPT-5.6 Terra)</span>
               </div>
               <button 
                 onClick={() => {
@@ -963,7 +963,7 @@ export default function LabsPage() {
                       borderRadius: '50%',
                       animation: 'spin 1s linear infinite'
                     }}></div>
-                    <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-heading)' }}>{language === 'vi' ? 'Đang tạo lab thực hành bằng GPT-5.6...' : 'Generating practice lab with GPT-5.6...'}</span>
+                    <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-heading)' }}>{language === 'vi' ? 'Đang tạo lab thực hành bằng GPT-5.6 Terra...' : 'Generating practice lab with GPT-5.6 Terra...'}</span>
                   </div>
                   <div style={{
                     background: '#090f1e',

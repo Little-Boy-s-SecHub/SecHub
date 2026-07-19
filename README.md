@@ -157,7 +157,7 @@ OPENAI_MODEL=gpt-5.6-terra
 OPENAI_BASE_URL=https://api.openai.com/v1
 ```
 
-The repository currently uses one runtime model setting for both lab specifications and practice cards. The effective model is the value of `OPENAI_MODEL` in the environment where the backend is running. If the variable is not set, the current repository fallback is `gpt-4o-mini`. A UI label such as "Codex 5.6" is not proof of the active API model; backend configuration and API response metadata are the source of truth.
+The repository currently uses one runtime model setting for both lab specifications and practice cards. The effective model is the value of `OPENAI_MODEL` in the environment where the backend is running. If the variable is not set, the repository default is `gpt-5.6-terra`. A UI label is not proof of the active API model; backend configuration and API response metadata are the source of truth.
 
 SecHub sends requests to the OpenAI Responses API for two runtime workloads:
 

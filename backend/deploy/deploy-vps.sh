@@ -5,6 +5,7 @@ repo_dir="${SECHUB_REPO_DIR:-/opt/SecHub}"
 release_dir="${SECHUB_RELEASE_DIR:-/opt/sechub/releases}"
 current_jar="${SECHUB_CURRENT_JAR:-/opt/sechub/current.jar}"
 service_name="${SECHUB_SERVICE_NAME:-sechub-backend}"
+runtime_model="gpt-5.6-terra"
 
 cd "$repo_dir/backend"
 mvn --batch-mode -DskipTests package
@@ -26,14 +27,16 @@ if grep -q '/opt/SecHub/backend/target/sechub-backend-1.0.0.jar' "$unit_file"; t
   reload_systemd=true
 fi
 
-drop_in_source="$repo_dir/backend/deploy/sechub-backend.service.d/10-graceful-exit.conf"
+drop_in_source_dir="$repo_dir/backend/deploy/sechub-backend.service.d"
 drop_in_dir="/etc/systemd/system/$service_name.service.d"
-drop_in_file="$drop_in_dir/10-graceful-exit.conf"
 install -d -m 755 "$drop_in_dir"
-if ! cmp --silent "$drop_in_source" "$drop_in_file"; then
-  install -m 644 "$drop_in_source" "$drop_in_file"
-  reload_systemd=true
-fi
+for drop_in_source in "$drop_in_source_dir"/*.conf; do
+  drop_in_file="$drop_in_dir/$(basename "$drop_in_source")"
+  if ! cmp --silent "$drop_in_source" "$drop_in_file"; then
+    install -m 644 "$drop_in_source" "$drop_in_file"
+    reload_systemd=true
+  fi
+done
 
 if [[ "$reload_systemd" == true ]]; then
   systemctl daemon-reload
@@ -46,6 +49,13 @@ health_body="No health response received"
 for attempt in {1..60}; do
   if health_body="$(curl --noproxy '*' --fail --silent --show-error --max-time 5 "$health_url" 2>&1)" \
       && grep -q '"status":"UP"' <<<"$health_body"; then
+    main_pid="$(systemctl show --property MainPID --value "$service_name")"
+    effective_model="$(tr '\0' '\n' <"/proc/$main_pid/environ" | sed -n 's/^OPENAI_MODEL=//p' | tail -n 1)"
+    if [[ "$effective_model" != "$runtime_model" ]]; then
+      echo "Unexpected OpenAI runtime model: ${effective_model:-not set}"
+      exit 1
+    fi
+    echo "OpenAI runtime model: $effective_model"
     systemctl --no-pager --full status "$service_name" | sed -n '1,12p' || true
     exit 0
   fi
