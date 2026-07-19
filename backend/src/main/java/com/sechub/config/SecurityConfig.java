@@ -22,6 +22,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -29,6 +30,12 @@ import java.util.List;
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
+
+    private static final List<String> REQUIRED_ALLOWED_ORIGIN_PATTERNS = List.of(
+            "https://sechub-academy.vercel.app",
+            "https://*.vercel.app",
+            "https://api.littleboys.biz"
+    );
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
@@ -63,6 +70,7 @@ public class SecurityConfig {
                 })
             )
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // Lab attempts endpoints requiring authentication
                 .requestMatchers(HttpMethod.GET, "/api/labs/attempts/me").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/labs/*/attempts").authenticated()
@@ -93,10 +101,17 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(Arrays.stream(allowedOriginPatterns.split(","))
+        List<String> patterns = new ArrayList<>(Arrays.stream(allowedOriginPatterns.split(","))
                 .map(String::trim).filter(value -> !value.isEmpty()).toList());
+        REQUIRED_ALLOWED_ORIGIN_PATTERNS.forEach(pattern -> {
+            if (!patterns.contains(pattern)) {
+                patterns.add(pattern);
+            }
+        });
+        configuration.setAllowedOriginPatterns(patterns);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
+        configuration.setExposedHeaders(List.of("Location"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 

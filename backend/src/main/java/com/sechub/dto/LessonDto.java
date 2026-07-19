@@ -13,6 +13,7 @@ public record LessonDto(
     UUID vulnerabilityId,
     String vulnerabilityName,
     String vulnerabilitySlug,
+    String topicSlug,
     String learningObjective,
     Integer estimatedMinutes
 ) {
@@ -26,6 +27,7 @@ public record LessonDto(
             lesson.getVulnerability() != null ? lesson.getVulnerability().getId() : null,
             lesson.getVulnerability() != null ? lesson.getVulnerability().getName() : null,
             lesson.getVulnerability() != null ? lesson.getVulnerability().getSlug() : null,
+            lesson.getTopicSlug(),
             lesson.getLearningObjective() == null || lesson.getLearningObjective().isBlank()
                     ? "Hiểu và nhận diện " + lesson.getTitle() : lesson.getLearningObjective(),
             lesson.getEstimatedMinutes() == null ? 12 : lesson.getEstimatedMinutes()

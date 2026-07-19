@@ -100,7 +100,8 @@ public class GithubLessonDataService implements LessonDataSourceService {
                 vulnerabilitySlug,
                 titleFromMarkdown(contentMarkdown, slug),
                 sortOrder,
-                contentMarkdown
+                contentMarkdown,
+                slug
         );
     }
 

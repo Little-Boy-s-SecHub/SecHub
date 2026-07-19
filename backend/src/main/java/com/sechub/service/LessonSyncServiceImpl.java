@@ -74,6 +74,7 @@ public class LessonSyncServiceImpl implements LessonSyncService {
                 lesson.setContentMarkdown(dto.contentMarkdown());
                 lesson.setSortOrder(dto.sortOrder() != null ? dto.sortOrder() : 0);
                 lesson.setVulnerability(vulnerability);
+                lesson.setTopicSlug(normalizeTopicSlug(dto.topicSlug(), dto.vulnerabilitySlug()));
             } else {
                 lesson = Lesson.builder()
                         .learningPath(path)
@@ -81,6 +82,7 @@ public class LessonSyncServiceImpl implements LessonSyncService {
                         .contentMarkdown(dto.contentMarkdown())
                         .sortOrder(dto.sortOrder() != null ? dto.sortOrder() : 0)
                         .vulnerability(vulnerability)
+                        .topicSlug(normalizeTopicSlug(dto.topicSlug(), dto.vulnerabilitySlug()))
                         .build();
             }
 
@@ -95,5 +97,10 @@ public class LessonSyncServiceImpl implements LessonSyncService {
                 lessonRepository.delete(oldLesson);
             }
         }
+    }
+
+    private String normalizeTopicSlug(String topicSlug, String vulnerabilitySlug) {
+        String value = topicSlug == null || topicSlug.isBlank() ? vulnerabilitySlug : topicSlug;
+        return value == null || value.isBlank() ? null : value.trim().toLowerCase().replace('_', '-');
     }
 }

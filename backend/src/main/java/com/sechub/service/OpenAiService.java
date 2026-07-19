@@ -28,6 +28,7 @@ import java.time.Duration;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class OpenAiService {
@@ -62,18 +63,27 @@ public class OpenAiService {
     }
 
     public Lab generateAndSaveLab(String vulnerabilitySlug, String difficultyValue, String scenario, String language) {
-        Vulnerability vulnerability = vulnerabilityRepository.findBySlug(vulnerabilitySlug)
-                .orElseThrow(() -> new ResourceNotFoundException("Vulnerability", "slug", vulnerabilitySlug));
+        String requestedSlug = normalizeRequestedSlug(vulnerabilitySlug);
+        Vulnerability vulnerability = resolveVulnerabilityForLab(requestedSlug, scenario);
         LearningPath.Difficulty difficulty = parseDifficulty(difficultyValue);
         String apiKey = defaultApiKey;
         String lang = language != null ? language : "en";
 
-        GeneratedLabSpec spec = apiKey == null || apiKey.isBlank()
-                ? localSpec(vulnerability, difficulty, scenario)
-                : requestSpec(vulnerability, difficulty, scenario, apiKey, lang);
+        GeneratedLabSpec spec;
+        if (apiKey == null || apiKey.isBlank()) {
+            spec = localSpec(vulnerability, difficulty, scenario, requestedSlug);
+        } else {
+            try {
+                spec = requestSpec(vulnerability, requestedSlug, difficulty, scenario, apiKey, lang);
+            } catch (BadRequestException e) {
+                log.warn("OpenAI lab generation failed for topic {}, falling back to local lab spec", requestedSlug, e);
+                spec = localSpec(vulnerability, difficulty, scenario, requestedSlug);
+            }
+        }
 
-        String flag = generateFlag(vulnerabilitySlug);
-        LabArtifactService.LabArtifact artifact = labArtifactService.create(vulnerabilitySlug, flag, spec, lang);
+        String runtimeSlug = LabTemplateCatalog.runtimeTypeFor(requestedSlug, spec);
+        String flag = generateFlag(requestedSlug.isBlank() ? runtimeSlug : requestedSlug);
+        LabArtifactService.LabArtifact artifact = labArtifactService.create(requestedSlug, flag, spec, lang);
         Lab lab = Lab.builder()
                 .vulnerability(vulnerability)
                 .title(spec.title())
@@ -174,7 +184,7 @@ public class OpenAiService {
         return compact.substring(0, Math.min(1200, compact.length()));
     }
 
-    private GeneratedLabSpec requestSpec(Vulnerability vulnerability, LearningPath.Difficulty difficulty,
+    private GeneratedLabSpec requestSpec(Vulnerability vulnerability, String requestedSlug, LearningPath.Difficulty difficulty,
                                          String scenario, String apiKey, String language) {
         try {
             Map<String, Object> schema = Map.of(
@@ -202,6 +212,7 @@ public class OpenAiService {
                             + "do not replace it with an unrelated generic scenario. "
                             + "ALL output text (title, description, scenario, hints) MUST be in " + ("vi".equals(language) ? "Vietnamese" : "English") + ".",
                     "input", "Vulnerability: " + vulnerability.getName() + " (" + vulnerability.getSlug() + ")\n"
+                            + "Requested topic slug: " + (requestedSlug.isBlank() ? vulnerability.getSlug() : requestedSlug) + "\n"
                             + "Difficulty: " + difficulty.name() + "\nRequested scenario: "
                             + normalizeScenario(scenario),
                     "text", Map.of("format", Map.of(
@@ -242,7 +253,7 @@ public class OpenAiService {
     }
 
     private GeneratedLabSpec localSpec(Vulnerability vulnerability, LearningPath.Difficulty difficulty,
-                                       String scenario) {
+                                       String scenario, String requestedSlug) {
         int minutes = switch (difficulty) {
             case BEGINNER -> 20;
             case INTERMEDIATE -> 35;
@@ -257,16 +268,17 @@ public class OpenAiService {
                 lessonAwareTitle(vulnerability, scenario),
                 "Kịch bản thực hành được tạo từ nội dung bài học về " + vulnerability.getName()
                         + ". Mục tiêu là áp dụng đúng kiến thức vừa học để tìm flag SecHub.",
-                localPracticeScenario(vulnerability, scenario),
+                localPracticeScenario(vulnerability, scenario, requestedSlug),
                 List.of("Xác định input mà server tin tưởng.", "Thử thay đổi request trực tiếp thay vì chỉ dùng giao diện.",
                         "Khai thác chỉ trong container lab và tìm chuỗi SecHub{...}."),
                 minutes, points);
     }
 
-    private String localPracticeScenario(Vulnerability vulnerability, String context) {
+    private String localPracticeScenario(Vulnerability vulnerability, String context, String requestedSlug) {
         String lessonTitle = extractContextValue(context, "LESSON TITLE:");
         String subject = lessonTitle == null ? vulnerability.getName() : lessonTitle;
-        String task = switch (vulnerability.getSlug()) {
+        String runtimeType = LabTemplateCatalog.runtimeTypeFor(requestedSlug, context);
+        String task = switch (runtimeType) {
             case "sql-injection" -> "Phân tích truy vấn từ input, kiểm tra cách server ghép câu lệnh SQL và truy xuất bản ghi chứa flag.";
             case "xss" -> "Xác định dữ liệu được phản chiếu vào HTML, tạo payload script trong sandbox và tìm flag trong phản hồi.";
             case "csrf" -> "Phân tích hành động thay đổi dữ liệu, kiểm tra cơ chế xác nhận nguồn request và thực hiện yêu cầu hợp lệ để lấy flag.";
@@ -334,6 +346,28 @@ public class OpenAiService {
         }
     }
 
+    private Vulnerability resolveVulnerabilityForLab(String requestedSlug, String scenario) {
+        String runtimeSlug = LabTemplateCatalog.runtimeTypeFor(requestedSlug, scenario);
+        Optional<Vulnerability> runtimeVulnerability = vulnerabilityRepository.findBySlug(runtimeSlug);
+        if (runtimeVulnerability.isPresent()) {
+            return runtimeVulnerability.get();
+        }
+        if (!requestedSlug.isBlank()) {
+            Optional<Vulnerability> requestedVulnerability = vulnerabilityRepository.findBySlug(requestedSlug);
+            if (requestedVulnerability.isPresent()) {
+                return requestedVulnerability.get();
+            }
+        }
+        throw new ResourceNotFoundException("Vulnerability", "slug", requestedSlug.isBlank() ? runtimeSlug : requestedSlug);
+    }
+
+    private String normalizeRequestedSlug(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        return value.trim().toLowerCase().replace('_', '-');
+    }
+
     private String normalizeScenario(String scenario) {
         return scenario == null || scenario.isBlank()
                 ? "Một ứng dụng nội bộ có lỗi cấu hình; người học cần phân tích request để lấy flag."
@@ -343,7 +377,11 @@ public class OpenAiService {
     private String generateFlag(String slug) {
         byte[] random = new byte[12];
         SECURE_RANDOM.nextBytes(random);
-        return "SecHub{" + slug.replace('-', '_') + "_" + HexFormat.of().formatHex(random) + "}";
+        String safeSlug = (slug == null || slug.isBlank() ? "generated_lab" : slug)
+                .toLowerCase()
+                .replaceAll("[^a-z0-9]+", "_")
+                .replaceAll("^_+|_+$", "");
+        return "SecHub{" + safeSlug + "_" + HexFormat.of().formatHex(random) + "}";
     }
 
     private String writeHints(List<String> hints) {

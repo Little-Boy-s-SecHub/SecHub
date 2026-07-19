@@ -1,6 +1,7 @@
 package com.sechub.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sechub.dto.GeneratedLabSpec;
 import com.sechub.exception.BadRequestException;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,16 +12,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 @Service
 public class LabArtifactService {
-
-    private static final Set<String> SUPPORTED_TYPES = Set.of(
-            "sql-injection", "xss", "csrf", "idor", "ssrf",
-            "command-injection", "file-upload", "auth-bypass");
 
     private final ObjectMapper objectMapper;
     private final Path generatedLabsRoot;
@@ -34,12 +31,11 @@ public class LabArtifactService {
     }
 
     public LabArtifact create(String vulnerabilitySlug, String flag, GeneratedLabSpec spec, String language) {
-        if (!SUPPORTED_TYPES.contains(vulnerabilitySlug)) {
-            throw new BadRequestException("Loại lỗ hổng chưa có template thực thi an toàn: " + vulnerabilitySlug);
-        }
-
+        String context = String.join("\n", spec.title(), spec.description(), spec.scenario());
+        LabTemplateCatalog.ChallengeProfile profile = LabTemplateCatalog.challengeFor(vulnerabilitySlug, context);
         String artifactId = UUID.randomUUID().toString();
         String variantKey = artifactId.replace("-", "").substring(0, 6);
+        String targetId = String.valueOf(2 + Math.floorMod(artifactId.hashCode(), 8));
         Path directory = generatedLabsRoot.resolve(artifactId).normalize();
         if (!directory.startsWith(generatedLabsRoot)) {
             throw new BadRequestException("Đường dẫn artifact lab không hợp lệ");
@@ -47,18 +43,24 @@ public class LabArtifactService {
 
         try {
             Files.createDirectories(directory);
-            write(directory.resolve("app.py"), pythonApplication());
+            write(directory.resolve("app.py"), challengePythonApplication());
             write(directory.resolve("Dockerfile"), dockerfile());
-            write(directory.resolve("manifest.json"), objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(Map.of(
-                    "id", artifactId,
-                    "vulnerability", vulnerabilitySlug,
-                    "flag", flag,
-                    "title", spec.title(),
-                    "scenario", spec.scenario() == null ? "" : spec.scenario(),
-                    "language", language != null ? language : "en",
-                    "variant", Map.of("parameter", "ref_" + variantKey.substring(0, 3),
-                            "targetId", 2 + Math.floorMod(artifactId.hashCode(), 8),
-                            "account", "analyst_" + variantKey))));
+            String lang = language == null || language.isBlank() ? "en" : language;
+            Map<String, Object> manifest = new LinkedHashMap<>();
+            manifest.put("id", artifactId);
+            manifest.put("vulnerability", profile.runtimeType());
+            manifest.put("topic", profile.topicSlug());
+            manifest.put("flag", flag);
+            manifest.put("title", spec.title());
+            manifest.put("scenario", spec.scenario() == null ? "" : spec.scenario());
+            manifest.put("language", lang);
+            manifest.put("variant", Map.of(
+                    "parameter", "ref_" + variantKey.substring(0, 3),
+                    "targetId", targetId,
+                    "account", "analyst_" + variantKey));
+            manifest.put("challenge", profile.toManifest(targetId, lang));
+            write(directory.resolve("manifest.json"), objectMapper.writerWithDefaultPrettyPrinter()
+                    .writeValueAsString(manifest));
             write(directory.resolve("README.md"), readme(spec, vulnerabilitySlug));
             return new LabArtifact(directory, "sechub/generated-lab-" + artifactId + ":latest", 8080);
         } catch (IOException e) {
@@ -73,9 +75,23 @@ public class LabArtifactService {
             throw new BadRequestException("Artifact lab không thuộc thư mục runtime được quản lý");
         }
         try {
-            Files.writeString(directory.resolve("app.py"), pythonApplication(), StandardCharsets.UTF_8,
+            ObjectNode manifest = (ObjectNode) objectMapper.readTree(directory.resolve("manifest.json").toFile());
+            String requestedTopic = manifest.path("topic").asText("");
+            if (requestedTopic.isBlank()) requestedTopic = manifest.path("vulnerability").asText("");
+            String context = manifest.path("title").asText("") + "\n" + manifest.path("scenario").asText("");
+            String language = manifest.path("language").asText("en");
+            String targetId = manifest.path("variant").path("targetId").asText("7");
+            LabTemplateCatalog.ChallengeProfile profile = LabTemplateCatalog.challengeFor(requestedTopic, context);
+            manifest.put("vulnerability", profile.runtimeType());
+            manifest.put("topic", profile.topicSlug());
+            manifest.set("challenge", objectMapper.valueToTree(profile.toManifest(targetId, language)));
+
+            Files.writeString(directory.resolve("app.py"), challengePythonApplication(), StandardCharsets.UTF_8,
                     StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
             Files.writeString(directory.resolve("Dockerfile"), dockerfile(), StandardCharsets.UTF_8,
+                    StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+            Files.writeString(directory.resolve("manifest.json"),
+                    objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(manifest), StandardCharsets.UTF_8,
                     StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
         } catch (IOException e) {
             throw new BadRequestException("Không thể cập nhật UI template của lab: " + e.getMessage());
@@ -120,6 +136,139 @@ public class LabArtifactService {
                 EXPOSE 8080
                 HEALTHCHECK --interval=3s --timeout=2s --retries=10 CMD wget -q -O - http://127.0.0.1:8080/health || exit 1
                 CMD ["python", "app.py"]
+                """;
+    }
+
+    private String challengePythonApplication() {
+        return """
+                import html
+                import json
+                import os
+                import urllib.parse
+                from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+                with open("manifest.json", encoding="utf-8") as source:
+                    LAB = json.load(source)
+
+                FLAG = LAB["flag"]
+                TITLE = LAB.get("title", "SecHub Generated Lab")
+                SCENARIO = LAB.get("scenario", "")
+                TOPIC = LAB.get("topic", LAB.get("vulnerability", "security-lab"))
+                LANG = LAB.get("language", "en")
+                CHALLENGE = LAB.get("challenge", {})
+                METHOD = CHALLENGE.get("method", "POST").upper()
+                ENDPOINT = CHALLENGE.get("endpoint", "/challenge")
+                INPUT_NAME = CHALLENGE.get("inputName", "payload")
+                INPUT_LABEL = CHALLENGE.get("inputLabel", "Test payload")
+                DEFAULT_VALUE = CHALLENGE.get("defaultValue", "")
+                INPUT_MODE = CHALLENGE.get("inputMode", "textarea")
+                SUCCESS_MODE = CHALLENGE.get("successMode", "contains-any")
+                SUCCESS_VALUES = [str(value) for value in CHALLENGE.get("successValues", ["admin"])]
+                FAILURE_MESSAGE = CHALLENGE.get("failureMessage", "The request did not exploit the weakness.")
+
+                def succeeds(value):
+                    raw = str(value or "")
+                    normalized = raw.lower()
+                    expected = [item.lower() for item in SUCCESS_VALUES]
+                    if SUCCESS_MODE == "equals-any":
+                        return normalized.strip() in [item.strip() for item in expected]
+                    if SUCCESS_MODE == "contains-all":
+                        return all(item in normalized for item in expected)
+                    if SUCCESS_MODE == "length-at-least":
+                        return len(raw) >= int(SUCCESS_VALUES[0])
+                    if SUCCESS_MODE == "numeric-at-least":
+                        try:
+                            return float(raw) >= float(SUCCESS_VALUES[0])
+                        except ValueError:
+                            return False
+                    return any(item in normalized for item in expected)
+
+                def page(body, prefix=""):
+                    lang_attr = "vi" if LANG == "vi" else "en"
+                    base_path = (prefix.rstrip("/") + "/") if prefix else "/"
+                    return ("<!doctype html><html lang='" + lang_attr + "'><head><meta charset='utf-8'>"
+                            + "<meta name='viewport' content='width=device-width,initial-scale=1'><base href='" + html.escape(base_path) + "'>"
+                            + "<title>" + html.escape(TITLE) + "</title><style>"
+                            + ":root{color-scheme:light;--ink:#161b2a;--muted:#657084;--line:#dce2eb;--brand:#2147ad;--soft:#f4f7fb;--ok:#08775d}"
+                            + "*{box-sizing:border-box}body{margin:0;background:var(--soft);color:var(--ink);font:15px/1.6 Inter,ui-sans-serif,system-ui,sans-serif}"
+                            + ".topbar{height:54px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 28px;font-weight:750;color:var(--brand)}"
+                            + ".shell{max-width:860px;margin:38px auto;padding:0 22px}.panel{background:#fff;border:1px solid var(--line);border-radius:8px;padding:30px;box-shadow:0 10px 30px rgba(20,35,70,.07)}"
+                            + ".eyebrow{font-size:12px;font-weight:800;color:var(--brand);text-transform:uppercase}.topic{display:inline-flex;margin-left:8px;padding:2px 7px;border:1px solid #b9c8ed;border-radius:4px;text-transform:none}"
+                            + "h1{font-size:28px;line-height:1.25;margin:8px 0 10px}.scenario{color:var(--muted);margin:0 0 20px;white-space:pre-line}.request{font:13px ui-monospace,monospace;background:#111827;color:#dbeafe;border-radius:6px;padding:10px 13px;margin-bottom:18px}"
+                            + "form{display:flex;gap:12px;align-items:end;flex-wrap:wrap}.field{display:flex;min-width:260px;flex:1;flex-direction:column;gap:6px}label{font-size:12px;font-weight:750;color:#3d4658}"
+                            + "input,textarea{width:100%;border:1px solid #c7d0df;border-radius:6px;padding:11px 12px;background:#fff;font:14px/1.45 ui-monospace,monospace}textarea{min-height:112px;resize:vertical}"
+                            + "input:focus,textarea:focus{outline:3px solid #dce6ff;border-color:var(--brand)}button{border:0;border-radius:6px;padding:11px 18px;background:var(--brand);color:#fff;font-weight:750;cursor:pointer}"
+                            + ".result{margin-top:18px;border-radius:7px;padding:16px}.success{background:#eaf8f3;border:1px solid #9ed8c6;color:var(--ok)}.failure{background:#fff4ed;border:1px solid #efc2a7;color:#8a3d12}"
+                            + "pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#101522;color:#dce7ff;border-radius:7px;padding:16px;margin:10px 0 0}.retry{display:inline-flex;margin-top:14px;color:var(--brand);font-weight:750;text-decoration:none}"
+                            + "@media(max-width:600px){.panel{padding:21px}.shell{margin-top:20px}h1{font-size:23px}}"
+                            + "</style></head><body><div class='topbar'>SecHub / Isolated Training Lab</div>"
+                            + "<main class='shell'><section class='panel'>" + body + "</section></main></body></html>")
+
+                class Handler(BaseHTTPRequestHandler):
+                    def prefix(self):
+                        return self.headers.get("X-Forwarded-Prefix", "").rstrip("/")
+
+                    def send(self, status, body, content_type="text/html; charset=utf-8"):
+                        data = body.encode("utf-8")
+                        self.send_response(status)
+                        self.send_header("Content-Type", content_type)
+                        self.send_header("Cache-Control", "no-store")
+                        self.send_header("Content-Length", str(len(data)))
+                        self.end_headers()
+                        self.wfile.write(data)
+
+                    def values(self):
+                        if self.command == "GET":
+                            encoded = urllib.parse.urlparse(self.path).query
+                        else:
+                            length = int(self.headers.get("Content-Length", "0"))
+                            encoded = self.rfile.read(length).decode("utf-8", errors="replace")
+                        return {key: items[-1] for key, items in urllib.parse.parse_qs(encoded, keep_blank_values=True).items()}
+
+                    def do_GET(self):
+                        self.handle_request()
+
+                    def do_POST(self):
+                        self.handle_request()
+
+                    def handle_request(self):
+                        path = urllib.parse.urlparse(self.path).path
+                        if path == "/health":
+                            return self.send(200, "ok", "text/plain; charset=utf-8")
+                        if path == ENDPOINT:
+                            if self.command != METHOD:
+                                return self.send(405, "method not allowed", "text/plain; charset=utf-8")
+                            value = self.values().get(INPUT_NAME, "")
+                            if succeeds(value):
+                                heading = "Khai thác thành công" if LANG == "vi" else "Exploit successful"
+                                body = "<div class='result success'><strong>" + heading + "</strong><pre>" + html.escape(FLAG) + "</pre></div>"
+                            else:
+                                body = "<div class='result failure'>" + html.escape(FAILURE_MESSAGE) + "</div>"
+                            retry = "Làm lại" if LANG == "vi" else "Try again"
+                            return self.send(200, page(self.header() + body + "<a class='retry' href='" + html.escape(self.prefix() + "/") + "'>" + retry + "</a>", self.prefix()))
+                        return self.send(200, page(self.header() + self.form(), self.prefix()))
+
+                    def header(self):
+                        eyebrow = "BÀI THỰC HÀNH BẢO MẬT" if LANG == "vi" else "SECURITY PRACTICE LAB"
+                        return ("<div class='eyebrow'>" + eyebrow + "<span class='topic'>" + html.escape(TOPIC) + "</span></div>"
+                                + "<h1>" + html.escape(TITLE) + "</h1><p class='scenario'>" + html.escape(SCENARIO) + "</p>"
+                                + "<div class='request'>" + html.escape(METHOD + " " + ENDPOINT) + "</div>")
+
+                    def form(self):
+                        action = self.prefix() + ENDPOINT
+                        if INPUT_MODE == "textarea":
+                            control = "<textarea name='" + html.escape(INPUT_NAME) + "'>" + html.escape(DEFAULT_VALUE) + "</textarea>"
+                        else:
+                            input_type = INPUT_MODE if INPUT_MODE in ("text", "url", "number", "password") else "text"
+                            control = "<input type='" + input_type + "' name='" + html.escape(INPUT_NAME) + "' value='" + html.escape(DEFAULT_VALUE) + "' autocomplete='off'>"
+                        button = "Gửi request" if LANG == "vi" else "Send request"
+                        return ("<form method='" + METHOD.lower() + "' action='" + html.escape(action) + "'><div class='field'><label>"
+                                + html.escape(INPUT_LABEL) + "</label>" + control + "</div><button>" + button + "</button></form>")
+
+                    def log_message(self, fmt, *args):
+                        pass
+
+                ThreadingHTTPServer(("0.0.0.0", int(os.environ.get("PORT", "8080"))), Handler).serve_forever()
                 """;
     }
 

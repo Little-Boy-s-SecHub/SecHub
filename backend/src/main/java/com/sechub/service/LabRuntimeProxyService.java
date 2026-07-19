@@ -15,7 +15,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Set;
 
@@ -26,7 +25,7 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 public class LabRuntimeProxyService {
 
     private static final Set<String> REQUEST_HEADERS_TO_SKIP = Set.of(
-            "host", "content-length", "connection", "authorization");
+            "host", "content-length", "connection", "authorization", "x-forwarded-prefix");
     private static final Set<String> RESPONSE_HEADERS_TO_SKIP = Set.of(
             "connection", "content-length", "transfer-encoding", "content-encoding",
             "access-control-allow-origin", "access-control-allow-credentials",
@@ -73,7 +72,8 @@ public class LabRuntimeProxyService {
 
             HttpRequest.Builder outgoing = HttpRequest.newBuilder()
                     .uri(URI.create(target))
-                    .timeout(Duration.ofSeconds(15));
+                    .timeout(Duration.ofSeconds(15))
+                    .header("X-Forwarded-Prefix", prefix);
             incoming.getHeaderNames().asIterator().forEachRemaining(name -> {
                 if (!REQUEST_HEADERS_TO_SKIP.contains(name.toLowerCase(Locale.ROOT))) {
                     incoming.getHeaders(name).asIterator().forEachRemaining(value -> outgoing.header(name, value));
@@ -96,15 +96,7 @@ public class LabRuntimeProxyService {
                 headers.set(HttpHeaders.LOCATION, "/api/lab-runtime/" + token + location);
             }
             headers.set("Cache-Control", "no-store");
-            byte[] responseBody = response.body();
-            String contentType = headers.getFirst(HttpHeaders.CONTENT_TYPE);
-            if (contentType != null && contentType.toLowerCase(Locale.ROOT).contains("text/html")) {
-                String html = new String(responseBody, StandardCharsets.UTF_8)
-                        .replace("action='/", "action='")
-                        .replace("href='/", "href='");
-                responseBody = html.getBytes(StandardCharsets.UTF_8);
-            }
-            return ResponseEntity.status(response.statusCode()).headers(headers).body(responseBody);
+            return ResponseEntity.status(response.statusCode()).headers(headers).body(response.body());
         } catch (ResponseStatusException e) {
             throw e;
         } catch (Exception e) {

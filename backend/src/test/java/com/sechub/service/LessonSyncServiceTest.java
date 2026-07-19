@@ -70,7 +70,8 @@ public class LessonSyncServiceTest {
                 "sql-injection",
                 "SQL Injection Basic",
                 1,
-                "# Intro to SQLi"
+                "# Intro to SQLi",
+                "second-order-sqli"
         );
 
         when(lessonRepository.findAll()).thenReturn(new ArrayList<>());
@@ -96,6 +97,7 @@ public class LessonSyncServiceTest {
 
         // Assert
         verify(lessonRepository, times(1)).save(any(Lesson.class));
+        verify(lessonRepository).save(argThat(lesson -> "second-order-sqli".equals(lesson.getTopicSlug())));
         verify(lessonRepository, never()).delete(any(Lesson.class));
     }
 

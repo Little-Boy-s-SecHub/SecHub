@@ -28,14 +28,14 @@ class SimulatedLabRuntimeServiceTest {
         var response = new SimulatedLabRuntimeService(objectMapper).handle(attempt, new byte[0], request);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
-        assertThat(text(response.getBody())).contains("Production diagnostic", "Đăng nhập");
+        assertThat(text(response.getBody())).contains("Production diagnostic", "Tên đăng nhập", "POST /login");
     }
 
     @Test
     void sqlInjectionPayloadReturnsAttemptFlag() throws Exception {
         LabAttempt attempt = attempt("sql-injection");
         MockHttpServletRequest request = request("POST", "/api/lab-runtime/runtime-token/login");
-        byte[] body = "ref_abc=admin%27+OR+%271%27%3D%271&password=x".getBytes(StandardCharsets.UTF_8);
+        byte[] body = "username=admin%27+OR+1%3D1--".getBytes(StandardCharsets.UTF_8);
 
         var response = new SimulatedLabRuntimeService(objectMapper).handle(attempt, body, request);
 
@@ -46,21 +46,36 @@ class SimulatedLabRuntimeServiceTest {
     void idorOnlyReturnsFlagForGeneratedTargetId() throws Exception {
         LabAttempt attempt = attempt("idor");
         MockHttpServletRequest normal = request("GET", "/api/lab-runtime/runtime-token/api/profile");
-        normal.setQueryString("ref_abc=1");
+        normal.setQueryString("ref=1");
         MockHttpServletRequest target = request("GET", "/api/lab-runtime/runtime-token/api/profile");
-        target.setQueryString("ref_abc=7");
+        target.setQueryString("ref=7");
         SimulatedLabRuntimeService service = new SimulatedLabRuntimeService(objectMapper);
 
         assertThat(text(service.handle(attempt, new byte[0], normal).getBody())).doesNotContain("SecHub{test_flag}");
         assertThat(text(service.handle(attempt, new byte[0], target).getBody())).contains("SecHub{test_flag}");
     }
 
-    private LabAttempt attempt(String vulnerability) throws Exception {
+    @Test
+    void downgradeChallengeUsesTlsPayloadInsteadOfGenericAuthToken() throws Exception {
+        LabAttempt attempt = attempt("downgrade-attacks");
+        MockHttpServletRequest request = request("POST", "/api/lab-runtime/runtime-token/tls/handshake");
+        byte[] body = "version=TLS1.0".getBytes(StandardCharsets.UTF_8);
+
+        var response = new SimulatedLabRuntimeService(objectMapper).handle(attempt, body, request);
+
+        assertThat(text(response.getBody())).contains("SecHub{test_flag}", "downgrade-attacks");
+    }
+
+    private LabAttempt attempt(String topic) throws Exception {
+        LabTemplateCatalog.ChallengeProfile profile = LabTemplateCatalog.challengeFor(topic, "");
         Files.writeString(tempDir.resolve("manifest.json"), objectMapper.writeValueAsString(java.util.Map.of(
-                "vulnerability", vulnerability,
+                "vulnerability", profile.runtimeType(),
+                "topic", profile.topicSlug(),
                 "flag", "SecHub{test_flag}",
                 "title", "Production diagnostic",
                 "scenario", "Isolated lab",
+                "language", "vi",
+                "challenge", profile.toManifest("7", "vi"),
                 "variant", java.util.Map.of("parameter", "ref_abc", "targetId", 7, "account", "analyst_abc")
         )));
         Lab lab = Lab.builder().artifactPath(tempDir.toString()).build();

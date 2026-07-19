@@ -19,6 +19,7 @@ interface Lesson {
   vulnerabilityId?: string;
   vulnerabilityName?: string;
   vulnerabilitySlug?: string;
+  topicSlug?: string;
   learningObjective?: string;
   estimatedMinutes?: number;
   completed?: boolean;
@@ -32,14 +33,14 @@ interface LearningPath {
 }
 
 const LESSON_VULNERABILITY_RULES: Array<{ terms: string[]; slug: string }> = [
-  { terms: ['sql injection', 'sqli'], slug: 'sql-injection' },
-  { terms: ['cross-site scripting', 'xss'], slug: 'xss' },
-  { terms: ['clickjacking', 'cross-site request forgery', 'csrf'], slug: 'csrf' },
-  { terms: ['bfla', 'broken function level', 'broken access control', 'directory traversal', 'idor', 'object reference'], slug: 'idor' },
-  { terms: ['open redirect', 'server-side request forgery', 'ssrf'], slug: 'ssrf' },
-  { terms: ['command injection', 'os command'], slug: 'command-injection' },
-  { terms: ['file upload', 'path traversal'], slug: 'file-upload' },
-  { terms: ['privilege escalation', 'authentication bypass', 'auth bypass'], slug: 'auth-bypass' },
+  { terms: ['sql injection', 'sqli', 'second-order sql', 'nosql', 'ldap injection', 'xpath injection', 'http parameter pollution', 'hpp', 'crlf injection', 'csv/formula'], slug: 'sql-injection' },
+  { terms: ['cross-site scripting', 'xss', 'dom-based', 'dom clobbering', 'css injection', 'content security policy', 'csp bypass', 'postmessage', 'script inclusion', 'xssi'], slug: 'xss' },
+  { terms: ['clickjacking', 'cross-site request forgery', 'csrf', 'cross-origin resource sharing', 'cors', 'websocket hijacking', 'cswsh'], slug: 'csrf' },
+  { terms: ['file upload', 'path traversal', 'directory traversal', 'lfi', 'rfi', 'local file inclusion', 'remote file inclusion', 'information leakage', 'error handling', 'exception mismanagement'], slug: 'file-upload' },
+  { terms: ['command injection', 'os command', 'command execution', 'code injection', 'ssti', 'server-side template', 'ssi injection', 'server-side include', 'remote code execution', 'buffer overflow', 'xml bombs', 'denial of service'], slug: 'command-injection' },
+  { terms: ['open redirect', 'server-side request forgery', 'ssrf', 'host header', 'subdomain takeover', 'subdomain squatting', 'dns poisoning', 'xxe', 'xml external', 'request smuggling', 'web cache'], slug: 'ssrf' },
+  { terms: ['bfla', 'broken function level', 'broken access control', 'idor', 'object reference', 'mass assignment', 'graphql', 'shadow api', 'improper inventory', 'api rate limiting', 'resource abuse'], slug: 'idor' },
+  { terms: ['privilege escalation', 'authentication bypass', 'auth bypass', 'jwt', 'oauth', '2fa', 'mfa', 'session fixation', 'session hijacking', 'weak session', 'credential stuffing', 'brute force', 'user enumeration', 'password mismanagement', 'cryptographic', 'downgrade', 'tls', 'ssl stripping', 'unencrypted', 'insecure randomness', 'supply chain', 'toxic dependencies', 'malvertising', 'business logic', 'race condition', 'toctou', 'insecure design', 'lax security'], slug: 'auth-bypass' },
 ];
 
 const LESSON_METADATA_FALLBACKS: Record<string, { objective: string; minutes: number }> = {
@@ -105,9 +106,17 @@ function resolveLessonVulnerability(lesson: Lesson, vulnerabilities: Vulnerabili
   const linked = vulnerabilities.find(item => item.id === lesson.vulnerabilityId);
   if (linked) return linked;
 
+  const bySlug = lesson.vulnerabilitySlug
+    ? vulnerabilities.find(item => item.slug === lesson.vulnerabilitySlug)
+    : null;
+  if (bySlug) return bySlug;
+
   const searchable = `${lesson.title} ${lesson.contentMarkdown.slice(0, 1800)}`.toLowerCase();
   const rule = LESSON_VULNERABILITY_RULES.find(item => item.terms.some(term => searchable.includes(term)));
-  return vulnerabilities.find(item => item.slug === rule?.slug) || null;
+  return vulnerabilities.find(item => item.slug === rule?.slug)
+    || vulnerabilities.find(item => item.slug === 'auth-bypass')
+    || vulnerabilities[0]
+    || null;
 }
 
 export default function LessonDetailPage({ params }: { params: Promise<{ pathId: string; lessonId: string }> }) {
@@ -149,8 +158,11 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
           );
           setPracticeVulnerability(resolvedVulnerability);
           setDefaultLab(null);
-          if (resolvedVulnerability) {
-            const labsRes = await api.vulnerabilities.getLabs(resolvedVulnerability.id);
+          const directlyLinkedVulnerability = (lessonRes.data.vulnerabilityId || lessonRes.data.vulnerabilitySlug)
+            ? resolvedVulnerability
+            : null;
+          if (directlyLinkedVulnerability) {
+            const labsRes = await api.vulnerabilities.getLabs(directlyLinkedVulnerability.id);
             if (labsRes.success) {
               setDefaultLab(labsRes.data.find((lab: Lab) => !lab.generated) || null);
             }
@@ -275,7 +287,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
         `LANGUAGE REQUIREMENT: Generate all lab text, title, description, tasks, instructions, and hints in ${targetLangName}.`
       ].join('\n');
       const result = await api.labs.generateWithAi(
-        practiceVulnerability.slug,
+        lesson.topicSlug || lesson.vulnerabilitySlug || practiceVulnerability.slug,
         path?.difficulty || 'BEGINNER',
         scenario,
         language

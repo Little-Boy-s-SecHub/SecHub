@@ -39,6 +39,9 @@ public class Lesson {
     @Builder.Default
     private Integer estimatedMinutes = 12;
 
+    @Column(name = "topic_slug", length = 120)
+    private String topicSlug;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vulnerability_id")
     private Vulnerability vulnerability;

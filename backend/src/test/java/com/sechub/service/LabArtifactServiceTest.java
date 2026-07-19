@@ -39,8 +39,8 @@ class LabArtifactServiceTest {
         assertThat(artifact.directory().resolve("app.py")).isRegularFile();
         JsonNode manifest = mapper.readTree(Files.readString(artifact.directory().resolve("manifest.json")));
         assertThat(manifest.path("flag").asText()).isEqualTo(flag);
-        String parameter = manifest.path("variant").path("parameter").asText();
-        assertThat(parameter).startsWith("ref_");
+        String inputName = manifest.path("challenge").path("inputName").asText();
+        assertThat(inputName).isEqualTo("username");
 
         int port;
         try (ServerSocket socket = new ServerSocket(0)) {
@@ -55,7 +55,7 @@ class LabArtifactServiceTest {
         try {
             waitUntilHealthy(port);
 
-            String payload = URLEncoder.encode(parameter, StandardCharsets.UTF_8) + "="
+            String payload = URLEncoder.encode(inputName, StandardCharsets.UTF_8) + "="
                     + URLEncoder.encode("' OR 1=1 --", StandardCharsets.UTF_8)
                     + "&password=x";
             HttpRequest request = HttpRequest.newBuilder()
@@ -70,6 +70,48 @@ class LabArtifactServiceTest {
         } finally {
             process.destroyForcibly();
         }
+    }
+
+    @Test
+    void unsupportedLessonSlugFallsBackToSafeExecutableTemplate() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        LabArtifactService service = new LabArtifactService(mapper, tempDir.toString());
+        GeneratedLabSpec spec = new GeneratedLabSpec(
+                "Downgrade Attacks Lab", "TLS downgrade practice", "Practice a TLS downgrade decision point",
+                List.of("Inspect protocol negotiation"), 30, 150);
+
+        LabArtifactService.LabArtifact artifact = service.create("downgrade-attacks", "SecHub{crypto_flag}", spec, "vi");
+
+        JsonNode manifest = mapper.readTree(Files.readString(artifact.directory().resolve("manifest.json")));
+        assertThat(manifest.path("vulnerability").asText()).isEqualTo("auth-bypass");
+        assertThat(manifest.path("topic").asText()).isEqualTo("downgrade-attacks");
+        assertThat(manifest.path("challenge").path("endpoint").asText()).isEqualTo("/tls/handshake");
+        assertThat(manifest.path("challenge").path("successValues")).anySatisfy(value ->
+                assertThat(value.asText()).isEqualTo("TLS1.0"));
+        assertThat(artifact.directory().resolve("app.py")).isRegularFile();
+    }
+
+    @Test
+    void refreshUpgradesLegacyManifestToTopicChallenge() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        LabArtifactService service = new LabArtifactService(mapper, tempDir.toString());
+        Path artifact = tempDir.resolve("legacy-artifact");
+        Files.createDirectories(artifact);
+        Files.writeString(artifact.resolve("manifest.json"), mapper.writeValueAsString(java.util.Map.of(
+                "vulnerability", "auth-bypass",
+                "title", "Downgrade Attacks Lab",
+                "scenario", "TLS protocol negotiation downgrade",
+                "language", "vi",
+                "variant", java.util.Map.of("targetId", 7))));
+        Files.writeString(artifact.resolve("app.py"), "legacy");
+        Files.writeString(artifact.resolve("Dockerfile"), "legacy");
+
+        service.refreshRuntimeTemplate(artifact.toString());
+
+        JsonNode manifest = mapper.readTree(artifact.resolve("manifest.json").toFile());
+        assertThat(manifest.path("topic").asText()).isEqualTo("downgrade-attacks");
+        assertThat(manifest.path("challenge").path("endpoint").asText()).isEqualTo("/tls/handshake");
+        assertThat(Files.readString(artifact.resolve("app.py"))).contains("X-Forwarded-Prefix");
     }
 
     private void waitUntilHealthy(int port) throws Exception {
