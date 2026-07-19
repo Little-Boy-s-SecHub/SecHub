@@ -1544,7 +1544,7 @@ label {
   .lab-workspace-header { flex-wrap: wrap; gap: 10px; }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1150px) {
   .lab-loading-grid,
   .lab-detail-layout,
   .lab-workspace-grid { grid-template-columns: 1fr; }
