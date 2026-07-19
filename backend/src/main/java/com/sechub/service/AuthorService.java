@@ -50,9 +50,9 @@ public class AuthorService {
     public LabDto createChallenge(String username, AuthorLabRequest request) {
         User author=users.findByUsername(username);
         Lab lab=ai.generateAndSaveLab(request.vulnerabilitySlug(),request.difficulty(),
-                "AUTHOR CHALLENGE: "+request.title()+"\n"+(request.scenario()==null?"":request.scenario())+"\nREQUIREMENT: Tạo challenge cô lập, đổi toàn bộ dữ liệu và flag.", "en");
+                "AUTHOR CHALLENGE: "+request.title()+"\n"+(request.scenario()==null?"":request.scenario())+"\nREQUIREMENT: Tạo challenge cô lập, đổi toàn bộ dữ liệu và flag.", "en", author);
         if(request.title()!=null&&!request.title().isBlank())lab.setTitle(request.title().trim());
-        lab.setAuthor(author);lab.setStatus(LearningPath.PublicationStatus.DRAFT);return LabDto.fromEntity(labs.save(lab));
+        lab.setStatus(LearningPath.PublicationStatus.DRAFT);return LabDto.fromEntity(labs.save(lab));
     }
 
     @Transactional

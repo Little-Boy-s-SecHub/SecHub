@@ -62,7 +62,7 @@ public class OpenAiService {
         this.httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(20)).build();
     }
 
-    public Lab generateAndSaveLab(String vulnerabilitySlug, String difficultyValue, String scenario, String language) {
+    public Lab generateAndSaveLab(String vulnerabilitySlug, String difficultyValue, String scenario, String language, com.sechub.entity.User author) {
         String requestedSlug = normalizeRequestedSlug(vulnerabilitySlug);
         Vulnerability vulnerability = resolveVulnerabilityForLab(requestedSlug, scenario);
         LearningPath.Difficulty difficulty = parseDifficulty(difficultyValue);
@@ -96,6 +96,7 @@ public class OpenAiService {
                 .hintsJson(writeHints(spec.hints()))
                 .estimatedMinutes(spec.estimatedMinutes())
                 .points(spec.points())
+                .author(author)
                 .build();
         return labRepository.save(lab);
     }

@@ -80,9 +80,8 @@ public class ReviewService {
             String scenario = "LESSON TITLE: " + latest.getLesson().getTitle() + "\n"
                     + "LEARNING PATH: Daily Review\nLESSON CONTENT: " + summarize(latest.getLesson().getContentMarkdown())
                     + "\nREQUIREMENT: Tạo thử thách ôn tập 10-15 phút bám sát bài học; tiêu đề phải là " + dailyTitle;
-            Lab generated = openAiService.generateAndSaveLab(vulnerability.getSlug(), "BEGINNER", scenario, "en");
+            Lab generated = openAiService.generateAndSaveLab(vulnerability.getSlug(), "BEGINNER", scenario, "en", user);
             generated.setTitle(dailyTitle);
-            generated.setAuthor(user);
             return labs.save(generated);
         }));
     }

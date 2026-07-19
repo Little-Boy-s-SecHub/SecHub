@@ -97,8 +97,8 @@ public class GrowthService {
             String track=profile.getRecommendedTrack();
             String adaptiveDifficulty=adaptiveDifficulty(next, track);
             Lab lab=ai.generateAndSaveLab(source.getLab().getVulnerability().getSlug(),adaptiveDifficulty,
-                    "LESSON TITLE: Weekly challenge từ "+source.getLab().getTitle()+"\nLESSON CONTENT: Đổi bối cảnh, tham số và dữ liệu nhưng giữ nguyên mục tiêu kỹ thuật. Tạo thử thách 15 phút khó hơn.\nLEARNER TRACK: "+track+"\nREQUIREMENT: Không lặp lại dữ liệu hoặc flag cũ. Điều chỉnh độ phức tạp phù hợp với trình độ.", "en");
-            lab.setTitle(title);lab.setAuthor(user);return labs.save(lab);
+                    "LESSON TITLE: Weekly challenge từ "+source.getLab().getTitle()+"\nLESSON CONTENT: Đổi bối cảnh, tham số và dữ liệu nhưng giữ nguyên mục tiêu kỹ thuật. Tạo thử thách 15 phút khó hơn.\nLEARNER TRACK: "+track+"\nREQUIREMENT: Không lặp lại dữ liệu hoặc flag cũ. Điều chỉnh độ phức tạp phù hợp với trình độ.", "en", user);
+            lab.setTitle(title);return labs.save(lab);
         }));
     }
 
@@ -111,8 +111,8 @@ public class GrowthService {
         String track=profile.getRecommendedTrack();
         String adaptiveDifficulty=adaptiveDifficulty(diff, track);
         Lab variant=ai.generateAndSaveLab(source.getLab().getVulnerability().getSlug(),adaptiveDifficulty,
-                "Tạo bản khó hơn từ lab \""+source.getLab().getTitle()+"\". Đổi bối cảnh, endpoint, dữ liệu và flag; giữ đúng mục tiêu kỹ thuật.\nLEARNER TRACK: "+track+"\nREQUIREMENT: Phù hợp với trình độ người dùng.", "en");
-        variant.setAuthor(user);return LabDto.fromEntity(labs.save(variant));
+                "Tạo bản khó hơn từ lab \""+source.getLab().getTitle()+"\". Đổi bối cảnh, endpoint, dữ liệu và flag; giữ đúng mục tiêu kỹ thuật.\nLEARNER TRACK: "+track+"\nREQUIREMENT: Phù hợp với trình độ người dùng.", "en", user);
+        return LabDto.fromEntity(labs.save(variant));
     }
 
     @Transactional(readOnly=true)

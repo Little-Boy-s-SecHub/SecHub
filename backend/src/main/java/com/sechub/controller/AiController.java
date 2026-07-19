@@ -44,10 +44,9 @@ public class AiController {
                 request.vulnerabilitySlug(),
                 adaptiveDifficulty,
                 adaptiveScenario,
-                lang
+                lang,
+                user
         );
-        generatedLab.setAuthor(user);
-        generatedLab = openAiService.saveGeneratedLab(generatedLab);
 
         return ResponseEntity.ok(ApiResponse.success(LabDto.fromEntity(generatedLab)));
     }
