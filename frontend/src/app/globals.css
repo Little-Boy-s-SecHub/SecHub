@@ -9,6 +9,8 @@
    CSS Custom Properties — Light Mode (Default)
    -------------------------------------------------------------------------- */
 :root {
+  color-scheme: light only;
+
   /* ---- Background Tokens — Neutral ---- */
   --bg-neutral-primary-soft: #FAF6F0;
   --bg-neutral-primary: #FAF6F0;
@@ -164,95 +166,7 @@
   --transition-slow: 300ms ease;
 }
 
-/* --------------------------------------------------------------------------
-   Dark Mode
-   -------------------------------------------------------------------------- */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg-neutral-primary-soft: #1B1714;
-    --bg-neutral-primary: #0E0B08;
-    --bg-neutral-primary-medium: #272118;
-    --bg-neutral-primary-strong: #382F24;
-    --bg-neutral-secondary-soft: #1B1714;
-    --bg-neutral-secondary: #0E0B08;
-    --bg-neutral-secondary-medium: #272118;
-    --bg-neutral-secondary-strong: #382F24;
-    --bg-neutral-tertiary-soft: #1B1714;
-    --bg-neutral-tertiary: #272118;
-    --bg-neutral-tertiary-medium: #382F24;
-    --bg-neutral-quaternary: #382F24;
-    --bg-quaternary-medium: #4A3F32;
-    --bg-gray: #4A3F32;
-
-    --bg-brand-softer: #111D40;
-    --bg-brand-soft: #1C398E;
-    --bg-brand: #4D72C7;
-    --bg-brand-medium: #1C398E;
-    --bg-brand-strong: #1C398E;
-
-    --bg-success-soft: #002C22;
-    --bg-success: #009966;
-    --bg-success-medium: #004F3B;
-    --bg-success-strong: #007A55;
-    --bg-danger-soft: #4D0218;
-    --bg-danger: #C70036;
-    --bg-danger-medium: #8B0836;
-    --bg-danger-strong: #A50036;
-    --bg-warning-soft: #7C2D12;
-    --bg-warning: #F97316;
-    --bg-warning-medium: #7C2D12;
-    --bg-warning-strong: #C2410C;
-
-    --color-1-400: rgba(255,255,255,0.15);
-    --color-1-700: rgba(0,0,0,0.30);
-
-    --bg-dark-strong: #3D3428;
-    --bg-disabled: #2C2215;
-
-    --text-heading: #FAF6F0;
-    --text-body: #A99880;
-    --text-body-subtle: #A99880;
-
-    --fg-brand-subtle: #1C398E;
-    --fg-brand: #7B9DE0;
-    --fg-brand-strong: #ABB7DD;
-
-    --fg-success: #065F46;
-    --fg-success-strong: #10B981;
-    --fg-danger: #F43F5E;
-    --fg-danger-strong: #F87171;
-    --fg-warning-subtle: #F97316;
-    --fg-warning: #FBBF24;
-    --fg-disabled: #6B5C4A;
-
-    --fg-info: #93C5FD;
-    --fg-purple: #A855F7;
-    --fg-purple-strong: #DDD6FE;
-    --fg-cyan: #06B6D4;
-    --fg-lime: #84CC16;
-
-    --border-dark: #5A4D3E;
-    --border-buffer: #0E0B08;
-    --border-buffer-medium: #2C2215;
-    --border-buffer-strong: #3D3428;
-    --border-muted: #1B1714;
-    --border-light-subtle: #1B1714;
-    --border-light: #2C2215;
-    --border-light-medium: #3D3428;
-    --border-default-subtle: #1B1714;
-    --border-default: #2C2215;
-    --border-default-medium: #3D3428;
-    --border-default-strong: #5A4D3E;
-    --border-success-subtle: #064E3B;
-    --border-success: #065F46;
-    --border-danger-subtle: #881337;
-    --border-warning-subtle: #7C2D12;
-    --border-warning: #F97316;
-    --border-brand-subtle: #1C398E;
-    --border-brand: #7B9DE0;
-    --border-dark-subtle: #3D3428;
-  }
-}
+/* Dark Mode — REMOVED: app is light-only by design */
 
 /* --------------------------------------------------------------------------
    Reset & Base

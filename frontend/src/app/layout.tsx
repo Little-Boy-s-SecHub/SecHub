@@ -28,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi" className={beVietnamPro.variable} suppressHydrationWarning data-scroll-behavior="smooth">
+    <html lang="vi" className={beVietnamPro.variable} suppressHydrationWarning data-scroll-behavior="smooth" style={{ colorScheme: 'light' }}>
       <body style={{ fontFamily: 'var(--font-sans), sans-serif' }}>
         <AuthProvider>
           <LanguageProvider>
