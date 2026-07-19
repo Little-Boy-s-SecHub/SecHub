@@ -4,21 +4,10 @@ import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Clock, BookOpen, ChevronRight, AlertCircle } from 'lucide-react';
-import { api, LearningPath } from '@/lib/api';
+import { api, Lesson, LearningPath } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/context/LanguageContext';
 import { localizeLessonTitle } from '@/utils/localize';
-
-interface Lesson {
-  id: string;
-  pathId: string;
-  title: string;
-  contentMarkdown: string;
-  sortOrder: number;
-  vulnerabilityId?: string;
-  vulnerabilityName?: string;
-  completed?: boolean;
-}
 
 
 export default function LearningPathDetailPage({ params }: { params: Promise<{ pathId: string }> }) {

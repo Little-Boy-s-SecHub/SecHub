@@ -112,7 +112,7 @@ export default function ActivityHeatmap({ username, noWrapper }: { username?: st
           ? await api.growth.getPublicActivities(username)
           : await api.users.getActivities();
         if (res.success && res.data) {
-          const data: Activity[] = res.data;
+          const data = res.data as Activity[];
           setActivities(data);
           calculateStreaks(data);
         }

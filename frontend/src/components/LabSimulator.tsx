@@ -457,7 +457,13 @@ function XssSearchSimulator({ flag, onSuccess }: { flag: string; onSuccess: (fla
 function IdorProfileSimulator({ flag, onSuccess }: { flag: string; onSuccess: (flag: string) => void }) {
   const { language } = useTranslation();
   const [profileId, setProfileId] = useState('10');
-  const [profileData, setProfileData] = useState<Record<string, unknown>>({
+  const [profileData, setProfileData] = useState<{
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    flag: string | null;
+  }>({
     id: '10',
     name: 'Student Tester',
     email: 'student@sechub.vn',

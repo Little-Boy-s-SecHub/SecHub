@@ -4,26 +4,11 @@ import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, BookOpen, CheckCircle, Clock, ChevronRight, PlayCircle, ShieldAlert, Sparkles, LoaderCircle, Target } from 'lucide-react';
-import { api, Lab, Vulnerability } from '@/lib/api';
+import { api, Lab, Lesson, Vulnerability } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/context/LanguageContext';
 import { localizeLessonTitle, localizeLessonObjective } from '@/utils/localize';
 import { marked } from 'marked';
-
-interface Lesson {
-  id: string;
-  pathId: string;
-  title: string;
-  contentMarkdown: string;
-  sortOrder: number;
-  vulnerabilityId?: string;
-  vulnerabilityName?: string;
-  vulnerabilitySlug?: string;
-  topicSlug?: string;
-  learningObjective?: string;
-  estimatedMinutes?: number;
-  completed?: boolean;
-}
 
 interface LearningPath {
   id: string;

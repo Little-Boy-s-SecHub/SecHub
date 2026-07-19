@@ -21,8 +21,8 @@ export const metadata: Metadata = {
     apple: '/logo.jpg',
   },
   other: {
-    'color-scheme': 'light only',
-    'supported-color-schemes': 'light only',
+    'color-scheme': 'only light',
+    'supported-color-schemes': 'only light',
   },
 };
 
@@ -32,10 +32,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi" className={beVietnamPro.variable} suppressHydrationWarning data-scroll-behavior="smooth" style={{ colorScheme: 'light' }}>
+    <html lang="vi" className={`${beVietnamPro.variable} light`} suppressHydrationWarning data-theme="light" data-scroll-behavior="smooth" style={{ colorScheme: 'only light' }}>
       <head>
-        <meta name="color-scheme" content="light only" />
-        <meta name="supported-color-schemes" content="light only" />
+        <meta name="color-scheme" content="only light" />
+        <meta name="supported-color-schemes" content="only light" />
+        <meta name="darkreader-lock" />
       </head>
       <body style={{ fontFamily: 'var(--font-sans), sans-serif', backgroundColor: '#FAF6F0', color: '#6B5C4A' }}>
         <AuthProvider>

@@ -9,7 +9,7 @@
    CSS Custom Properties — Light Mode (Default)
    -------------------------------------------------------------------------- */
 :root {
-  color-scheme: light only;
+  color-scheme: only light;
 
   /* ---- Background Tokens — Neutral ---- */
   --bg-neutral-primary-soft: #FAF6F0;
@@ -167,6 +167,13 @@
 }
 
 /* Dark Mode — REMOVED: app is light-only by design */
+
+html,
+html.light,
+html[data-theme='light'],
+body {
+  color-scheme: only light;
+}
 
 /* --------------------------------------------------------------------------
    Reset & Base

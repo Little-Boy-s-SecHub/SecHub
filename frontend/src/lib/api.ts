@@ -164,6 +164,12 @@ export interface GrowthOverview {
   notifications: string[];
 }
 
+export interface DashboardSummary {
+  completedLabs: number;
+  totalScore: number;
+  progressPercentage: number;
+}
+
 export interface AppNotification {
   id: string;
   type: "LAB_PUBLISHED" | "LAB_COMPLETED" | "SYSTEM";
@@ -232,6 +238,26 @@ export interface ResumeLearning {
   updatedAt: string;
 }
 
+export interface Lesson {
+  id: string;
+  pathId: string;
+  title: string;
+  contentMarkdown: string;
+  sortOrder: number;
+  vulnerabilityId?: string;
+  vulnerabilityName?: string;
+  vulnerabilitySlug?: string;
+  topicSlug?: string;
+  learningObjective?: string;
+  estimatedMinutes?: number;
+  completed?: boolean;
+}
+
+export interface LessonProgress {
+  lessonId: string;
+  completed: boolean;
+}
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
@@ -255,7 +281,8 @@ async function request<T>(
   });
 
   const text = await response.text();
-  let json: Record<string, unknown> = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let json: any = {};
   try {
     json = text ? JSON.parse(text) : {};
   } catch {
@@ -381,16 +408,16 @@ export const api = {
   learningPaths: {
     getAll: () => request<LearningPath[]>("/learning-paths"),
     getById: (id: string) => request<LearningPath>(`/learning-paths/${id}`),
-    getLessons: (id: string) => request<unknown[]>(`/learning-paths/${id}/lessons`),
+    getLessons: (id: string) => request<Lesson[]>(`/learning-paths/${id}/lessons`),
   },
 
   lessons: {
-    getById: (id: string) => request<unknown>(`/lessons/${id}`),
+    getById: (id: string) => request<Lesson>(`/lessons/${id}`),
   },
 
   users: {
     getMe: () => request<User>("/users/me"),
-    getDashboard: () => request<unknown>("/users/me/dashboard"),
+    getDashboard: () => request<DashboardSummary>("/users/me/dashboard"),
     getActivities: () => request<unknown[]>("/users/me/activities"),
     getResume: (onlyLesson?: boolean) => request<ResumeLearning | null>(`/users/me/resume${onlyLesson ? "?onlyLesson=true" : ""}`),
     saveLearningState: (lessonId: string, scrollProgress: number, scrollY: number) =>
@@ -415,9 +442,9 @@ export const api = {
 
   progress: {
     getPathProgress: (pathId: string) =>
-      request<unknown[]>(`/progress/paths/${pathId}`),
+      request<LessonProgress[]>(`/progress/paths/${pathId}`),
     completeLesson: (lessonId: string) =>
-      request<unknown>(`/progress/lessons/${lessonId}/complete`, {
+      request<LessonProgress>(`/progress/lessons/${lessonId}/complete`, {
         method: "POST",
       }),
   },
