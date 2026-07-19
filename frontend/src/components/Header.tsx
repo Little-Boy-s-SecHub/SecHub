@@ -527,8 +527,8 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
                   flexShrink: 0
                 }} title={user?.email}>
                   {user?.avatarUrl && (user.avatarUrl.startsWith('http') || user.avatarUrl.startsWith('/')) ? (
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={user.avatarUrl} alt={user.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={user.avatarUrl} alt={user.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
                     user ? getInitials(user.username) : 'U'
                   )}
