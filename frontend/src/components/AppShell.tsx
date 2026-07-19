@@ -6,14 +6,8 @@ import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth > 768 : true);
   const pathname = usePathname();
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.innerWidth <= 768) {
-      setSidebarOpen(false);
-    }
-  }, []);
 
   const isPlayPage = pathname?.endsWith('/play');
 

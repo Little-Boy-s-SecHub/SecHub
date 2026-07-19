@@ -20,27 +20,6 @@ export default function ActivityHeatmap({ username, noWrapper }: { username?: st
     longestStreak: 0
   });
 
-  useEffect(() => {
-    async function fetchActivities() {
-      try {
-        const res = username 
-          ? await api.growth.getPublicActivities(username)
-          : await api.users.getActivities();
-        if (res.success && res.data) {
-          const data: Activity[] = res.data;
-          setActivities(data);
-          calculateStreaks(data);
-        }
-      } catch (e) {
-        console.error('Failed to fetch user activities:', e);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchActivities();
-  }, [username]);
-
   function calculateStreaks(data: Activity[]) {
     if (!data || data.length === 0) return;
 
@@ -125,6 +104,29 @@ export default function ActivityHeatmap({ username, noWrapper }: { username?: st
       longestStreak: Math.max(longest, current)
     });
   }
+
+  useEffect(() => {
+    async function fetchActivities() {
+      try {
+        const res = username 
+          ? await api.growth.getPublicActivities(username)
+          : await api.users.getActivities();
+        if (res.success && res.data) {
+          const data: Activity[] = res.data;
+          setActivities(data);
+          calculateStreaks(data);
+        }
+      } catch (e) {
+        console.error('Failed to fetch user activities:', e);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchActivities();
+  }, [username]);
+
+
 
   // Generate 365 days grid starting 364 days ago aligned to Sunday
   const generateGrid = () => {

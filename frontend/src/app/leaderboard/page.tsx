@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import NextLink from 'next/link';
-import { Trophy, Crown, ArrowLeft, ArrowRight, Award, Shield, User, Loader2, Sparkles } from 'lucide-react';
-import { api, LeaderboardEntry, GrowthOverview } from '@/lib/api';
+import { Trophy, Crown, Loader2 } from 'lucide-react';
+import { api, LeaderboardEntry } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/context/LanguageContext';
 import PageBackLink from '@/components/PageBackLink';
@@ -14,7 +14,7 @@ export default function LeaderboardPage() {
   const [track, setTrack] = useState<string>(''); // empty means ALL
   const [leaders, setLeaders] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [growth, setGrowth] = useState<GrowthOverview | null>(null);
+  const [_growth, setGrowth] = useState<any | null>(null);
   const currentUser = api.auth.getCurrentUser();
 
   useEffect(() => {

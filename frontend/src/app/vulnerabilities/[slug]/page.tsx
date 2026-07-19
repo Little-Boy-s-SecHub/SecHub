@@ -2,20 +2,12 @@
 
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
 import { 
   BookOpen, 
-  Settings, 
   Unlock, 
-  Code, 
-  AlertTriangle, 
-  CheckCircle2, 
   ShieldAlert, 
-  Check, 
   FlaskConical, 
   Clock, 
-  Bookmark, 
-  ChevronRight,
   AlertCircle
 } from 'lucide-react';
 import { api, Vulnerability, Lab } from '@/lib/api';
@@ -46,8 +38,9 @@ export default function VulnerabilityDetailPage({ params }: { params: Promise<{ 
         } else {
           setError(language === 'vi' ? 'Không tìm thấy thông tin lỗ hổng bảo mật.' : 'Vulnerability information not found.');
         }
-      } catch (e: any) {
-        setError(e.message || (language === 'vi' ? 'Lỗi khi tải dữ liệu lỗ hổng.' : 'Error loading vulnerability details.'));
+      } catch (e: unknown) {
+        const err = e as Error;
+        setError(err.message || (language === 'vi' ? 'Lỗi khi tải dữ liệu lỗ hổng.' : 'Error loading vulnerability details.'));
       } finally {
         setLoading(false);
       }

@@ -37,8 +37,8 @@ export default function RegisterPage() {
     try {
       await register(username, email, password);
       router.push('/');
-    } catch (err: any) {
-      setError(err.message || (language === 'vi' ? 'Đăng ký thất bại. Tên đăng nhập hoặc email có thể đã được sử dụng.' : 'Registration failed. The username or email may already be in use.'));
+    } catch (err: Error | unknown) {
+      setError((err as Error).message || (language === 'vi' ? 'Đăng ký thất bại. Tên đăng nhập hoặc email có thể đã được sử dụng.' : 'Registration failed. The username or email may already be in use.'));
     } finally {
       setLoading(false);
     }

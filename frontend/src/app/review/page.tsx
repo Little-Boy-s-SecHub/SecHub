@@ -13,7 +13,7 @@ type Result = { correct: boolean; correctAnswer: string; explanation: string; ne
 export default function ReviewPage() {
   const router = useRouter();
   const { isAuthenticated, loading: authLoading } = useAuth();
-  const { t, language } = useTranslation();
+  const { language } = useTranslation();
   const [dashboard, setDashboard] = useState<ReviewDashboard | null>(null);
   const [cards, setCards] = useState<Flashcard[]>([]);
   const [index, setIndex] = useState(0);
@@ -42,7 +42,7 @@ export default function ReviewPage() {
     try {
       const response = await api.review.answer(card.id, answer, rating);
       setResult(response.data);
-    } catch (e: any) { setError(e.message); }
+    } catch (e: Error | unknown) { setError((e as Error).message); }
     finally { setSubmitting(false); }
   };
 
@@ -56,7 +56,7 @@ export default function ReviewPage() {
     try {
       const response = await api.review.getDailyLab();
       router.push(`/labs/${response.data.id}`);
-    } catch (e: any) { setError(e.message); setDailyLoading(false); }
+    } catch (e: Error | unknown) { setError((e as Error).message); setDailyLoading(false); }
   };
 
   if (loading || authLoading) return <div className="review-loading"><LoaderCircle className="spin" /> {language === 'vi' ? 'Đang chuẩn bị bộ ôn tập...' : 'Preparing review cards...'}</div>;

@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import NextLink from 'next/link';
 import { 
-  Lock, 
   FlaskConical, 
   BookOpen, 
   ShieldAlert, 
@@ -11,27 +10,22 @@ import {
   RotateCw, 
   Clock, 
   Trophy, 
-  Link as LinkIcon,
   ArrowRight,
   MonitorPlay,
   Flame,
   Snowflake,
   CalendarDays,
-  Bell,
   TrendingUp,
-  Sparkles,
   Award,
   ShieldCheck,
-  Crown,
   AlertTriangle,
   Target,
   Lightbulb
 } from 'lucide-react';
-import { api, Vulnerability, LearningPath, Lab, LabAttempt, ResumeLearning, GrowthOverview, LeaderboardEntry, parseBackendDate } from '@/lib/api';
+import { api, Vulnerability, LearningPath, LabAttempt, ResumeLearning, GrowthOverview, LeaderboardEntry, parseBackendDate } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/context/LanguageContext';
 import VulnIcon from '@/components/VulnIcon';
-import ActivityHeatmap from '@/components/ActivityHeatmap';
 import NewUserOnboarding from '@/components/NewUserOnboarding';
 import { useRouter } from 'next/navigation';
 
@@ -264,8 +258,8 @@ export default function DashboardPage() {
     try {
       const res = await api.growth.getWeeklyLab();
       router.push(`/labs/${res.data.id}/play`);
-    } catch (e: any) {
-      alert(e.message || (language === 'vi' ? 'Chưa thể mở thử thách tuần.' : 'Cannot open weekly challenge at this time.'));
+    } catch (e: Error | unknown) {
+      alert((e as Error).message || (language === 'vi' ? 'Chưa thể mở thử thách tuần.' : 'Cannot open weekly challenge at this time.'));
       setOpeningWeekly(false);
     }
   };

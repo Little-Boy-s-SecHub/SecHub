@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/context/LanguageContext';
-import { ArrowLeft, Award, Share2, ShieldCheck, Briefcase, Copy, FileText, Check, ExternalLink, Trophy } from 'lucide-react';
+import { ArrowLeft, Award, Share2, ShieldCheck, Briefcase, Copy, FileText, Check, Trophy } from 'lucide-react';
 import { api, PublicProfile } from '@/lib/api';
 import ActivityHeatmap from '@/components/ActivityHeatmap';
 
@@ -17,7 +17,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [printMode, setPrintMode] = useState<'certificate' | 'cv'>('certificate');
+  const [_printMode, setPrintMode] = useState<'certificate' | 'cv'>('certificate');
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {

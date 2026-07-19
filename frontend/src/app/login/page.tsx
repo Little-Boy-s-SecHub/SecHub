@@ -30,8 +30,8 @@ export default function LoginPage() {
     try {
       await login(username, password);
       router.push('/');
-    } catch (err: any) {
-      setError(err.message || (language === 'vi' ? 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.' : 'Login failed. Please check your credentials.'));
+    } catch (err: Error | unknown) {
+      setError((err as Error).message || (language === 'vi' ? 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.' : 'Login failed. Please check your credentials.'));
     } finally {
       setLoading(false);
     }

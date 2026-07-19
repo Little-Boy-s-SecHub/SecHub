@@ -192,7 +192,7 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
       } else {
         setPasswordError(data.message || (language === 'vi' ? 'Mật khẩu hiện tại chưa chính xác' : 'Incorrect current password'));
       }
-    } catch (err) {
+    } catch (_err) {
       setPasswordError(language === 'vi' ? 'Có lỗi xảy ra, vui lòng thử lại' : 'An error occurred, please try again');
     } finally {
       setPasswordLoading(false);
@@ -226,7 +226,7 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
       } else {
         setAvatarError(data.message || (language === 'vi' ? 'Cập nhật không thành công' : 'Update failed'));
       }
-    } catch (err) {
+    } catch (_err) {
       setAvatarError(language === 'vi' ? 'Có lỗi xảy ra, vui lòng thử lại' : 'An error occurred, please try again');
     } finally {
       setAvatarLoading(false);
@@ -527,7 +527,8 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
                   flexShrink: 0
                 }} title={user?.email}>
                   {user?.avatarUrl && (user.avatarUrl.startsWith('http') || user.avatarUrl.startsWith('/')) ? (
-                    <img src={user.avatarUrl} alt={user.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={user.avatarUrl} alt={user.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
                     user ? getInitials(user.username) : 'U'
                   )}

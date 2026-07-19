@@ -48,7 +48,7 @@ export default function LabGameView({
   apiError,
   onSimulatedSuccess
 }: LabGameViewProps) {
-  const { t, language } = useTranslation();
+  const { language } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Game engine refs (for 60fps lag-free rendering and zero stale closures)
@@ -77,14 +77,7 @@ export default function LabGameView({
   // Redraw state triggers to sync active label states in React
   const [activeNpcNameState, setActiveNpcNameState] = useState<string | null>(null);
 
-  // Reset overlay when flagResult changes
-  useEffect(() => {
-    if (flagResult === 'correct') {
-      setIsSubmitting(false);
-    } else if (flagResult === 'wrong') {
-      setIsSubmitting(false);
-    }
-  }, [flagResult]);
+
 
   // Map obstacles definitions (bounding boxes)
   const obstacleLabels = language === 'vi'
@@ -256,8 +249,8 @@ export default function LabGameView({
         setTimeout(() => {
           triggerDialogue(hints[revealedHints], false);
         }, 800);
-      } catch (e: any) {
-        triggerDialogue(`${language === 'vi' ? 'Lỗi' : 'Error'}: ${e.message || (language === 'vi' ? 'Không thể mở gợi ý' : 'Could not unlock hint')}`, false);
+      } catch (e: unknown) {
+        triggerDialogue(`${language === 'vi' ? 'Lỗi' : 'Error'}: ${(e as Error).message || (language === 'vi' ? 'Không thể mở gợi ý' : 'Could not unlock hint')}`, false);
       }
     }
   };
@@ -267,7 +260,7 @@ export default function LabGameView({
     setIsSubmitting(true);
     try {
       await onSubmitFlag(localFlag);
-    } catch (e) {
+    } catch (_e) {
       setIsSubmitting(false);
     }
   };
@@ -1304,7 +1297,7 @@ export default function LabGameView({
           // ── SECURITY MENTOR (Hacker/Expert character) ──
           const color = npc.color;
           const isLocked = npc.hintIndex > revealedHints;
-          const breathe = Math.sin(now * 0.003 + npc.hintIndex * 2) * 0.5;
+
 
           // Shadow
           ctx.fillStyle = 'rgba(0,0,0,0.3)';
@@ -1556,6 +1549,7 @@ export default function LabGameView({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [revealedHints, hints, points, labStatus, isFlagOverlayOpen, isServerModalOpen]);
 
   const handleTouchStart = (key: string) => {
@@ -1584,6 +1578,8 @@ export default function LabGameView({
       }
     }
   };
+
+  const activeNpcColor = npcs.find(n => n.name === uiActiveNpcName)?.color || '#00f2fe';
 
   return (
     <div style={{ position: 'relative', width: '100%', userSelect: 'none' }}>
@@ -1801,26 +1797,26 @@ export default function LabGameView({
             left: '16px',
             right: '16px',
             background: 'rgba(5, 8, 16, 0.96)',
-            border: `2px solid ${activeNpcRef.current?.color || '#00f2fe'}`,
+            border: `2px solid ${activeNpcColor}`,
             borderRadius: '8px',
             padding: '16px 20px',
             display: 'flex',
             flexDirection: 'column',
             zIndex: 100,
-            boxShadow: `0 8px 30px rgba(0, 0, 0, 0.8), 0 0 15px ${(activeNpcRef.current?.color || '#00f2fe')}44`,
+            boxShadow: `0 8px 30px rgba(0, 0, 0, 0.8), 0 0 15px ${activeNpcColor}44`,
             backdropFilter: 'blur(8px)',
           }}>
             {/* Cyberpunk corner brackets */}
-            <div style={{ position: 'absolute', top: '4px', left: '4px', width: '8px', height: '8px', borderTop: `2px solid ${activeNpcRef.current?.color || '#00f2fe'}`, borderLeft: `2px solid ${activeNpcRef.current?.color || '#00f2fe'}` }}></div>
-            <div style={{ position: 'absolute', top: '4px', right: '4px', width: '8px', height: '8px', borderTop: `2px solid ${activeNpcRef.current?.color || '#00f2fe'}`, borderRight: `2px solid ${activeNpcRef.current?.color || '#00f2fe'}` }}></div>
-            <div style={{ position: 'absolute', bottom: '4px', left: '4px', width: '8px', height: '8px', borderBottom: `2px solid ${activeNpcRef.current?.color || '#00f2fe'}`, borderLeft: `2px solid ${activeNpcRef.current?.color || '#00f2fe'}` }}></div>
-            <div style={{ position: 'absolute', bottom: '4px', right: '4px', width: '8px', height: '8px', borderBottom: `2px solid ${activeNpcRef.current?.color || '#00f2fe'}`, borderRight: `2px solid ${activeNpcRef.current?.color || '#00f2fe'}` }}></div>
+            <div style={{ position: 'absolute', top: '4px', left: '4px', width: '8px', height: '8px', borderTop: `2px solid ${activeNpcColor}`, borderLeft: `2px solid ${activeNpcColor}` }}></div>
+            <div style={{ position: 'absolute', top: '4px', right: '4px', width: '8px', height: '8px', borderTop: `2px solid ${activeNpcColor}`, borderRight: `2px solid ${activeNpcColor}` }}></div>
+            <div style={{ position: 'absolute', bottom: '4px', left: '4px', width: '8px', height: '8px', borderBottom: `2px solid ${activeNpcColor}`, borderLeft: `2px solid ${activeNpcColor}` }}></div>
+            <div style={{ position: 'absolute', bottom: '4px', right: '4px', width: '8px', height: '8px', borderBottom: `2px solid ${activeNpcColor}`, borderRight: `2px solid ${activeNpcColor}` }}></div>
 
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <div style={{
                 fontSize: '11px',
                 fontWeight: 900,
-                color: activeNpcRef.current?.color || '#00f2fe',
+                color: activeNpcColor,
                 fontFamily: '"Courier New", Courier, monospace',
                 marginBottom: '8px',
                 textTransform: 'uppercase',
@@ -1828,10 +1824,10 @@ export default function LabGameView({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                textShadow: `0 0 5px ${(activeNpcRef.current?.color || '#00f2fe')}88`,
+                textShadow: `0 0 5px ${activeNpcColor}88`,
               }}>
-                <span style={{ display: 'inline-block', width: '8px', height: '8px', background: activeNpcRef.current?.color || '#00f2fe', borderRadius: '50%', boxShadow: `0 0 8px ${activeNpcRef.current?.color || '#00f2fe'}` }}></span>
-                {activeNpcRef.current?.name || 'HACKER GUIDE'}
+                <span style={{ display: 'inline-block', width: '8px', height: '8px', background: activeNpcColor, borderRadius: '50%', boxShadow: `0 0 8px ${activeNpcColor}` }}></span>
+                {uiActiveNpcName || 'HACKER GUIDE'}
               </div>
               <p style={{
                 fontSize: '13px',
@@ -1844,7 +1840,7 @@ export default function LabGameView({
               }}>
                 {typedText}
                 {typingIndex < dialogue.text.length && (
-                  <span style={{ display: 'inline-block', width: '8px', height: '14px', background: activeNpcRef.current?.color || '#00f2fe', marginLeft: '2px', animation: 'blink 0.8s step-end infinite', boxShadow: `0 0 6px ${activeNpcRef.current?.color || '#00f2fe'}` }}></span>
+                  <span style={{ display: 'inline-block', width: '8px', height: '14px', background: activeNpcColor, marginLeft: '2px', animation: 'blink 0.8s step-end infinite', boxShadow: `0 0 6px ${activeNpcColor}` }}></span>
                 )}
               </p>
 

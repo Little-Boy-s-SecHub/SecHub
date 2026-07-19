@@ -53,8 +53,8 @@ export default function PersonalProfilePage() {
       const res = await api.growth.updateRecommendedTrack(newTrack);
       setGrowth(res.data);
       alert(language === 'vi' ? 'Đã cập nhật Lộ trình khuyến nghị thành công!' : 'Recommended path updated successfully!');
-    } catch (e: any) {
-      alert(e.message || (language === 'vi' ? 'Không thể cập nhật lộ trình.' : 'Cannot update path.'));
+    } catch (e: Error | unknown) {
+      alert((e as Error).message || (language === 'vi' ? 'Không thể cập nhật lộ trình.' : 'Cannot update path.'));
     } finally {
       setUpdatingTrack(false);
     }
@@ -66,8 +66,8 @@ export default function PersonalProfilePage() {
     try {
       const res = await api.users.updateNotifications(enabled);
       updateUser(res.data);
-    } catch (e: any) {
-      alert(e.message || (language === 'vi' ? 'Không thể cập nhật cài đặt thông báo.' : 'Cannot update notification settings.'));
+    } catch (e: Error | unknown) {
+      alert((e as Error).message || (language === 'vi' ? 'Không thể cập nhật cài đặt thông báo.' : 'Cannot update notification settings.'));
     } finally {
       setUpdatingNotifications(false);
     }
@@ -83,8 +83,8 @@ export default function PersonalProfilePage() {
       await api.growth.resetOnboarding();
       alert(language === 'vi' ? 'Đã thiết lập lại trạng thái đánh giá năng lực. Bạn sẽ được chuyển hướng về trang chủ để thực hiện đánh giá lại!' : 'Assessment state reset. You will be redirected to the homepage to complete it again!');
       router.push('/');
-    } catch (e: any) {
-      alert(e.message || (language === 'vi' ? 'Không thể thiết lập lại đánh giá.' : 'Failed to reset assessment.'));
+    } catch (e: Error | unknown) {
+      alert((e as Error).message || (language === 'vi' ? 'Không thể thiết lập lại đánh giá.' : 'Failed to reset assessment.'));
     } finally {
       setResetting(false);
     }

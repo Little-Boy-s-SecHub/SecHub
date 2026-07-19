@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   FlaskConical, 
   CheckCircle2, 
@@ -202,10 +202,11 @@ export default function LabsPage() {
   const [aiLanguage, setAiLanguage] = useState(language === 'vi' ? 'vi' : 'en');
 
   useEffect(() => {
-    if (showAiModal) {
-      setAiLanguage(language === 'vi' ? 'vi' : 'en');
+    const defaultLang = language === 'vi' ? 'vi' : 'en';
+    if (showAiModal && aiLanguage !== defaultLang) {
+      setAiLanguage(defaultLang);
     }
-  }, [showAiModal, language]);
+  }, [showAiModal, language, aiLanguage]);
 
   // AI Wizard States for beginners
   const [useWizard, setUseWizard] = useState(true);
@@ -220,7 +221,7 @@ export default function LabsPage() {
     { value: 'hr', label: language === 'vi' ? 'Hệ thống Quản trị Nội bộ (HR/ERP)' : 'Internal Management System (HR/ERP)' },
   ];
 
-  const getWizardOptions = (vulnSlug: string) => {
+  const getWizardOptions = useCallback((vulnSlug: string) => {
     const isVi = language === 'vi';
     switch (vulnSlug) {
       case 'sql-injection':
@@ -362,15 +363,15 @@ export default function LabsPage() {
           ]
         };
     }
-  };
+  }, [language]);
 
   const wizardOpts = getWizardOptions(aiVulnSlug);
 
   useEffect(() => {
     const opts = getWizardOptions(aiVulnSlug);
-    if (opts.features.length > 0) setWizardFeature(opts.features[0].value);
-    if (opts.goals.length > 0) setWizardGoal(opts.goals[0].value);
-  }, [aiVulnSlug]);
+    if (opts.features.length > 0 && wizardFeature !== opts.features[0].value) setWizardFeature(opts.features[0].value);
+    if (opts.goals.length > 0 && wizardGoal !== opts.goals[0].value) setWizardGoal(opts.goals[0].value);
+  }, [aiVulnSlug, getWizardOptions, wizardFeature, wizardGoal]);
 
   const getAppLabel = () => appOptions.find(o => o.value === wizardApp)?.label || '';
   const getFeatureLabel = () => wizardOpts.features.find(o => o.value === wizardFeature)?.label || '';
@@ -457,9 +458,9 @@ export default function LabsPage() {
       } else {
         throw new Error(res.message || (isVi ? 'Lỗi không rõ khi sinh bài lab từ AI.' : 'Unknown error occurred during AI lab generation.'));
       }
-    } catch (e: any) {
+    } catch (e: Error | unknown) {
       console.error(e);
-      let errorMsg = e.message || (isVi ? 'Không thể kết nối đến máy chủ hoặc API Key không hợp lệ.' : 'Failed to reach API server or invalid API key configuration.');
+      let errorMsg = (e as Error).message || (isVi ? 'Không thể kết nối đến máy chủ hoặc API Key không hợp lệ.' : 'Failed to reach API server or invalid API key configuration.');
       if (errorMsg && !isVi) {
         if (errorMsg.includes("Đã xảy ra lỗi hệ thống") || errorMsg.includes("Internal Server Error")) {
           errorMsg = "A system error occurred. Please try again later.";
@@ -502,8 +503,8 @@ export default function LabsPage() {
       await api.labs.deleteGenerated(lab.id);
       setLabs(current => current.filter(item => item.id !== lab.id));
       setMyAttempts(current => current.filter(attempt => attempt.labId !== lab.id));
-    } catch (e: any) {
-      alert(e.message || (language === 'vi' ? 'Không thể xoá bài lab.' : 'Failed to delete lab.'));
+    } catch (e: Error | unknown) {
+      alert((e as Error).message || (language === 'vi' ? 'Không thể xoá bài lab.' : 'Failed to delete lab.'));
     } finally {
       setDeletingLabId(null);
     }

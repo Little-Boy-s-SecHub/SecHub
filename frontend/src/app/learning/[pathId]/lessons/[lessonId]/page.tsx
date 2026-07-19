@@ -182,7 +182,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
           const progressRes = await api.progress.getPathProgress(pathId);
           if (progressRes.success && progressRes.data) {
             const completedMap = new Map(progressRes.data.map(p => [p.lessonId, p.completed]));
-            fetchedLessons = fetchedLessons.map((l: any) => ({
+            fetchedLessons = fetchedLessons.map((l: Lesson) => ({
               ...l,
               completed: !!completedMap.get(l.id)
             }));
@@ -192,8 +192,9 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
           }
         }
         setAllLessons(fetchedLessons);
-      } catch (e: any) {
-        setError(e.message || (language === 'vi' ? 'Lỗi khi tải dữ liệu bài học.' : 'Error loading lesson data.'));
+      } catch (e: unknown) {
+        const err = e as Error;
+        setError(err.message || (language === 'vi' ? 'Lỗi khi tải dữ liệu bài học.' : 'Error loading lesson data.'));
       } finally {
         setLoading(false);
       }
@@ -251,8 +252,9 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
         setAllLessons(prev => prev.map(l => l.id === lessonId ? { ...l, completed: true } : l));
         setShowCongrats(true);
       }
-    } catch (e: any) {
-      alert(e.message || (language === 'vi' ? 'Lỗi khi cập nhật tiến độ bài học.' : 'Failed to update lesson progress.'));
+    } catch (e: unknown) {
+      const err = e as Error;
+      alert(err.message || (language === 'vi' ? 'Lỗi khi cập nhật tiến độ bài học.' : 'Failed to update lesson progress.'));
     }
   };
 
@@ -295,8 +297,9 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
       if (result.success && result.data) {
         router.push(`/labs/${result.data.id}/play?pathId=${pathId}&lessonId=${lessonId}`);
       }
-    } catch (e: any) {
-      setLabError(e.message || (language === 'vi' ? 'Không thể tạo bài lab từ nội dung bài học.' : 'Failed to generate a lab from this lesson.'));
+    } catch (e: unknown) {
+      const err = e as Error;
+      setLabError(err.message || (language === 'vi' ? 'Không thể tạo bài lab từ nội dung bài học.' : 'Failed to generate a lab from this lesson.'));
     } finally {
       setGeneratingLab(false);
     }

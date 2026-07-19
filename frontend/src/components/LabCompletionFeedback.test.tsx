@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LabCompletionFeedback from './LabCompletionFeedback';
 
-vi.mock('next/link', () => ({ default: ({ href, children, ...props }: any) => <a href={href} {...props}>{children}</a> }));
+vi.mock('next/link', () => ({ default: ({ href, children, ...props }: Record<string, unknown> & { href: string; children: React.ReactNode }) => <a href={href} {...(props as any)}>{children}</a> }));
 
 const feedback = {
   vulnerabilityName: 'SQL Injection', summary: 'Đã khai thác truy vấn.', whyItWorked: 'Input bị nối chuỗi.',
