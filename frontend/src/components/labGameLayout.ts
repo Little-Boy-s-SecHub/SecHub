@@ -68,9 +68,7 @@ export function getHintPositions(hintCount: number) {
   const colSpacing = Math.min(160, 100 + (cols <= 2 ? 0 : 20));
 
   const rows = Math.ceil(hintCount / cols);
-  const totalWidth = (cols - 1) * colSpacing;
   const totalHeight = (rows - 1) * rowSpacing;
-  const originX = centerX - totalWidth / 2;
   const originY = startY - totalHeight / 2 + (rows > 1 ? 20 : 0);
 
   const candidates: Array<{ x: number; y: number }> = [];

@@ -192,7 +192,7 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
       } else {
         setPasswordError(data.message || (language === 'vi' ? 'Mật khẩu hiện tại chưa chính xác' : 'Incorrect current password'));
       }
-    } catch (_err) {
+    } catch {
       setPasswordError(language === 'vi' ? 'Có lỗi xảy ra, vui lòng thử lại' : 'An error occurred, please try again');
     } finally {
       setPasswordLoading(false);
@@ -226,7 +226,7 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
       } else {
         setAvatarError(data.message || (language === 'vi' ? 'Cập nhật không thành công' : 'Update failed'));
       }
-    } catch (_err) {
+    } catch {
       setAvatarError(language === 'vi' ? 'Có lỗi xảy ra, vui lòng thử lại' : 'An error occurred, please try again');
     } finally {
       setAvatarLoading(false);

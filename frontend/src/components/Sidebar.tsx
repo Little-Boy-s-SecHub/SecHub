@@ -85,6 +85,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
       <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
         {/* Logo */}
         <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img 
             src="/logo.jpg" 
             alt="SecHub Logo" 

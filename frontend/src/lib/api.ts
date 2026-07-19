@@ -255,10 +255,10 @@ async function request<T>(
   });
 
   const text = await response.text();
-  let json: any = {};
+  let json: Record<string, unknown> = {};
   try {
     json = text ? JSON.parse(text) : {};
-  } catch (e) {
+  } catch {
     throw new Error("Không thể phân tích phản hồi từ máy chủ.");
   }
 
@@ -381,17 +381,17 @@ export const api = {
   learningPaths: {
     getAll: () => request<LearningPath[]>("/learning-paths"),
     getById: (id: string) => request<LearningPath>(`/learning-paths/${id}`),
-    getLessons: (id: string) => request<any[]>(`/learning-paths/${id}/lessons`),
+    getLessons: (id: string) => request<unknown[]>(`/learning-paths/${id}/lessons`),
   },
 
   lessons: {
-    getById: (id: string) => request<any>(`/lessons/${id}`),
+    getById: (id: string) => request<unknown>(`/lessons/${id}`),
   },
 
   users: {
     getMe: () => request<User>("/users/me"),
-    getDashboard: () => request<any>("/users/me/dashboard"),
-    getActivities: () => request<any[]>("/users/me/activities"),
+    getDashboard: () => request<unknown>("/users/me/dashboard"),
+    getActivities: () => request<unknown[]>("/users/me/activities"),
     getResume: (onlyLesson?: boolean) => request<ResumeLearning | null>(`/users/me/resume${onlyLesson ? "?onlyLesson=true" : ""}`),
     saveLearningState: (lessonId: string, scrollProgress: number, scrollY: number) =>
       request<ResumeLearning>("/users/me/learning-state", {
@@ -415,9 +415,9 @@ export const api = {
 
   progress: {
     getPathProgress: (pathId: string) =>
-      request<any[]>(`/progress/paths/${pathId}`),
+      request<unknown[]>(`/progress/paths/${pathId}`),
     completeLesson: (lessonId: string) =>
-      request<any>(`/progress/lessons/${lessonId}/complete`, {
+      request<unknown>(`/progress/lessons/${lessonId}/complete`, {
         method: "POST",
       }),
   },
@@ -439,7 +439,7 @@ export const api = {
     getWeeklyLab: () => request<Lab>("/growth/weekly-lab", { method: "POST" }),
     createHarderVariant: (attemptId: string) => request<Lab>(`/growth/harder/${attemptId}`, { method: "POST" }),
     getPublicProfile: (username: string) => request<PublicProfile>(`/growth/public/${username}`),
-    getPublicActivities: (username: string) => request<any[]>(`/growth/public/${username}/activities`),
+    getPublicActivities: (username: string) => request<unknown[]>(`/growth/public/${username}/activities`),
     getLeaderboard: (track?: string) => request<LeaderboardEntry[]>(`/growth/leaderboard${track ? `?track=${encodeURIComponent(track)}` : ''}`),
     updateRecommendedTrack: (track: string) => request<GrowthOverview>("/growth/track", { method: "PUT", body: JSON.stringify({ track }) }),
     resetOnboarding: () => request<GrowthOverview>("/growth/reset-onboarding", { method: "POST" }),
@@ -447,7 +447,7 @@ export const api = {
   author: {
     getWorkspace: () => request<{ paths: LearningPath[]; labs: Lab[] }>("/author"),
     createPath: (body: { title: string; description: string; difficulty: string; estimatedHours: number }) => request<LearningPath>("/author/paths", { method: "POST", body: JSON.stringify(body) }),
-    addLesson: (pathId: string, body: { title: string; contentMarkdown: string; learningObjective: string; estimatedMinutes: number; vulnerabilityId?: string }) => request<any>(`/author/paths/${pathId}/lessons`, { method: "POST", body: JSON.stringify(body) }),
+    addLesson: (pathId: string, body: { title: string; contentMarkdown: string; learningObjective: string; estimatedMinutes: number; vulnerabilityId?: string }) => request<unknown>(`/author/paths/${pathId}/lessons`, { method: "POST", body: JSON.stringify(body) }),
     publishPath: (id: string) => request<void>(`/author/paths/${id}/publish`, { method: "POST" }),
     createLab: (body: { vulnerabilitySlug: string; difficulty: string; title: string; scenario: string }) => request<Lab>("/author/labs", { method: "POST", body: JSON.stringify(body) }),
     publishLab: (id: string) => request<void>(`/author/labs/${id}/publish`, { method: "POST" }),

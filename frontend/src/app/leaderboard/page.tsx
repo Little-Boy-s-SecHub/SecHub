@@ -14,7 +14,7 @@ export default function LeaderboardPage() {
   const [track, setTrack] = useState<string>(''); // empty means ALL
   const [leaders, setLeaders] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [_growth, setGrowth] = useState<any | null>(null);
+  const [, setGrowth] = useState<unknown | null>(null);
   const currentUser = api.auth.getCurrentUser();
 
   useEffect(() => {

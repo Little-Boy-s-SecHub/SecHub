@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { translations, Language } from '@/translations';
 
 interface LanguageContextType {
@@ -12,18 +12,14 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const isTest = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
-  const [language, setLanguageState] = useState<Language>(isTest ? 'vi' : 'en');
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    // Load language from localStorage on client side mount
-    const savedLanguage = localStorage.getItem('sechub_language') as Language;
-    if (savedLanguage === 'en' || savedLanguage === 'vi') {
-      setLanguageState(savedLanguage);
+  const [language, setLanguageState] = useState<Language>(() => {
+    if (typeof window !== 'undefined') {
+      const savedLanguage = localStorage.getItem('sechub_language') as Language;
+      if (savedLanguage === 'en' || savedLanguage === 'vi') return savedLanguage;
     }
-    setMounted(true);
-  }, []);
+    const isTest = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
+    return isTest ? 'vi' : 'en';
+  });
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
@@ -32,8 +28,8 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const t = (key: string, params?: Record<string, string | number>): string => {
     // Helper to get nested value from object
-    const getNestedValue = (obj: any, path: string) => {
-      return path.split('.').reduce((acc, part) => acc && acc[part], obj);
+    const getNestedValue = (obj: unknown, path: string) => {
+      return path.split('.').reduce((acc: unknown, part) => (acc as Record<string, unknown>)?.[part], obj);
     };
 
     // 1. Get from current language
@@ -74,8 +70,8 @@ export const useTranslation = () => {
     const isTest = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
     const fallbackLang: Language = isTest ? 'vi' : 'en';
     const fallbackT = (key: string, params?: Record<string, string | number>): string => {
-      const getNestedValue = (obj: any, path: string) => {
-        return path.split('.').reduce((acc, part) => acc && acc[part], obj);
+      const getNestedValue = (obj: unknown, path: string) => {
+        return path.split('.').reduce((acc: unknown, part) => (acc as Record<string, unknown>)?.[part], obj);
       };
       let val = getNestedValue(translations[fallbackLang], key);
       if (val === undefined && fallbackLang !== 'en') {

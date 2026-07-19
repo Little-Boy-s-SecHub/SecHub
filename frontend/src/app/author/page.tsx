@@ -29,7 +29,7 @@ export default function AuthorStudioPage() {
 
   const run = async (action: () => Promise<unknown>) => {
     setBusy(true); setError(null);
-    try { await action(); await load() } catch (e: any) { setError(e.message) } finally { setBusy(false) }
+    try { await action(); await load() } catch (e: unknown) { setError(e instanceof Error ? e.message : String(e)) } finally { setBusy(false) }
   };
 
   if (authLoading || !user) return <div className="growth-loading">{language === 'vi' ? 'Đang kiểm tra quyền tác giả...' : 'Verifying author privileges...'}</div>;

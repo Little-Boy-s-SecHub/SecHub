@@ -3,26 +3,24 @@
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { 
-  Trophy, 
-  MonitorPlay, 
-  FlaskConical, 
-  Play, 
-  CheckCircle2, 
-  Flag, 
-  AlertCircle, 
-  Target, 
-  Lightbulb, 
-  Lock, 
+import {
+  ArrowLeft,
+  Clock3,
+  TimerReset,
+  RotateCcw,
+  Sparkles,
+  Trophy,
+  FlaskConical,
+  AlertCircle,
+  LayoutGrid,
+  Gamepad2,
+  Target,
+  Lightbulb,
+  Lock,
   ChevronDown,
   ChevronRight,
-  Gamepad2,
-  LayoutGrid,
-  ArrowLeft
-  ,Clock3
-  ,TimerReset
-  ,RotateCcw
-  ,Sparkles
+  Flag,
+  CheckCircle2,
 } from 'lucide-react';
 import { api, Lab, LabAttempt, LabFeedback, MentorGuidance, resolveApiUrl, parseBackendDate } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
@@ -56,8 +54,20 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
   const [mentor, setMentor] = useState<MentorGuidance | null>(null);
   const [askingMentor, setAskingMentor] = useState(false);
   const [creatingHarder, setCreatingHarder] = useState(false);
-  const [pathId, setPathId] = useState<string | null>(null);
-  const [lessonId, setLessonId] = useState<string | null>(null);
+  const [pathId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      return searchParams.get('pathId');
+    }
+    return null;
+  });
+  const [lessonId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      return searchParams.get('lessonId');
+    }
+    return null;
+  });
   const labNotFound = apiError?.includes('Không tìm thấy Lab') || apiError?.includes('404');
 
   const defaultHints = [
@@ -75,13 +85,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
     }
   }
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const searchParams = new URLSearchParams(window.location.search);
-      setPathId(searchParams.get('pathId'));
-      setLessonId(searchParams.get('lessonId'));
-    }
-  }, []);
+
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -142,8 +146,8 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
             }
           }
         }
-      } catch (e: any) {
-        setApiError(e.message || (language === 'vi' ? 'Đã xảy ra lỗi khi kết nối máy chủ.' : 'An error occurred while connecting to the server.'));
+      } catch (e: unknown) {
+        setApiError(e instanceof Error ? e.message : (language === 'vi' ? 'Đã xảy ra lỗi khi kết nối máy chủ.' : 'An error occurred while connecting to the server.'));
       } finally {
         setLoading(false);
       }
@@ -152,7 +156,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
     if (isAuthenticated) {
       loadLabData();
     }
-  }, [labId, isAuthenticated, authLoading, router]);
+  }, [labId, isAuthenticated, authLoading, router, language]);
 
   useEffect(() => {
     if (labStatus !== 'running' || !currentAttempt?.expiresAt) return;
@@ -181,7 +185,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
       }
     }, 10000);
     return () => window.clearInterval(poll);
-  }, [currentAttempt?.id, labId, labStatus]);
+  }, [currentAttempt, currentAttempt?.id, labId, labStatus]);
 
   useEffect(() => {
     if (labStatus !== 'running' || !lab?.generated || !currentAttempt?.runtimeUrl) return;
@@ -200,7 +204,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
     checkRuntime();
     const timer = window.setInterval(checkRuntime, 5000);
     return () => window.clearInterval(timer);
-  }, [currentAttempt?.runtimeUrl, lab?.generated, labStatus, runtimeCheck]);
+  }, [currentAttempt?.runtimeUrl, lab?.generated, labStatus, runtimeCheck, language]);
 
   const handleExtendTime = async () => {
     if (!currentAttempt) return;
@@ -208,8 +212,8 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
     try {
       const res = await api.labs.extendTime(currentAttempt.id);
       if (res.success) setCurrentAttempt(res.data);
-    } catch (e: any) {
-      alert(e.message || (language === 'vi' ? 'Không thể gia hạn phiên lab.' : 'Failed to extend lab session.'));
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : (language === 'vi' ? 'Không thể gia hạn phiên lab.' : 'Failed to extend lab session.'));
     } finally {
       setExtending(false);
     }
@@ -225,9 +229,9 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
       setFlagResult(null);
       setCompletionFeedback(null);
       setLabStatus('running');
-    } catch (e: any) {
+    } catch (e: unknown) {
       setLabStatus('expired');
-      alert(e.message || (language === 'vi' ? 'Không thể khởi động lại lab.' : 'Failed to restart lab.'));
+      alert(e instanceof Error ? e.message : (language === 'vi' ? 'Không thể khởi động lại lab.' : 'Failed to restart lab.'));
     }
   };
 
@@ -244,8 +248,8 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
         language
       );
       router.push(`/labs/${res.data.id}/play${pathId && lessonId ? `?pathId=${pathId}&lessonId=${lessonId}` : ''}`);
-    } catch (e: any) {
-      alert(e.message || (language === 'vi' ? 'Không thể tạo lab tương tự.' : 'Failed to generate a similar lab.'));
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : (language === 'vi' ? 'Không thể tạo lab tương tự.' : 'Failed to generate a similar lab.'));
     } finally {
       setCreatingSimilar(false);
     }
@@ -260,8 +264,8 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
         setCurrentAttempt(res.data);
         setOpenHintIndexes(prev => new Set(prev).add(res.data.hintsUsed - 1));
       }
-    } catch (e: any) {
-      setApiError(e.message || (language === 'vi' ? 'Không thể tải gợi ý.' : 'Failed to load hints.'));
+    } catch (e: unknown) {
+      setApiError(e instanceof Error ? e.message : (language === 'vi' ? 'Không thể tải gợi ý.' : 'Failed to load hints.'));
     }
   };
 
@@ -272,7 +276,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
       const guidance = (await api.labs.getMentor(currentAttempt.id)).data;
       setMentor(guidance);
     }
-    catch (e: any) { setApiError(e.message || (language === 'vi' ? 'Mentor chưa thể phản hồi.' : 'Mentor cannot respond right now.')); }
+    catch (e: unknown) { setApiError(e instanceof Error ? e.message : (language === 'vi' ? 'Mentor chưa thể phản hồi.' : 'Mentor cannot respond right now.')); }
     finally { setAskingMentor(false); }
   };
 
@@ -283,7 +287,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
       const res = await api.growth.createHarderVariant(currentAttempt.id);
       router.push(`/labs/${res.data.id}/play${pathId && lessonId ? `?pathId=${pathId}&lessonId=${lessonId}` : ''}`);
     }
-    catch (e: any) { setApiError(e.message || (language === 'vi' ? 'Không thể tạo bản khó hơn.' : 'Failed to generate a harder version.')); setCreatingHarder(false); }
+    catch (e: unknown) { setApiError(e instanceof Error ? e.message : (language === 'vi' ? 'Không thể tạo bản khó hơn.' : 'Failed to generate a harder version.')); setCreatingHarder(false); }
   };
 
   const handleSimulatedSuccess = (foundFlag: string) => {
@@ -313,7 +317,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
       } else {
         setFlagResult('wrong');
       }
-    } catch (e: any) {
+    } catch {
       setFlagResult('wrong');
     }
   };

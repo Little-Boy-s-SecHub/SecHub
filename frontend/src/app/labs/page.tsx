@@ -204,6 +204,7 @@ export default function LabsPage() {
   useEffect(() => {
     const defaultLang = language === 'vi' ? 'vi' : 'en';
     if (showAiModal && aiLanguage !== defaultLang) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAiLanguage(defaultLang);
     }
   }, [showAiModal, language, aiLanguage]);
@@ -369,8 +370,13 @@ export default function LabsPage() {
 
   useEffect(() => {
     const opts = getWizardOptions(aiVulnSlug);
-    if (opts.features.length > 0 && wizardFeature !== opts.features[0].value) setWizardFeature(opts.features[0].value);
-    if (opts.goals.length > 0 && wizardGoal !== opts.goals[0].value) setWizardGoal(opts.goals[0].value);
+    if (opts.features.length > 0 && wizardFeature !== opts.features[0].value) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setWizardFeature(opts.features[0].value);
+    }
+    if (opts.goals.length > 0 && wizardGoal !== opts.goals[0].value) {
+      setWizardGoal(opts.goals[0].value);
+    }
   }, [aiVulnSlug, getWizardOptions, wizardFeature, wizardGoal]);
 
   const getAppLabel = () => appOptions.find(o => o.value === wizardApp)?.label || '';

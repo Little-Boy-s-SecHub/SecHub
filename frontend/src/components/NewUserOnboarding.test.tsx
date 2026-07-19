@@ -7,7 +7,7 @@ vi.mock('@/lib/api', () => ({ api: { growth: { submitAssessment: vi.fn() } } }))
 
 describe('NewUserOnboarding', () => {
   it('yêu cầu trả lời tuần tự đủ 5 câu rồi lưu kết quả', async () => {
-    const overview = { onboardingRequired: false, recommendedTrack: 'BEGINNER' } as any;
+    const overview = { onboardingRequired: false, recommendedTrack: 'BEGINNER' } as unknown;
     vi.mocked(api.growth.submitAssessment).mockResolvedValue({ success: true, data: overview });
     const complete = vi.fn(); render(<NewUserOnboarding onComplete={complete} />);
     for (let index = 0; index < 5; index++) {

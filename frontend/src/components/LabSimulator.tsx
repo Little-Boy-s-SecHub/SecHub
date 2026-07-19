@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Terminal, Shield, Play, Search, ArrowRight, User } from 'lucide-react';
+import { Shield, Search, User } from 'lucide-react';
 import { useTranslation } from '@/context/LanguageContext';
 
 interface LabSimulatorProps {
@@ -171,9 +171,9 @@ function SqliLoginSimulator({ flag, onSuccess }: { flag: string; onSuccess: (fla
    2. UNION-based SQL Injection Simulator (Port 8082)
    ============================================================================ */
 function SqliUnionSimulator({ flag, onSuccess }: { flag: string; onSuccess: (flag: string) => void }) {
-  const { t, language } = useTranslation();
+  const { language } = useTranslation();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<Record<string, string>[]>([]);
   const [sqlError, setSqlError] = useState<string | null>(null);
 
   const handleSearch = () => {
@@ -280,7 +280,7 @@ function SqliUnionSimulator({ flag, onSuccess }: { flag: string; onSuccess: (fla
    3. Blind SQL Injection Simulator (Port 8083)
    ============================================================================ */
 function BlindSqliSimulator({ flag, onSuccess }: { flag: string; onSuccess: (flag: string) => void }) {
-  const { t, language } = useTranslation();
+  const { language } = useTranslation();
   const [id, setId] = useState('');
   const [exists, setExists] = useState<boolean | null>(null);
   const [timeTaken, setTimeTaken] = useState<number | null>(null);
@@ -370,7 +370,7 @@ function BlindSqliSimulator({ flag, onSuccess }: { flag: string; onSuccess: (fla
    4. Cross-Site Scripting (XSS) Simulator (Port 8084)
    ============================================================================ */
 function XssSearchSimulator({ flag, onSuccess }: { flag: string; onSuccess: (flag: string) => void }) {
-  const { t, language } = useTranslation();
+  const { language } = useTranslation();
   const [search, setSearch] = useState('');
   const [renderedResult, setRenderedResult] = useState<string | null>(null);
   const [xssTriggered, setXssTriggered] = useState(false);
@@ -455,9 +455,9 @@ function XssSearchSimulator({ flag, onSuccess }: { flag: string; onSuccess: (fla
    5. IDOR Profile Simulator (Port 8087)
    ============================================================================ */
 function IdorProfileSimulator({ flag, onSuccess }: { flag: string; onSuccess: (flag: string) => void }) {
-  const { t, language } = useTranslation();
+  const { language } = useTranslation();
   const [profileId, setProfileId] = useState('10');
-  const [profileData, setProfileData] = useState<any>({
+  const [profileData, setProfileData] = useState<Record<string, unknown>>({
     id: '10',
     name: 'Student Tester',
     email: 'student@sechub.vn',
@@ -545,7 +545,7 @@ function IdorProfileSimulator({ flag, onSuccess }: { flag: string; onSuccess: (f
    6. Command Injection Simulator (Port 8090)
    ============================================================================ */
 function CmdiPingSimulator({ flag, onSuccess }: { flag: string; onSuccess: (flag: string) => void }) {
-  const { t, language } = useTranslation();
+  const { language } = useTranslation();
   const [ip, setIp] = useState('');
   const [terminalOutput, setTerminalOutput] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -630,7 +630,7 @@ function CmdiPingSimulator({ flag, onSuccess }: { flag: string; onSuccess: (flag
    7. General Terminal Simulator (Fallback)
    ============================================================================ */
 function GeneralTerminalSimulator({ flag, dockerPort, onSuccess }: { flag: string; dockerPort: number; onSuccess: (flag: string) => void }) {
-  const { t, language } = useTranslation();
+  const { language } = useTranslation();
   const [input, setInput] = useState('');
   const [history, setHistory] = useState<string[]>(() => [
     language === 'vi' ? 'Chào mừng đến với Sandbox giả lập SecHub.' : 'Welcome to the SecHub Simulation Sandbox.',

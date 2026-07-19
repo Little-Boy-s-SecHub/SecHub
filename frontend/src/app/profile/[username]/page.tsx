@@ -17,7 +17,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [_printMode, setPrintMode] = useState<'certificate' | 'cv'>('certificate');
+  const [, setPrintMode] = useState<'certificate' | 'cv'>('certificate');
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {

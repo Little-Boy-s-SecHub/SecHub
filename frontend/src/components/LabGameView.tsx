@@ -260,7 +260,7 @@ export default function LabGameView({
     setIsSubmitting(true);
     try {
       await onSubmitFlag(localFlag);
-    } catch (_e) {
+    } catch {
       setIsSubmitting(false);
     }
   };

@@ -43,8 +43,8 @@ export default function NewUserOnboarding({ onComplete }: { onComplete: (overvie
     try {
       const response = await api.growth.submitAssessment(answers);
       setResult(response.data);
-    } catch (e: any) {
-      setError(e.message || (language === 'vi' ? 'Không thể lưu kết quả.' : 'Failed to save results.'));
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : (language === 'vi' ? 'Không thể lưu kết quả.' : 'Failed to save results.'));
       setSaving(false);
     }
   };

@@ -51,14 +51,14 @@ export default function GrowthPage() {
     }
     setSubmitting(true); setError(null);
     try { setOverview((await api.growth.submitAssessment(answers)).data); }
-    catch (e: any) { setError(e.message); }
+    catch (e: unknown) { setError(e instanceof Error ? e.message : String(e)); }
     finally { setSubmitting(false); }
   };
 
   const openWeeklyLab = async () => {
     setSubmitting(true); setError(null);
     try { router.push(`/labs/${(await api.growth.getWeeklyLab()).data.id}`); }
-    catch (e: any) { setError(e.message); }
+    catch (e: unknown) { setError(e instanceof Error ? e.message : String(e)); }
     finally { setSubmitting(false); }
   };
 

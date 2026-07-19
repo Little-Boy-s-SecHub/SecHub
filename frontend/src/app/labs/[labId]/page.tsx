@@ -12,31 +12,14 @@ import {
   Play, 
   CheckCircle2, 
   Square, 
-  Globe, 
-  Flag, 
   AlertCircle, 
   Target, 
-  Lightbulb, 
-  Lock, 
   BookOpen,
-  ChevronDown,
-  ChevronRight,
-  RotateCw,
-  Gamepad2,
-  LayoutGrid
+  RotateCw
 } from 'lucide-react';
 import { api, Lab, LabAttempt, parseBackendDate } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/context/LanguageContext';
-import LabSimulator from '@/components/LabSimulator';
-import LabGameView from '@/components/LabGameView';
-
-// Fallback hints
-const defaultHints = [
-  'Gợi ý 1: Quan sát kỹ các input fields và URL parameters.',
-  'Gợi ý 2: Sử dụng Burp Suite để intercept và modify requests.',
-  'Gợi ý 3: Kiểm tra source code HTML để tìm thông tin ẩn.',
-];
 
 export default function LabDetailPage({ params }: { params: Promise<{ labId: string }> }) {
   const { labId } = use(params);
@@ -47,12 +30,10 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
   const [lab, setLab] = useState<Lab | null>(null);
   const [currentAttempt, setCurrentAttempt] = useState<LabAttempt | null>(null);
   const [labStatus, setLabStatus] = useState<'idle' | 'starting' | 'running' | 'completed'>('idle');
-  const [flagValue, setFlagValue] = useState('');
-  const [flagResult, setFlagResult] = useState<'correct' | 'wrong' | null>(null);
-  const [revealedHints, setRevealedHints] = useState(0);
+  const [, setFlagValue] = useState('');
+  const [, setRevealedHints] = useState(0);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'standard' | 'game'>('standard');
   const labNotFound = apiError?.includes('Không tìm thấy Lab') || apiError?.includes('404');
 
   useEffect(() => {
@@ -84,15 +65,15 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
             }
           }
         }
-      } catch (e: any) {
-        setApiError(e.message || (language === 'vi' ? 'Lỗi khi tải dữ liệu lab.' : 'Error loading lab data.'));
+      } catch (e: unknown) {
+        setApiError(e instanceof Error ? e.message : (language === 'vi' ? 'Lỗi khi tải dữ liệu lab.' : 'Error loading lab data.'));
       } finally {
         setLoading(false);
       }
     }
 
     loadLabData();
-  }, [labId, isAuthenticated]);
+  }, [labId, isAuthenticated, language]);
 
   if (loading) {
     return <div style={{ textAlign: 'center', padding: 'var(--space-6)' }}>{t('common.loading')}</div>;
@@ -117,10 +98,9 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
   }
 
   // Parse hints from JSON
-  let hints = defaultHints;
   if (lab.hintsJson) {
     try {
-      hints = JSON.parse(lab.hintsJson);
+      JSON.parse(lab.hintsJson);
     } catch (e) {
       console.error('Failed to parse hints json', e);
     }
@@ -153,9 +133,9 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
         setLabStatus('idle');
         alert(res.message || (language === 'vi' ? 'Không thể khởi động lab.' : 'Could not start lab.'));
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       setLabStatus('idle');
-      alert(e.message || (language === 'vi' ? 'Lỗi khởi động lab.' : 'Error starting lab.'));
+      alert(e instanceof Error ? e.message : (language === 'vi' ? 'Lỗi khởi động lab.' : 'Error starting lab.'));
     }
   };
 
@@ -167,46 +147,10 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
       setCurrentAttempt(null);
       setRevealedHints(0);
       setFlagValue('');
-      setFlagResult(null);
-    } catch (e: any) {
-      alert(e.message || (language === 'vi' ? 'Không thể dừng lab.' : 'Could not stop lab.'));
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : (language === 'vi' ? 'Không thể dừng lab.' : 'Could not stop lab.'));
     }
   };
-
-  const handleSubmitFlag = async () => {
-    if (!currentAttempt || !flagValue.trim()) return;
-    try {
-      const res = await api.labs.submitFlag(currentAttempt.id, flagValue.trim());
-      if (res.success && res.data) {
-        setFlagResult('correct');
-        setLabStatus('completed');
-      } else {
-        setFlagResult('wrong');
-      }
-    } catch (e: any) {
-      setFlagResult('wrong');
-    }
-  };
-
-  const handleRevealHint = async () => {
-    if (!currentAttempt || revealedHints >= hints.length) return;
-    try {
-      const res = await api.labs.useHint(currentAttempt.id);
-      if (res.success && res.data) {
-        setRevealedHints(res.data.hintsUsed);
-        setCurrentAttempt(res.data);
-      }
-    } catch (e: any) {
-      alert(e.message || (language === 'vi' ? 'Không thể tải gợi ý.' : 'Could not load hints.'));
-    }
-  };
-
-  const handleSimulatedSuccess = (foundFlag: string) => {
-    setFlagValue(foundFlag);
-    setFlagResult(null); // Reset alert, let user click submit to verify
-  };
-
-  const isSimulated = currentAttempt?.containerId?.startsWith('sim-');
 
   return (
     <div>
