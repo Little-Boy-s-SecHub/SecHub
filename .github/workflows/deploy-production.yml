@@ -65,6 +65,15 @@ jobs:
         shell: bash
         run: ssh -i ~/.ssh/sechub_deploy "$VPS_USER@$VPS_HOST"
 
+      - name: Cleanup Docker and Restart Service on VPS
+        shell: bash
+        run: |
+          echo "Cleaning up Docker resources on VPS..."
+          ssh -i ~/.ssh/sechub_deploy "$VPS_USER@$VPS_HOST" "docker system prune -f || true"
+          ssh -i ~/.ssh/sechub_deploy "$VPS_USER@$VPS_HOST" "docker container prune -f || true"
+          echo "Restarting sechub service..."
+          ssh -i ~/.ssh/sechub_deploy "$VPS_USER@$VPS_HOST" "sudo systemctl restart sechub || true"
+
       - name: Wait for backend health
         shell: bash
         run: |
