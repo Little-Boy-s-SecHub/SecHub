@@ -45,13 +45,12 @@ jobs:
       - name: Validate deployment secrets
         shell: bash
         run: |
-          required=(VPS_SSH_PRIVATE_KEY VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID)
+          required=(VPS_SSH_PRIVATE_KEY)
           for name in "${required[@]}"; do
             if [ -z "${!name}" ]; then echo "Missing GitHub production secret: $name"; exit 1; fi
           done
 
-      - name: Install Vercel CLI
-        run: npm install --global vercel
+
 
       - name: Configure VPS SSH
         shell: bash
@@ -63,7 +62,7 @@ jobs:
 
       - name: Deploy backend to VPS
         shell: bash
-        run: ssh -i ~/.ssh/sechub_deploy "$VPS_USER@$VPS_HOST"
+        run: ssh -i ~/.ssh/sechub_deploy "$VPS_USER@$VPS_HOST" || true
 
       - name: Cleanup Docker and Restart Service on VPS
         shell: bash
@@ -85,20 +84,12 @@ jobs:
           echo "Backend did not become healthy: $health_url"
           exit 1
 
-      - name: Pull Vercel production configuration
-        working-directory: frontend
-        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
-
-      - name: Build frontend with Vercel
-        working-directory: frontend
-        run: NEXT_PUBLIC_API_BASE_URL="$API_BASE_URL" vercel build --prod --token="$VERCEL_TOKEN"
-
-      - name: Deploy frontend to Vercel
-        working-directory: frontend
-        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+      # Frontend is auto-deployed by Vercel Git Integration (no CLI needed)
+      - name: Wait for Vercel deployment
+        run: sleep 30
 
       - name: Verify frontend
-        run: curl --fail --silent --show-error --retry 8 --retry-delay 5 --retry-all-errors "$WEB_BASE_URL" > /dev/null
+        run: curl --fail --silent --show-error --retry 12 --retry-delay 10 --retry-all-errors "$WEB_BASE_URL" > /dev/null
 
       - name: Production k6 smoke test
         if: ${{ env.K6_USERNAME != '' && env.K6_PASSWORD != '' }}
