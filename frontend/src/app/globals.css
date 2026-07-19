@@ -1675,6 +1675,8 @@ label {
   min-height: 120px;
   max-height: 300px;
   overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .terminal-prompt { color: #7B9DE0; }

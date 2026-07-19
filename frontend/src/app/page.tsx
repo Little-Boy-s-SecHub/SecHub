@@ -582,7 +582,7 @@ export default function DashboardPage() {
       ) : (
         <>
           <section className="animate-fade-in-up" style={{ marginBottom: 'var(--space-6)' }}>
-            <div className="hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', alignItems: 'center' }}>
+            <div className="hero-grid">
               <div>
                 <h1 style={{ fontSize: '2.5rem', fontWeight: 900, lineHeight: 1.1, marginBottom: 'var(--space-2)', color: 'var(--text-heading)' }}>
                   {language === 'vi' ? (
