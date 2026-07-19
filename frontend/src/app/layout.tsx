@@ -19,7 +19,11 @@ export const metadata: Metadata = {
     icon: '/logo.jpg',
     shortcut: '/logo.jpg',
     apple: '/logo.jpg',
-  }
+  },
+  other: {
+    'color-scheme': 'light only',
+    'supported-color-schemes': 'light only',
+  },
 };
 
 export default function RootLayout({
@@ -29,7 +33,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi" className={beVietnamPro.variable} suppressHydrationWarning data-scroll-behavior="smooth" style={{ colorScheme: 'light' }}>
-      <body style={{ fontFamily: 'var(--font-sans), sans-serif' }}>
+      <head>
+        <meta name="color-scheme" content="light only" />
+        <meta name="supported-color-schemes" content="light only" />
+      </head>
+      <body style={{ fontFamily: 'var(--font-sans), sans-serif', backgroundColor: '#FAF6F0', color: '#6B5C4A' }}>
         <AuthProvider>
           <LanguageProvider>
             <AppShell>{children}</AppShell>
