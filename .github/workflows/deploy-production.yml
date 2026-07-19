@@ -24,7 +24,7 @@ jobs:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       VPS_HOST: ${{ secrets.VPS_HOST || '116.118.6.91' }}
-      VPS_USER: ${{ secrets.VPS_USER || 'root' }}
+      VPS_USER: ${{ secrets.VPS_USER || 'sechub-deploy' }}
       VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
       API_BASE_URL: https://api.littleboys.biz/api
       WEB_BASE_URL: https://sechub-academy.vercel.app
@@ -63,15 +63,7 @@ jobs:
 
       - name: Deploy backend to VPS
         shell: bash
-        run: |
-          ssh -i ~/.ssh/sechub_deploy "$VPS_USER@$VPS_HOST" 'bash -se' <<'REMOTE'
-          set -euo pipefail
-          cd /opt/SecHub
-          git fetch origin main
-          git checkout main
-          git pull --ff-only origin main
-          bash backend/deploy/deploy-vps.sh
-          REMOTE
+        run: ssh -i ~/.ssh/sechub_deploy "$VPS_USER@$VPS_HOST"
 
       - name: Wait for backend health
         shell: bash
