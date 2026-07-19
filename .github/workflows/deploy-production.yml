@@ -82,7 +82,7 @@ jobs:
 
       - name: Build frontend with Vercel
         working-directory: frontend
-        run: vercel build --prod --token="$VERCEL_TOKEN" --build-env NEXT_PUBLIC_API_BASE_URL="$API_BASE_URL"
+        run: NEXT_PUBLIC_API_BASE_URL="$API_BASE_URL" vercel build --prod --token="$VERCEL_TOKEN"
 
       - name: Deploy frontend to Vercel
         working-directory: frontend
