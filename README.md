@@ -114,6 +114,42 @@ Codex with GPT-5.6 Sol was used as a repository-aware engineering partner throug
 
 Sol was selected for this work because repository-wide debugging and architecture decisions benefit from deeper reasoning, longer context, and stronger code-review judgment. Source control, automated tests, and human review remained the release gates.
 
+### How Codex Accelerated the Workflow
+
+Codex shortened the feedback loop between an observed problem and a verified release by keeping repository context, implementation, validation, and documentation in one working session. The acceleration came from reducing repeated manual discovery and cross-layer handoffs, not from skipping engineering controls.
+
+| Workflow stage | Codex contribution | Practical impact |
+|---|---|---|
+| Context discovery | Searched frontend routes, backend services, configuration, tests, deployment workflows, and live error evidence together | Located stale Railway endpoints, CORS mismatches, authentication failures, runtime proxy issues, and conflicting model defaults without treating each symptom as an isolated bug |
+| Cross-layer implementation | Updated the Next.js UI, Spring services, runtime configuration, systemd deployment, and documentation as one coordinated change | Kept UI claims, backend behavior, environment defaults, and production settings consistent |
+| Content and data validation | Compared lesson topics, vulnerability mappings, generated-lab profiles, and synchronized content before changing generation behavior | Verified the generic executable fallback for unsupported topics and removed stale content-count assumptions from documentation |
+| Verification | Ran focused tests first, then Maven, Vitest, ESLint, Next.js builds, shell and YAML checks, Git diffs, GitHub Actions, and live health checks | Found regressions before release and produced visible evidence for each change |
+| Deployment hardening | Traced a failed GitHub Actions log through the restricted SSH flow and converted deployment into a single verified operation | Removed repeated VPS deployments, stopped destructive global Docker cleanup, and made runtime health and model checks release gates |
+| Documentation | Derived the setup guide and architecture diagrams from the implemented repository and production topology | Kept the README aligned with the system that judges can actually run and inspect |
+
+The development loop used with Codex was:
+
+1. Provide the goal, screenshots or logs, affected workflow, constraints, and definition of done.
+2. Let Codex inspect the relevant repository paths and trace the behavior across boundaries before editing.
+3. Review the proposed scope and important trade-offs, then apply focused changes using existing project patterns.
+4. Run tests, builds, static checks, and production probes; use failures as new evidence and iterate.
+5. Inspect the Git diff, commit only the intended files, push the tested revision, and monitor CI and deployment to completion.
+
+Codex did not replace source control, automated tests, or human review. It accelerated investigation and iteration while those controls remained responsible for release confidence.
+
+### Important Technical Decisions
+
+| Decision | Why it was made |
+|---|---|
+| Use GPT-5.6 Sol through Codex for engineering and GPT-5.6 Terra through the Responses API at runtime | Repository-wide debugging benefits from the quality-first engineering model, while repeated learner-facing generation benefits from Terra's balance of quality, latency, and cost |
+| Generate a strict `LabSpec` instead of accepting arbitrary model-generated application code | Structured titles, scenarios, hints, timing, and points can be validated before deterministic templates create executable artifacts |
+| Keep deterministic topic-aware lab templates as a fallback | Learners can continue practicing when an AI response is unavailable, invalid, or rate-limited |
+| Combine generated teaching content with deterministic learner analytics | Hints and review cards can adapt to lesson context, while strengths, weaknesses, scores, and recommendations remain grounded in stored activity rather than model guesses |
+| Run labs behind a token-scoped runtime proxy in isolated Docker containers | The browser never receives unrestricted container access, and each attempt can have its own flag, limits, expiry, and cleanup lifecycle |
+| Use database-backed SSE notifications with per-user preferences | Notifications are realtime and recoverable, while users who disable them do not receive created, listed, or streamed notifications |
+| Deploy the frontend on Vercel and the API on a VPS behind Nginx | This matches the required Docker runtime and systemd control while keeping the browser-facing API on a stable HTTPS origin |
+| Require tests, health checks, and an explicit runtime-model check during deployment | A green deployment confirms not only that the process started, but also that the expected GPT-5.6 Terra configuration reached the production Java process |
+
 ### GPT-5.6 Terra Inside SecHub
 
 GPT-5.6 Terra is the intended application model for runtime generation. When a learner creates a lab, SecHub sends the Responses API the lesson title, learning path, lesson content, vulnerability topic, difficulty, language, requested scenario, and learner track.
