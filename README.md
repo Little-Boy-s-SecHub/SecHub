@@ -802,6 +802,28 @@ sudo journalctl -u sechub-backend -n 100 --no-pager
 - Store OpenAI and deployment credentials only in environment variables or managed secret stores.
 - Review Codex-generated diffs and test evidence before merging or deploying them.
 
+SecHub contains intentionally vulnerable training applications and defensive
+security examples. They use fictional targets and generated flags and are
+intended only for controlled lab runtimes. The project does not authorize
+testing against third-party systems.
+
+## Licensing, Attribution, and Submission Evidence
+
+The repository includes the following review documents for OpenAI Build Week:
+
+- [Third-party notices](./THIRD_PARTY_NOTICES.md)
+- [Submission-period evidence](./docs/HACKATHON_SUBMISSION_RECORD.md)
+- [Intellectual property and asset provenance register](./docs/IP_AND_ASSET_PROVENANCE.md)
+- [Submission compliance checklist](./docs/SUBMISSION_COMPLIANCE_CHECKLIST.md)
+- [Judge testing instructions](./docs/JUDGE_TESTING_INSTRUCTIONS.md)
+- [Entrant declaration template](./docs/OPENAI_BUILD_WEEK_ENTRANT_DECLARATION_TEMPLATE.md)
+- [Contributor authorization template](./docs/CONTRIBUTOR_AUTHORIZATION_TEMPLATE.md)
+
+An authorized entrant must select and add the root project `LICENSE`, confirm
+the legal owner of the separate `Data` repository, clear the custom image assets,
+and sign the declaration before final submission. Third-party dependencies and
+services remain subject to the licenses and terms recorded in the notices.
+
 ## Project Repositories
 
 | Repository | Purpose | Primary stack |
