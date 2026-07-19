@@ -626,6 +626,7 @@ EnvironmentFile=/etc/sechub-backend.env
 ExecStart=/usr/bin/java -jar /opt/sechub/current.jar
 Restart=always
 RestartSec=5
+SuccessExitStatus=143
 
 [Install]
 WantedBy=multi-user.target

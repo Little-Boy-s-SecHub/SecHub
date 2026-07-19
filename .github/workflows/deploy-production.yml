@@ -20,9 +20,6 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       VPS_HOST: ${{ secrets.VPS_HOST || '116.118.6.91' }}
       VPS_USER: ${{ secrets.VPS_USER || 'sechub-deploy' }}
       VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
@@ -32,15 +29,9 @@ jobs:
       K6_PASSWORD: ${{ secrets.K6_PASSWORD }}
     steps:
       - name: Check out tested revision
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
 
       - name: Validate deployment secrets
         shell: bash
@@ -50,8 +41,6 @@ jobs:
             if [ -z "${!name}" ]; then echo "Missing GitHub production secret: $name"; exit 1; fi
           done
 
-
-
       - name: Configure VPS SSH
         shell: bash
         run: |
@@ -60,18 +49,14 @@ jobs:
           chmod 600 ~/.ssh/sechub_deploy
           ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
 
-      - name: Deploy backend to VPS
-        shell: bash
-        run: ssh -i ~/.ssh/sechub_deploy "$VPS_USER@$VPS_HOST" || true
-
-      - name: Cleanup Docker and Restart Service on VPS
+      - name: Deploy backend through restricted SSH command
         shell: bash
         run: |
-          echo "Cleaning up Docker resources on VPS..."
-          ssh -i ~/.ssh/sechub_deploy "$VPS_USER@$VPS_HOST" "docker system prune -f || true"
-          ssh -i ~/.ssh/sechub_deploy "$VPS_USER@$VPS_HOST" "docker container prune -f || true"
-          echo "Restarting sechub service..."
-          ssh -i ~/.ssh/sechub_deploy "$VPS_USER@$VPS_HOST" "sudo systemctl restart sechub || true"
+          ssh \
+            -o BatchMode=yes \
+            -o ConnectTimeout=20 \
+            -i ~/.ssh/sechub_deploy \
+            "$VPS_USER@$VPS_HOST"
 
       - name: Wait for backend health
         shell: bash
