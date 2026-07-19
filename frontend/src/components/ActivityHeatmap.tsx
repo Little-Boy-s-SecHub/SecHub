@@ -209,7 +209,9 @@ export default function ActivityHeatmap({ username, noWrapper }: { username?: st
       <style>{`
         .heatmap-container {
           overflow-x: auto;
+          padding-top: 32px;
           padding-bottom: 12px;
+          margin-top: -20px;
         }
         .heatmap-grid {
           display: grid;
