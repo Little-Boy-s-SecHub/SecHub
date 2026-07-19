@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Little-Boy-s-SecHub/SecHub/actions/workflows/ci.yml/badge.svg)](https://github.com/Little-Boy-s-SecHub/SecHub/actions/workflows/ci.yml)
 [![Deploy](https://img.shields.io/badge/Frontend-Vercel-black?logo=vercel)](https://sechub-academy.vercel.app/)
-[![Backend](https://img.shields.io/badge/Backend-Railway-purple?logo=railway)](https://railway.app/)
+[![Backend](https://img.shields.io/badge/Backend-VPS-blue?logo=linux&logoColor=white)](https://api.littleboys.biz/actuator/health)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ## Prerequisites
