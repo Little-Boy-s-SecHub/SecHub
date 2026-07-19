@@ -133,7 +133,12 @@ public class DockerService {
             log.info("Removing Docker container and its volumes: {}", containerId);
             runCommand("docker", "rm", "-v", containerId);
         } catch (Exception e) {
-            log.error("Failed to stop/remove Docker container: {}", containerId, e);
+            String msg = e.getMessage() != null ? e.getMessage() : "";
+            if (msg.contains("No such container")) {
+                log.warn("Container already removed, skipping cleanup: {}", containerId);
+            } else {
+                log.error("Failed to stop/remove Docker container: {}", containerId, e);
+            }
         }
     }
 
