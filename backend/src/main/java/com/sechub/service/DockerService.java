@@ -130,8 +130,8 @@ public class DockerService {
         try {
             log.info("Stopping Docker container: {}", containerId);
             runCommand("docker", "stop", containerId);
-            log.info("Removing Docker container: {}", containerId);
-            runCommand("docker", "rm", containerId);
+            log.info("Removing Docker container and its volumes: {}", containerId);
+            runCommand("docker", "rm", "-v", containerId);
         } catch (Exception e) {
             log.error("Failed to stop/remove Docker container: {}", containerId, e);
         }
@@ -161,8 +161,8 @@ public class DockerService {
                 String[] containerIds = output.split("\\s+");
                 for (String id : containerIds) {
                     if (!id.trim().isEmpty()) {
-                        log.info("Force removing container: {}", id);
-                        runCommand("docker", "rm", "-f", id);
+                        log.info("Force removing container and its volumes: {}", id);
+                        runCommand("docker", "rm", "-f", "-v", id);
                     }
                 }
             }
