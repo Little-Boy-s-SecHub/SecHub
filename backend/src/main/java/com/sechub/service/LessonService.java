@@ -33,7 +33,8 @@ public class LessonService {
         return lessonRepository.findById(id)
                 .filter(lesson -> lesson.getLearningPath().getStatus() == LearningPath.PublicationStatus.PUBLISHED)
                 .map(LessonDto::fromEntity)
-                .orElseThrow(() -> new ResourceNotFoundException("Bài học", "id", id));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                    com.sechub.support.LocaleHolder.isEn() ? "Lesson" : "Bài học", "id", id));
     }
 
     @Transactional(readOnly = true)

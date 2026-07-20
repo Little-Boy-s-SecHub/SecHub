@@ -70,11 +70,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     try {
       const res = await api.auth.login(username, password);
+      const isEn = typeof window !== 'undefined' && localStorage.getItem('sechub_lang') === 'en';
       if (res.success && res.data) {
         setToken(res.data.token);
         setUser(res.data.user);
       } else {
-        throw new Error(res.message || 'Đăng nhập không thành công');
+        throw new Error(res.message || (isEn ? 'Login failed' : 'Đăng nhập không thành công'));
       }
     } finally {
       setLoading(false);
@@ -85,11 +86,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     try {
       const res = await api.auth.register(username, email, password);
+      const isEn = typeof window !== 'undefined' && localStorage.getItem('sechub_lang') === 'en';
       if (res.success && res.data) {
         setToken(res.data.token);
         setUser(res.data.user);
       } else {
-        throw new Error(res.message || 'Đăng ký không thành công');
+        throw new Error(res.message || (isEn ? 'Registration failed' : 'Đăng ký không thành công'));
       }
     } finally {
       setLoading(false);
