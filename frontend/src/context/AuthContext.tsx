@@ -70,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     try {
       const res = await api.auth.login(username, password);
-      const isEn = typeof window !== 'undefined' && localStorage.getItem('sechub_lang') === 'en';
+      const isEn = typeof window !== 'undefined' && localStorage.getItem('sechub_language') === 'en';
       if (res.success && res.data) {
         setToken(res.data.token);
         setUser(res.data.user);
@@ -86,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     try {
       const res = await api.auth.register(username, email, password);
-      const isEn = typeof window !== 'undefined' && localStorage.getItem('sechub_lang') === 'en';
+      const isEn = typeof window !== 'undefined' && localStorage.getItem('sechub_language') === 'en';
       if (res.success && res.data) {
         setToken(res.data.token);
         setUser(res.data.user);
