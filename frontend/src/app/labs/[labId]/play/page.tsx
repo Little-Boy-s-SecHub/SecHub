@@ -1034,7 +1034,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
                     setFlagValue(e.target.value);
                     setFlagResult(null);
                   }}
-                  placeholder="FLAG{chuoi_cờ_bí_mật}"
+                  placeholder={language === 'vi' ? "FLAG{chuỗi_cờ_bí_mật}" : "FLAG{secret_flag_value}"}
                   onKeyDown={(e) => e.key === 'Enter' && handleSubmitFlag()}
                   disabled={labStatus === 'completed'}
                   style={{

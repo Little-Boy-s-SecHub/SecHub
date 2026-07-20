@@ -1966,7 +1966,7 @@ export default function LabGameView({
               onChange={(e) => {
                 setLocalFlag(e.target.value);
               }}
-              placeholder="FLAG{cyber_sec_key}"
+              placeholder={language === 'vi' ? "FLAG{mã_cờ_bí_mật}" : "FLAG{cyber_sec_key}"}
               style={{
                 width: '100%',
                 background: '#030712',

@@ -823,11 +823,11 @@ export default function LabsPage() {
                   </div>
                   {lab.generated && (
                     <div className="lab-card-generated-row">
-                      <span className="lab-generated-label" title="Lab có source và Docker artifact được tạo tự động"><Sparkles size={13} /> AI generated</span>
+                      <span className="lab-generated-label" title={language === 'vi' ? "Lab có source và Docker artifact được tạo tự động" : "Lab has source and Docker artifact automatically generated"}><Sparkles size={13} /> AI generated</span>
                         <button
                            type="button"
-                           title="Xoá bài lab AI"
-                           aria-label={`Xoá ${lab.title}`}
+                           title={language === 'vi' ? "Xoá bài lab AI" : "Delete AI lab"}
+                           aria-label={language === 'vi' ? `Xoá ${lab.title}` : `Delete ${lab.title}`}
                            disabled={deletingLabId === lab.id}
                            onClick={(event) => {
                              event.preventDefault();
