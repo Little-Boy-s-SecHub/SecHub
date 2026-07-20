@@ -218,8 +218,8 @@ function SqliUnionSimulator({ flag, onSuccess }: { flag: string; onSuccess: (fla
       // Normal search
       if (query === 'phone' || query === '') {
         setResults([
-          { id: '101', name: 'iPhone 15 Pro Max', price: '34,990,000đ' },
-          { id: '102', name: 'Samsung Galaxy S24 Ultra', price: '29,990,000đ' }
+          { id: '101', name: 'iPhone 15 Pro Max', price: language === 'vi' ? '34,990,000đ' : '$1,499' },
+          { id: '102', name: 'Samsung Galaxy S24 Ultra', price: language === 'vi' ? '29,990,000đ' : '$1,299' }
         ]);
       } else {
         setResults([]);

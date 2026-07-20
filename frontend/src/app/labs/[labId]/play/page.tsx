@@ -28,6 +28,7 @@ import { useTranslation } from '@/context/LanguageContext';
 import LabSimulator from '@/components/LabSimulator';
 import LabGameView from '@/components/LabGameView';
 import LabCompletionFeedback from '@/components/LabCompletionFeedback';
+import { localizeLabTitle, localizeLabHints } from '@/utils/localize';
 
 export default function LabPlayPage({ params }: { params: Promise<{ labId: string }> }) {
   const { labId } = use(params);
@@ -68,21 +69,21 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
     }
     return null;
   });
-  const labNotFound = apiError?.includes('Không tìm thấy Lab') || apiError?.includes('404');
+  const labNotFound = apiError?.includes('Không tìm thấy Lab') || apiError?.includes('not found') || apiError?.includes('404');
 
-  const defaultHints = [
+  const defaultHints = language === 'vi' ? [
     'Gợi ý 1: Quan sát kỹ các input fields và URL parameters.',
     'Gợi ý 2: Sử dụng Burp Suite để intercept và modify requests.',
     'Gợi ý 3: Kiểm tra source code HTML để tìm thông tin ẩn.',
+  ] : [
+    'Hint 1: Carefully observe the input fields and URL parameters.',
+    'Hint 2: Use Burp Suite to intercept and modify requests.',
+    'Hint 3: Inspect the HTML source code to find hidden details.',
   ];
 
   let hints: string[] = defaultHints;
   if (lab?.hintsJson) {
-    try {
-      hints = JSON.parse(lab.hintsJson);
-    } catch (e) {
-      console.error(e);
-    }
+    hints = localizeLabHints(lab.hintsJson, lab.title, language);
   }
 
 
@@ -561,7 +562,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
               fontWeight: 'bold',
               textShadow: '0 0 6px rgba(239, 68, 68, 0.5)',
             }}>
-              ĐÃ PHÁT HIỆN 1 LỖI
+              {language === 'vi' ? 'ĐÃ PHÁT HIỆN 1 LỖI' : '1 VULNERABILITY DETECTED'}
             </div>
           </div>
 
@@ -635,7 +636,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
                 }}></div>
               </div>
               <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748b' }}>
-                WASD TO MOVE
+                {language === 'vi' ? 'PHÍM WASD ĐỂ DI CHUYỂN' : 'WASD TO MOVE'}
               </span>
             </div>
 
@@ -644,7 +645,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                 <button
                   className="arcade-btn btn-blue"
-                  onClick={() => alert('HƯỚNG DẪN:\n\n- Đi chuyển bằng WASD hoặc phím Mũi tên.\n- Đi lại gần các thiết bị trên bản đồ.\n- Nhấn phím E để tương tác.\n- Nhấn phím ESC để đóng bảng.')}
+                  onClick={() => alert(language === 'vi' ? 'HƯỚNG DẪN:\n\n- Di chuyển bằng WASD hoặc phím Mũi tên.\n- Đi lại gần các thiết bị trên bản đồ.\n- Nhấn phím E để tương tác.\n- Nhấn phím ESC để đóng bảng.' : 'INSTRUCTIONS:\n\n- Move using WASD or Arrow keys.\n- Walk close to devices on the map.\n- Press E to interact.\n- Press ESC to close panel.')}
                   style={{
                     background: 'radial-gradient(circle, #60a5fa 0%, #1d4ed8 100%)',
                     width: '56px',
@@ -654,9 +655,9 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
                     letterSpacing: '0.5px',
                   }}
                 >
-                  HỖ TRỢ
+                  {language === 'vi' ? 'HỖ TRỢ' : 'HELP'}
                 </button>
-                <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: '#94a3b8', fontWeight: 'bold' }}>HELP</span>
+                <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: '#94a3b8', fontWeight: 'bold' }}>GUIDE</span>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
@@ -672,7 +673,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
                     letterSpacing: '0.5px',
                   }}
                 >
-                  GỢI Ý
+                  {language === 'vi' ? 'GỢI Ý' : 'HINT'}
                 </button>
                 <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: '#94a3b8', fontWeight: 'bold' }}>HINT</span>
               </div>
@@ -690,7 +691,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
                     letterSpacing: '0.5px',
                   }}
                 >
-                  THOÁT
+                  {language === 'vi' ? 'THOÁT' : 'EXIT'}
                 </button>
                 <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: '#94a3b8', fontWeight: 'bold' }}>EXIT</span>
               </div>
@@ -752,7 +753,7 @@ export default function LabPlayPage({ params }: { params: Promise<{ labId: strin
           <div style={{ width: '1px', height: '20px', background: 'var(--border-default)' }}></div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <h1 style={{ fontSize: '1.0625rem', fontWeight: 800, margin: 0, color: 'var(--text-heading)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {lab.title}
+              {localizeLabTitle(lab.title, language)}
             </h1>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(0,122,85,0.08)', border: '1px solid rgba(0,122,85,0.15)', color: 'var(--fg-success-strong)', fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px' }}>
               <span style={activeDotStyle}></span> {language === 'vi' ? 'Đang mở' : 'Active'}

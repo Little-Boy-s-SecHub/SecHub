@@ -7,7 +7,7 @@ import { ArrowLeft, BookOpen, CheckCircle, Clock, ChevronRight, PlayCircle, Shie
 import { api, Lab, Lesson, Vulnerability } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/context/LanguageContext';
-import { localizeLessonTitle, localizeLessonObjective } from '@/utils/localize';
+import { localizeLessonTitle, localizeLessonObjective, localizeLessonContent, localizePathTitle } from '@/utils/localize';
 import { marked } from 'marked';
 
 interface LearningPath {
@@ -28,63 +28,38 @@ const LESSON_VULNERABILITY_RULES: Array<{ terms: string[]; slug: string }> = [
   { terms: ['privilege escalation', 'authentication bypass', 'auth bypass', 'jwt', 'oauth', '2fa', 'mfa', 'session fixation', 'session hijacking', 'weak session', 'credential stuffing', 'brute force', 'user enumeration', 'password mismanagement', 'cryptographic', 'downgrade', 'tls', 'ssl stripping', 'unencrypted', 'insecure randomness', 'supply chain', 'toxic dependencies', 'malvertising', 'business logic', 'race condition', 'toctou', 'insecure design', 'lax security'], slug: 'auth-bypass' },
 ];
 
-const LESSON_METADATA_FALLBACKS: Record<string, { objective: string; minutes: number }> = {
-  "Giới thiệu về Bảo mật Web": {
-    objective: "Hiểu tổng quan về bảo mật ứng dụng web và 10 rủi ro bảo mật hàng đầu theo OWASP Top 10.",
-    minutes: 10
-  },
-  "HTTP và cách hoạt động của Web": {
-    objective: "Nắm rõ mô hình Client-Server, các phương thức HTTP cơ bản, Headers và cơ chế quản lý Session.",
-    minutes: 15
-  },
-  "SQL Injection cho người mới bắt đầu": {
-    objective: "Hiểu cơ chế lỗi SQL Injection cơ bản và cách kẻ tấn công thực hiện bypass trang đăng nhập.",
-    minutes: 15
-  },
-  "Cross-Site Scripting (XSS) cơ bản": {
-    objective: "Phân biệt 3 loại XSS (Reflected, Stored, DOM) và hiểu tác hại cùng cách phòng tránh cơ bản.",
-    minutes: 15
-  },
-  "CSRF và bảo vệ form": {
-    objective: "Hiểu cách tấn công giả mạo yêu cầu chéo trang (CSRF) và cơ chế phòng chống bằng Token.",
-    minutes: 15
-  },
-  "Kỹ thuật khai thác SQL Injection nâng cao": {
-    objective: "Nắm vững kỹ thuật khai thác Blind SQL Injection (Boolean-based, Time-based) và Union-based.",
-    minutes: 20
-  },
-  "IDOR - Truy cập trái phép dữ liệu": {
-    objective: "Hiểu lỗ hổng kiểm soát truy cập đối tượng trực tiếp (IDOR) và cách kiểm thử phát hiện lỗi.",
-    minutes: 15
-  },
-  "SSRF - Tấn công máy chủ gián tiếp": {
-    objective: "Tìm hiểu lỗ hổng SSRF (Server-Side Request Forgery), các kỹ thuật bypass filter và bảo vệ hệ thống.",
-    minutes: 20
-  },
-  "Command Injection - Thực thi lệnh hệ thống": {
-    objective: "Hiểu cơ chế lỗi chèn lệnh hệ điều hành (Command Injection), kỹ thuật khai thác blind và phòng chống.",
-    minutes: 20
-  },
-  "File Upload - Tải lên tệp không giới hạn": {
-    objective: "Nắm rõ rủi ro của tính năng tải tệp lên máy chủ, cách bypass whitelist extension và cách triển khai an toàn.",
-    minutes: 20
-  },
-  "Authentication Bypass - Bỏ qua xác thực": {
-    objective: "Tìm hiểu các kỹ thuật bypass cơ chế đăng nhập, lỗ hổng logic xác thực và bảo mật JWT.",
-    minutes: 25
-  },
-  "Bypass WAF và Security Controls": {
-    objective: "Học các kỹ thuật vượt qua tường lửa ứng dụng web (WAF) và cơ chế lọc đầu vào phổ biến.",
-    minutes: 25
-  },
-  "Attack Chains - Chuỗi khai thác lỗ hổng": {
-    objective: "Học cách kết hợp nhiều lỗi bảo mật nhỏ để tạo thành chuỗi tấn công (attack chains) chiếm quyền kiểm soát hệ thống.",
-    minutes: 30
-  },
-  "Bug Bounty Methodology - Phương pháp săn lỗi": {
-    objective: "Trang bị phương pháp luận tìm kiếm lỗ hổng thực tế, viết báo cáo chuyên nghiệp và quy trình bug bounty.",
-    minutes: 25
-  }
+const LESSON_METADATA_FALLBACKS_VI: Record<string, { objective: string; minutes: number }> = {
+  "Giới thiệu về Bảo mật Web": { objective: "Hiểu tổng quan về bảo mật ứng dụng web và 10 rủi ro bảo mật hàng đầu theo OWASP Top 10.", minutes: 10 },
+  "HTTP và cách hoạt động của Web": { objective: "Nắm rõ mô hình Client-Server, các phương thức HTTP cơ bản, Headers và cơ chế quản lý Session.", minutes: 15 },
+  "SQL Injection cho người mới bắt đầu": { objective: "Hiểu cơ chế lỗi SQL Injection cơ bản và cách kẻ tấn công thực hiện bypass trang đăng nhập.", minutes: 15 },
+  "Cross-Site Scripting (XSS) cơ bản": { objective: "Phân biệt 3 loại XSS (Reflected, Stored, DOM) và hiểu tác hại cùng cách phòng tránh cơ bản.", minutes: 15 },
+  "CSRF và bảo vệ form": { objective: "Hiểu cách tấn công giả mạo yêu cầu chéo trang (CSRF) và cơ chế phòng chống bằng Token.", minutes: 15 },
+  "Kỹ thuật khai thác SQL Injection nâng cao": { objective: "Nắm vững kỹ thuật khai thác Blind SQL Injection (Boolean-based, Time-based) và Union-based.", minutes: 20 },
+  "IDOR - Truy cập trái phép dữ liệu": { objective: "Hiểu lỗ hổng kiểm soát truy cập đối tượng trực tiếp (IDOR) và cách kiểm thử phát hiện lỗi.", minutes: 15 },
+  "SSRF - Tấn công máy chủ gián tiếp": { objective: "Tìm hiểu lỗ hổng SSRF (Server-Side Request Forgery), các kỹ thuật bypass filter và bảo vệ hệ thống.", minutes: 20 },
+  "Command Injection - Thực thi lệnh hệ thống": { objective: "Hiểu cơ chế lỗi chèn lệnh hệ điều hành (Command Injection), kỹ thuật khai thác blind và phòng chống.", minutes: 20 },
+  "File Upload - Tải lên tệp không giới hạn": { objective: "Nắm rõ rủi ro của tính năng tải tệp lên máy chủ, cách bypass whitelist extension và cách triển khai an toàn.", minutes: 20 },
+  "Authentication Bypass - Bỏ qua xác thực": { objective: "Tìm hiểu các kỹ thuật bypass cơ chế đăng nhập, lỗ hổng logic xác thực và bảo mật JWT.", minutes: 25 },
+  "Bypass WAF và Security Controls": { objective: "Học các kỹ thuật vượt qua tường lửa ứng dụng web (WAF) và cơ chế lọc đầu vào phổ biến.", minutes: 25 },
+  "Attack Chains - Chuỗi khai thác lỗ hổng": { objective: "Học cách kết hợp nhiều lỗi bảo mật nhỏ để tạo thành chuỗi tấn công (attack chains) chiếm quyền kiểm soát hệ thống.", minutes: 30 },
+  "Bug Bounty Methodology - Phương pháp săn lỗi": { objective: "Trang bị phương pháp luận tìm kiếm lỗ hổng thực tế, viết báo cáo chuyên nghiệp và quy trình bug bounty.", minutes: 25 }
+};
+
+const LESSON_METADATA_FALLBACKS_EN: Record<string, { objective: string; minutes: number }> = {
+  "Giới thiệu về Bảo mật Web": { objective: "Understand web application security fundamentals and the OWASP Top 10 security risks.", minutes: 10 },
+  "HTTP và cách hoạt động của Web": { objective: "Learn the Client-Server model, basic HTTP methods, Headers, and Session management.", minutes: 15 },
+  "SQL Injection cho người mới bắt đầu": { objective: "Understand basic SQL Injection mechanisms and how attackers bypass login pages.", minutes: 15 },
+  "Cross-Site Scripting (XSS) cơ bản": { objective: "Distinguish 3 types of XSS (Reflected, Stored, DOM) and understand their impact and prevention.", minutes: 15 },
+  "CSRF và bảo vệ form": { objective: "Understand Cross-Site Request Forgery (CSRF) attacks and token-based prevention.", minutes: 15 },
+  "Kỹ thuật khai thác SQL Injection nâng cao": { objective: "Master Blind SQL Injection (Boolean-based, Time-based) and Union-based techniques.", minutes: 20 },
+  "IDOR - Truy cập trái phép dữ liệu": { objective: "Understand Insecure Direct Object Reference (IDOR) vulnerabilities and testing methods.", minutes: 15 },
+  "SSRF - Tấn công máy chủ gián tiếp": { objective: "Learn about SSRF (Server-Side Request Forgery), filter bypass techniques and defenses.", minutes: 20 },
+  "Command Injection - Thực thi lệnh hệ thống": { objective: "Understand OS command injection, blind exploitation techniques and prevention.", minutes: 20 },
+  "File Upload - Tải lên tệp không giới hạn": { objective: "Learn file upload risks, extension whitelist bypass and secure implementation.", minutes: 20 },
+  "Authentication Bypass - Bỏ qua xác thực": { objective: "Explore authentication bypass techniques, logic flaws and JWT security.", minutes: 25 },
+  "Bypass WAF và Security Controls": { objective: "Learn techniques to bypass Web Application Firewalls (WAF) and common input filters.", minutes: 25 },
+  "Attack Chains - Chuỗi khai thác lỗ hổng": { objective: "Learn to combine multiple small security flaws into attack chains for system takeover.", minutes: 30 },
+  "Bug Bounty Methodology - Phương pháp săn lỗi": { objective: "Equip practical vulnerability hunting methodology, professional reporting and bug bounty workflow.", minutes: 25 }
 };
 
 function resolveLessonVulnerability(lesson: Lesson, vulnerabilities: Vulnerability[]) {
@@ -135,7 +110,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
         if (lessonRes.success && lessonRes.data) {
           setLesson(lessonRes.data);
           // Parse markdown to HTML asynchronously
-          const parsed = await marked.parse(lessonRes.data.contentMarkdown);
+          const parsed = await marked.parse(localizeLessonContent(lessonRes.data.title, language, lessonRes.data.contentMarkdown));
           setHtmlContent(parsed);
           const resolvedVulnerability = resolveLessonVulnerability(
             lessonRes.data,
@@ -310,6 +285,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
   const currentIdx = allLessons.findIndex(l => l.id === lessonId);
   const nextLesson = currentIdx !== -1 && currentIdx < allLessons.length - 1 ? allLessons[currentIdx + 1] : null;
 
+  const LESSON_METADATA_FALLBACKS = language === 'vi' ? LESSON_METADATA_FALLBACKS_VI : LESSON_METADATA_FALLBACKS_EN;
   const resolvedObjective = lesson.learningObjective || LESSON_METADATA_FALLBACKS[lesson.title]?.objective || (language === 'vi' ? `Làm chủ lý thuyết và thực hành về ${lesson.title}` : `Master theory and practice on ${lesson.title}`);
   const resolvedMinutes = lesson.estimatedMinutes || LESSON_METADATA_FALLBACKS[lesson.title]?.minutes || 12;
 
@@ -415,7 +391,7 @@ export default function LessonDetailPage({ params }: { params: Promise<{ pathId:
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', fontSize: '0.875rem' }}>
         <Link href="/learning" style={{ color: 'var(--text-body-subtle)' }}>{language === 'vi' ? 'Lộ trình học' : 'Learning Paths'}</Link>
         <span style={{ color: 'var(--text-body-subtle)' }}>/</span>
-        <Link href={`/learning/${pathId}`} style={{ color: 'var(--text-body-subtle)' }}>{path.title}</Link>
+        <Link href={`/learning/${pathId}`} style={{ color: 'var(--text-body-subtle)' }}>{localizePathTitle(path.title, language)}</Link>
         <span style={{ color: 'var(--text-body-subtle)' }}>/</span>
         <span style={{ color: 'var(--text-heading)' }}>{localizeLessonTitle(lesson.title, language)}</span>
       </div>

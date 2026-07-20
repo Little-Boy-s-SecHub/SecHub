@@ -13,6 +13,12 @@ import {
 import { api, Vulnerability, Lab } from '@/lib/api';
 import { useTranslation } from '@/context/LanguageContext';
 import VulnIcon from '@/components/VulnIcon';
+import { 
+  localizeVulnerabilityName, 
+  localizeVulnerabilityDescription, 
+  localizeVulnerabilityExploitationGuide, 
+  localizeVulnerabilityPreventionGuide 
+} from '@/utils/localize';
 
 export default function VulnerabilityDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -80,7 +86,7 @@ export default function VulnerabilityDetailPage({ params }: { params: Promise<{ 
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-4)', fontSize: '0.875rem' }}>
         <Link href="/vulnerabilities" style={{ color: 'var(--text-body-subtle)' }}>{language === 'vi' ? 'Lỗ hổng bảo mật' : 'Vulnerabilities'}</Link>
         <span style={{ color: 'var(--text-body-subtle)' }}>/</span>
-        <span style={{ color: 'var(--text-heading)' }}>{vuln.name}</span>
+        <span style={{ color: 'var(--text-heading)' }}>{localizeVulnerabilityName(vuln.name, vuln.slug, language)}</span>
       </div>
 
       {/* Header */}
@@ -90,7 +96,7 @@ export default function VulnerabilityDetailPage({ params }: { params: Promise<{ 
             <VulnIcon name={vuln.icon} size={40} />
           </span>
           <div>
-            <h1 style={{ fontSize: '2rem', fontWeight: 800, margin: 0 }}>{vuln.name}</h1>
+            <h1 style={{ fontSize: '2rem', fontWeight: 800, margin: 0 }}>{localizeVulnerabilityName(vuln.name, vuln.slug, language)}</h1>
             <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: '4px' }}>
               <span className={`badge ${severityClass}`}>{severityLabel}</span>
               <span style={{ fontSize: '0.875rem', color: 'var(--text-body-subtle)' }}>
@@ -110,7 +116,7 @@ export default function VulnerabilityDetailPage({ params }: { params: Promise<{ 
             <h3 style={{ marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
               <BookOpen size={18} style={{ color: 'var(--fg-brand)' }} /> {language === 'vi' ? 'Tổng quan' : 'Overview'}
             </h3>
-            <p style={{ lineHeight: 1.8 }}>{vuln.description}</p>
+            <p style={{ lineHeight: 1.8 }}>{localizeVulnerabilityDescription(vuln.description, vuln.slug, language)}</p>
           </div>
 
           {/* Exploitation */}
@@ -120,7 +126,7 @@ export default function VulnerabilityDetailPage({ params }: { params: Promise<{ 
                 <Unlock size={18} style={{ color: 'var(--fg-brand)' }} /> {language === 'vi' ? 'Phương pháp khai thác' : 'Exploitation Methodology'}
               </h3>
               <div style={{ lineHeight: 1.8, whiteSpace: 'pre-line', fontSize: '14px', fontFamily: 'var(--font-sans)' }}>
-                {vuln.exploitationGuide}
+                {localizeVulnerabilityExploitationGuide(vuln.exploitationGuide, vuln.slug, language)}
               </div>
             </div>
           )}
@@ -132,7 +138,7 @@ export default function VulnerabilityDetailPage({ params }: { params: Promise<{ 
                 <ShieldAlert size={18} style={{ color: 'var(--fg-brand)' }} /> {language === 'vi' ? 'Phương pháp phòng chống' : 'Remediation & Prevention'}
               </h3>
               <div style={{ lineHeight: 1.8, whiteSpace: 'pre-line', fontSize: '14px', fontFamily: 'var(--font-sans)' }}>
-                {vuln.preventionGuide}
+                {localizeVulnerabilityPreventionGuide(vuln.preventionGuide, vuln.slug, language)}
               </div>
             </div>
           )}

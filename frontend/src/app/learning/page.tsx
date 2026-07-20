@@ -7,6 +7,7 @@ import { api, LearningPath } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/context/LanguageContext';
 import PageBackLink from '@/components/PageBackLink';
+import { localizePathTitle, localizePathDescription } from '@/utils/localize';
 
 export default function LearningPage() {
   const { isAuthenticated } = useAuth();
@@ -101,10 +102,10 @@ export default function LearningPage() {
                         )}
                       </div>
                       <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: 'var(--space-1)' }}>
-                        {path.title}
+                        {localizePathTitle(path.title, language)}
                       </h2>
                       <p style={{ color: 'var(--text-body-subtle)', marginBottom: 'var(--space-3)' }}>
-                        {path.description}
+                        {localizePathDescription(path.description, language)}
                       </p>
 
                       <div className="path-card-stats" style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>

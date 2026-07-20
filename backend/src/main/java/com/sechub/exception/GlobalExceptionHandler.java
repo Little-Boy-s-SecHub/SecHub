@@ -1,6 +1,7 @@
 package com.sechub.exception;
 
 import com.sechub.dto.ApiResponse;
+import com.sechub.support.LocaleHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -38,14 +39,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleBadCredentials(BadCredentialsException ex) {
         return ResponseEntity
             .status(HttpStatus.UNAUTHORIZED)
-            .body(ApiResponse.error("Tên đăng nhập hoặc mật khẩu không chính xác"));
+            .body(ApiResponse.error(LocaleHolder.isEn() ? "Invalid username or password" : "Tên đăng nhập hoặc mật khẩu không chính xác"));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
         return ResponseEntity
             .status(HttpStatus.FORBIDDEN)
-            .body(ApiResponse.error("Bạn không có quyền truy cập tài nguyên này"));
+            .body(ApiResponse.error(LocaleHolder.isEn() ? "You do not have permission to access this resource" : "Bạn không có quyền truy cập tài nguyên này"));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -58,7 +59,7 @@ public class GlobalExceptionHandler {
         });
         return ResponseEntity
             .status(HttpStatus.BAD_REQUEST)
-            .body(ApiResponse.error("Dữ liệu không hợp lệ", errors));
+            .body(ApiResponse.error(LocaleHolder.isEn() ? "Invalid data" : "Dữ liệu không hợp lệ", errors));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -71,7 +72,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ApiResponse<Void>> handleResponseStatus(ResponseStatusException ex) {
         String message = ex.getReason() == null || ex.getReason().isBlank()
-                ? "Yêu cầu không thể thực hiện"
+                ? (LocaleHolder.isEn() ? "Request could not be processed" : "Yêu cầu không thể thực hiện")
                 : ex.getReason();
         return ResponseEntity
             .status(ex.getStatusCode())
@@ -83,6 +84,6 @@ public class GlobalExceptionHandler {
         log.error("Unhandled API error", ex);
         return ResponseEntity
             .status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body(ApiResponse.error("Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau."));
+            .body(ApiResponse.error(LocaleHolder.isEn() ? "A system error occurred. Please try again later." : "Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau."));
     }
 }

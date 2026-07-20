@@ -4,6 +4,7 @@ import com.sechub.dto.DashboardDto;
 import com.sechub.dto.UserDto;
 import com.sechub.entity.User;
 import com.sechub.exception.ResourceNotFoundException;
+import com.sechub.support.LocaleHolder;
 import com.sechub.repository.*;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -39,14 +40,14 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserDto getUserByUsername(String username) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng", "username", username));
+                .orElseThrow(() -> new ResourceNotFoundException(LocaleHolder.isEn() ? "User" : "Người dùng", "username", username));
         return UserDto.fromEntity(user);
     }
 
     @Transactional(readOnly = true)
     public UserDto getUserById(UUID id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng", "id", id));
+                .orElseThrow(() -> new ResourceNotFoundException(LocaleHolder.isEn() ? "User" : "Người dùng", "id", id));
         return UserDto.fromEntity(user);
     }
 
@@ -60,7 +61,7 @@ public class UserService {
     @Transactional(readOnly = true)
     public DashboardDto getDashboard(String username) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng", "username", username));
+                .orElseThrow(() -> new ResourceNotFoundException(LocaleHolder.isEn() ? "User" : "Người dùng", "username", username));
 
         long completedLessons = progressRepository.countCompletedByUserId(user.getId());
         long totalLessons = lessonRepository.count();
@@ -86,16 +87,16 @@ public class UserService {
 
     public User findByUsername(String username) {
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng", "username", username));
+                .orElseThrow(() -> new ResourceNotFoundException(LocaleHolder.isEn() ? "User" : "Người dùng", "username", username));
     }
 
     @Transactional
     public void changePassword(String username, com.sechub.dto.ChangePasswordRequest request) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng", "username", username));
+                .orElseThrow(() -> new ResourceNotFoundException(LocaleHolder.isEn() ? "User" : "Người dùng", "username", username));
         
         if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
-            throw new com.sechub.exception.BadRequestException("Mật khẩu hiện tại không đúng");
+            throw new com.sechub.exception.BadRequestException(LocaleHolder.isEn() ? "Current password is incorrect" : "Mật khẩu hiện tại không đúng");
         }
         
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
@@ -105,7 +106,7 @@ public class UserService {
     @Transactional
     public UserDto updateAvatar(String username, String avatarUrl) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng", "username", username));
+                .orElseThrow(() -> new ResourceNotFoundException(LocaleHolder.isEn() ? "User" : "Người dùng", "username", username));
         
         user.setAvatarUrl(avatarUrl);
         User updated = userRepository.save(user);
@@ -115,7 +116,7 @@ public class UserService {
     @Transactional
     public UserDto updateNotificationPreference(String username, boolean enabled) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng", "username", username));
+                .orElseThrow(() -> new ResourceNotFoundException(LocaleHolder.isEn() ? "User" : "Người dùng", "username", username));
 
         user.setNotificationsEnabled(enabled);
         User updated = userRepository.save(user);

@@ -3,6 +3,7 @@ package com.sechub.service;
 import com.sechub.dto.*;
 import com.sechub.entity.*;
 import com.sechub.exception.ResourceNotFoundException;
+import com.sechub.support.LocaleHolder;
 import com.sechub.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,9 +25,9 @@ public class LearningStateService {
     public ResumeLearningDto save(String username, LearningStateRequest request) {
         User user = users.findByUsername(username);
         Lesson lesson = lessons.findById(request.lessonId())
-                .orElseThrow(() -> new ResourceNotFoundException("Bài học", "id", request.lessonId()));
+                .orElseThrow(() -> new ResourceNotFoundException(LocaleHolder.isEn() ? "Lesson" : "Bài học", "id", request.lessonId()));
         if (lesson.getLearningPath().getStatus() != LearningPath.PublicationStatus.PUBLISHED) {
-            throw new ResourceNotFoundException("Bài học", "id", request.lessonId());
+            throw new ResourceNotFoundException(LocaleHolder.isEn() ? "Lesson" : "Bài học", "id", request.lessonId());
         }
         UserLearningState state = states.findByUserId(user.getId()).orElseGet(() ->
                 UserLearningState.builder().user(user).build());
@@ -48,7 +49,7 @@ public class LearningStateService {
             if (running.isPresent()) {
                 LabAttempt attempt = running.get();
                 return new ResumeLearningDto("LAB", "/labs/" + attempt.getLab().getId() + "/play",
-                        attempt.getLab().getTitle(), "Phiên lab đang chạy · " + attempt.getHintsUsed() + " gợi ý đã mở",
+                        attempt.getLab().getTitle(), LocaleHolder.isEn() ? "Lab session running · " + attempt.getHintsUsed() + " hints opened" : "Phiên lab đang chạy · " + attempt.getHintsUsed() + " gợi ý đã mở",
                         null, null, null, attempt.getLab().getId(), attempt.getId(), attempt.getHintsUsed(), attempt.getStartedAt());
             }
         }

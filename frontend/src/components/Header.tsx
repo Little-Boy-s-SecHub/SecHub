@@ -40,12 +40,12 @@ export default function Header({ onMenuToggle }: { onMenuToggle: () => void }) {
   const [avatarLoading, setAvatarLoading] = useState(false);
 
   const presetGradients = [
-    { name: 'Xanh Dương Tím', value: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)' },
-    { name: 'Xanh Lục Ngọc', value: 'linear-gradient(135deg, #10b981 0%, #14b8a6 100%)' },
-    { name: 'Cam Vàng Rực', value: 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)' },
-    { name: 'Hồng Đỏ Thắm', value: 'linear-gradient(135deg, #f43f5e 0%, #ec4899 100%)' },
-    { name: 'Xanh Dương Sáng', value: 'linear-gradient(135deg, #6366f1 0%, #0ea5e9 100%)' },
-    { name: 'Xám Đá Trầm', value: 'linear-gradient(135deg, #475569 0%, #1e293b 100%)' }
+    { name: language === 'vi' ? 'Xanh Dương Tím' : 'Blue Purple', value: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)' },
+    { name: language === 'vi' ? 'Xanh Lục Ngọc' : 'Emerald Teal', value: 'linear-gradient(135deg, #10b981 0%, #14b8a6 100%)' },
+    { name: language === 'vi' ? 'Cam Vàng Rực' : 'Amber Orange', value: 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)' },
+    { name: language === 'vi' ? 'Hồng Đỏ Thắm' : 'Rose Pink', value: 'linear-gradient(135deg, #f43f5e 0%, #ec4899 100%)' },
+    { name: language === 'vi' ? 'Xanh Dương Sáng' : 'Indigo Sky', value: 'linear-gradient(135deg, #6366f1 0%, #0ea5e9 100%)' },
+    { name: language === 'vi' ? 'Xám Đá Trầm' : 'Slate Dark', value: 'linear-gradient(135deg, #475569 0%, #1e293b 100%)' }
   ];
 
   const getInitials = (name: string) => {

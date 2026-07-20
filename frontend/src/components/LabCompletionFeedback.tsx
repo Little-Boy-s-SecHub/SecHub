@@ -2,6 +2,14 @@ import Link from 'next/link';
 import { ArrowRight, BookOpen, CheckCircle2, Code2, Share2, ShieldCheck, Sparkles, Wrench } from 'lucide-react';
 import { LabAttempt, LabFeedback, parseBackendDate } from '@/lib/api';
 import { useTranslation } from '@/context/LanguageContext';
+import { 
+  localizeFeedbackSummary, 
+  localizeFeedbackWhyItWorked, 
+  localizeFeedbackRemediationSteps, 
+  localizeFeedbackLessonTakeaway, 
+  localizeLabTitle,
+  localizeFeedbackCode
+} from '@/utils/localize';
 
 export default function LabCompletionFeedback({
   feedback,
@@ -20,10 +28,20 @@ export default function LabCompletionFeedback({
 }) {
   const { language } = useTranslation();
   const elapsed = Math.max(1, Math.round((parseBackendDate(attempt.completedAt ?? attempt.startedAt).getTime() - parseBackendDate(attempt.startedAt).getTime()) / 60000));
+
+  const localizedSummary = localizeFeedbackSummary(feedback.summary, language);
+  const localizedWhyItWorked = localizeFeedbackWhyItWorked(feedback.whyItWorked, language);
+  const localizedRemediationSteps = localizeFeedbackRemediationSteps(feedback.remediationSteps, language);
+  const localizedLessonTakeaway = localizeFeedbackLessonTakeaway(feedback.lessonTakeaway, language);
+  const localizedNextLabTitle = feedback.nextLabTitle ? localizeLabTitle(feedback.nextLabTitle, language) : '';
+  const localizedLabTitleStr = localizeLabTitle(attempt.labTitle, language);
+  const localizedVulnerableCode = localizeFeedbackCode(feedback.vulnerableCode, language);
+  const localizedSecureCode = localizeFeedbackCode(feedback.secureCode, language);
+
   const shareResult = async () => {
     const text = language === 'vi'
-      ? `Tôi vừa hoàn thành lab ${attempt.labTitle} trên SecHub: ${attempt.score} XP, ${elapsed} phút, ${attempt.hintsUsed} gợi ý. Kỹ năng: ${feedback.vulnerabilityName}.`
-      : `I just completed lab ${attempt.labTitle} on SecHub: ${attempt.score} XP, ${elapsed} mins, ${attempt.hintsUsed} hints. Skill: ${feedback.vulnerabilityName}.`;
+      ? `Tôi vừa hoàn thành lab ${localizedLabTitleStr} trên SecHub: ${attempt.score} XP, ${elapsed} phút, ${attempt.hintsUsed} gợi ý. Kỹ năng: ${feedback.vulnerabilityName}.`
+      : `I just completed lab ${localizedLabTitleStr} on SecHub: ${attempt.score} XP, ${elapsed} mins, ${attempt.hintsUsed} hints. Skill: ${feedback.vulnerabilityName}.`;
     if (navigator.share) await navigator.share({ title: language === 'vi' ? 'Kết quả lab SecHub' : 'SecHub Lab Result', text });
     else await navigator.clipboard.writeText(text);
   };
@@ -34,7 +52,7 @@ export default function LabCompletionFeedback({
         <div>
           <div className="lab-feedback-kicker">{language === 'vi' ? 'Hoàn thành' : 'Completed'} · +{attempt.score} {language === 'vi' ? 'điểm' : 'pts'}</div>
           <h2 id="lab-feedback-title">{language === 'vi' ? 'Bạn vừa khai thác' : 'You just exploited'} {feedback.vulnerabilityName}</h2>
-          <p>{feedback.summary}</p>
+          <p>{localizedSummary}</p>
         </div>
       </div>
 
@@ -61,7 +79,7 @@ export default function LabCompletionFeedback({
               🎯 {language === 'vi' ? 'Lab tiếp theo phù hợp cho bạn' : 'Next recommended lab for you'}
             </span>
             <strong style={{ fontSize: '15px', color: 'var(--text-heading)' }}>
-              {feedback.nextLabTitle}
+              {localizedNextLabTitle}
             </strong>
             {feedback.nextLabDifficulty && (
               <span style={{ marginLeft: '8px', fontSize: '11px', padding: '2px 6px', background: 'var(--bg-neutral-tertiary)', borderRadius: '4px', color: 'var(--text-body-subtle)' }}>
@@ -88,7 +106,7 @@ export default function LabCompletionFeedback({
           <BookOpen size={18} style={{ color: 'var(--fg-success-strong)' }} /> {language === 'vi' ? 'Vì sao payload hoạt động?' : 'Why did the payload work?'}
         </h3>
         <p style={{ fontSize: '14px', lineHeight: 1.7, color: 'var(--text-body)', margin: 0 }}>
-          {feedback.whyItWorked}
+          {localizedWhyItWorked}
         </p>
       </div>
 
@@ -109,10 +127,10 @@ export default function LabCompletionFeedback({
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '7px', margin: '0 0 12px 0', fontSize: '14px', color: '#ef4444', fontWeight: 700 }}>
             <Code2 size={16} /> {language === 'vi' ? 'Code có lỗ hổng' : 'Vulnerable Code'}
           </h3>
-          <pre style={{ margin: 0, background: '#1e1e2e', border: '1px solid #313244' }}><code>{feedback.vulnerableCode}</code></pre>
+          <pre style={{ margin: 0, background: '#1e1e2e', border: '1px solid #313244' }}><code>{localizedVulnerableCode}</code></pre>
         </div>
         <div style={{
-          background: 'rgba(16, 185, 129, 0.02)',
+          background: 'rgba(10, 185, 129, 0.02)',
           border: '1px solid rgba(16, 185, 129, 0.12)',
           borderLeft: '4px solid #10b981',
           borderRadius: '8px',
@@ -121,16 +139,16 @@ export default function LabCompletionFeedback({
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '7px', margin: '0 0 12px 0', fontSize: '14px', color: '#10b981', fontWeight: 700 }}>
             <ShieldCheck size={16} /> {language === 'vi' ? 'Cách sửa an toàn' : 'Secure Remediation'}
           </h3>
-          <pre style={{ margin: 0, background: '#1e1e2e', border: '1px solid #313244' }}><code>{feedback.secureCode}</code></pre>
+          <pre style={{ margin: 0, background: '#1e1e2e', border: '1px solid #313244' }}><code>{localizedSecureCode}</code></pre>
         </div>
       </div>
 
       <div className="lab-feedback-bottom">
         <div>
           <h3><Wrench size={16} /> {language === 'vi' ? 'Checklist khắc phục' : 'Remediation Checklist'}</h3>
-          <ul>{feedback.remediationSteps.map(step => <li key={step}>{step}</li>)}</ul>
+          <ul>{localizedRemediationSteps.map(step => <li key={step}>{step}</li>)}</ul>
         </div>
-        <blockquote>{feedback.lessonTakeaway}</blockquote>
+        <blockquote>{localizedLessonTakeaway}</blockquote>
       </div>
 
       <div className="lab-feedback-actions">
@@ -144,7 +162,7 @@ export default function LabCompletionFeedback({
         )}
         <Link href={pathId ? `/learning/${pathId}` : '/learning'} className="btn btn-secondary">{language === 'vi' ? 'Tiếp tục lộ trình' : 'Continue Path'}</Link>
         <Link href={feedback.nextLabId ? `/labs/${feedback.nextLabId}${pathId && lessonId ? `?pathId=${pathId}&lessonId=${lessonId}` : ''}` : '/labs'} className="btn btn-secondary">
-          {feedback.nextLabTitle ? (language === 'vi' ? `Lab tiếp theo: ${feedback.nextLabTitle}` : `Next Lab: ${feedback.nextLabTitle}`) : (language === 'vi' ? 'Chọn lab tiếp theo' : 'Choose next lab')} <ArrowRight size={15} />
+          {localizedNextLabTitle ? (language === 'vi' ? `Lab tiếp theo: ${localizedNextLabTitle}` : `Next Lab: ${localizedNextLabTitle}`) : (language === 'vi' ? 'Chọn lab tiếp theo' : 'Choose next lab')} <ArrowRight size={15} />
         </Link>
       </div>
     </section>

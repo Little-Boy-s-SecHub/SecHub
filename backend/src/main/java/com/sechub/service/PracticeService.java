@@ -13,6 +13,7 @@ import com.sechub.repository.UserProgressRepository;
 import com.sechub.repository.GrowthProfileRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.sechub.support.LocaleHolder;
 
 import java.time.LocalDate;
 import java.util.Comparator;
@@ -39,7 +40,7 @@ public class PracticeService {
         User user = userService.findByUsername(username);
         List<Lesson> lessons = completedLessons(user);
         if (lessons.isEmpty()) {
-            throw new BadRequestException("Hãy hoàn thành ít nhất một bài học để mở bộ flashcard");
+            throw new BadRequestException(LocaleHolder.isEn() ? "Complete at least one lesson to unlock flashcards" : "Hãy hoàn thành ít nhất một bài học để mở bộ flashcard");
         }
         List<PracticeCardDto> cards = openAiService.generatePracticeCards(lessons.stream().limit(4).toList());
         return new PracticeDeckDto(LocalDate.now(), cards, null, lessons.size());
@@ -53,7 +54,7 @@ public class PracticeService {
                 .filter(item -> item.getVulnerability() != null)
                 .findFirst()
                 .orElseThrow(() -> new BadRequestException(
-                        "Các bài đã hoàn thành chưa có loại lỗ hổng phù hợp để tạo lab hằng ngày"));
+                        LocaleHolder.isEn() ? "Completed lessons don't have matching vulnerability types for daily labs" : "Các bài đã hoàn thành chưa có loại lỗ hổng phù hợp để tạo lab hằng ngày"));
         
         String track = growthProfileRepository.findByUserId(user.getId()).map(GrowthProfile::getRecommendedTrack).orElse("BEGINNER");
         String adaptiveDifficulty = adaptiveDifficulty(lesson.getLearningPath().getDifficulty().name(), track);
@@ -62,7 +63,7 @@ public class PracticeService {
                 + "LEARNING PATH: " + lesson.getLearningPath().getTitle() + "\n"
                 + "LESSON CONTENT: " + compact(lesson.getContentMarkdown(), 700) + "\n"
                 + "LEARNER TRACK: " + track + "\n"
-                + "REQUIREMENT: Tạo thử thách hằng ngày ngắn, bám sát bài học và chỉ chạy trong sandbox. Điều chỉnh độ phức tạp dựa trên trình độ.";
+                + "REQUIREMENT: " + (LocaleHolder.isEn() ? "Create a short daily challenge closely matching the lesson, running only in sandbox. Adjust complexity based on proficiency." : "Tạo thử thách hằng ngày ngắn, bám sát bài học và chỉ chạy trong sandbox. Điều chỉnh độ phức tạp dựa trên trình độ.");
                 
         Lab lab = openAiService.generateAndSaveLab(
                 lesson.getVulnerability().getSlug(),

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.sechub.support.LocaleHolder;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -93,17 +94,17 @@ public class SimulatedLabRuntimeService {
             throw e;
         } catch (Exception e) {
             log.error("Failed to serve simulated runtime for attempt {}", attempt.getId(), e);
-            throw new ResponseStatusException(GONE, "Sandbox lab nhúng không thể phản hồi", e);
+            throw new ResponseStatusException(GONE, LocaleHolder.isEn() ? "Embedded lab sandbox cannot respond" : "Sandbox lab nhúng không thể phản hồi", e);
         }
     }
 
     private JsonNode readManifest(LabAttempt attempt) throws Exception {
         String artifactPath = attempt.getLab().getArtifactPath();
         if (artifactPath == null || artifactPath.isBlank()) {
-            throw new ResponseStatusException(GONE, "Lab không có artifact thực thi");
+            throw new ResponseStatusException(GONE, LocaleHolder.isEn() ? "Lab has no executable artifact" : "Lab không có artifact thực thi");
         }
         Path manifest = Path.of(artifactPath).toAbsolutePath().normalize().resolve("manifest.json");
-        if (!Files.isRegularFile(manifest)) throw new ResponseStatusException(GONE, "Artifact lab không còn tồn tại");
+        if (!Files.isRegularFile(manifest)) throw new ResponseStatusException(GONE, LocaleHolder.isEn() ? "Lab artifact no longer exists" : "Artifact lab không còn tồn tại");
         return objectMapper.readTree(manifest.toFile());
     }
 
@@ -131,7 +132,7 @@ public class SimulatedLabRuntimeService {
             case "sql-injection" -> "/login".equals(path)
                     ? pre(sqlResult(input, values.getOrDefault("password", ""), flag)) : null;
             case "xss" -> "/search".equals(path)
-                    ? "Kết quả: " + input + (containsAny(input.toLowerCase(), "<script", "onerror") ? "<div>" + escape(flag) + "</div>" : "") : null;
+                    ? (LocaleHolder.isEn() ? "Result: " : "Kết quả: ") + input + (containsAny(input.toLowerCase(), "<script", "onerror") ? "<div>" + escape(flag) + "</div>" : "") : null;
             case "csrf" -> "/transfer".equals(path) && !values.isEmpty()
                     ? pre("Transfer completed without CSRF validation. Receipt: " + flag) : null;
             case "ssrf" -> "/fetch".equals(path)
@@ -221,16 +222,17 @@ public class SimulatedLabRuntimeService {
     }
 
     private String home(String type, String parameter, String account) {
+        boolean en = LocaleHolder.isEn();
         return switch (type) {
-            case "sql-injection" -> form("post", "login", field("Tên đăng nhập", parameter, account, "text") + field("Mật khẩu", "password", "", "password"), "Đăng nhập");
-            case "xss" -> form("get", "search", field("Từ khóa", parameter, "", "text"), "Tìm kiếm");
-            case "csrf" -> form("post", "transfer", field("Người nhận", "to", "merchant", "text") + field("Số tiền", "amount", "10", "text"), "Chuyển khoản");
-            case "idor" -> "<p>Thử <a href='api/profile?" + escape(parameter) + "=1'>hồ sơ của bạn</a>. Resource key: <code>" + escape(parameter) + "</code></p>";
-            case "ssrf" -> form("get", "fetch", field("URL cần lấy", parameter, "https://example.com", "text"), "Gửi yêu cầu");
-            case "command-injection" -> form("get", "ping", field("Host hoặc địa chỉ IP", parameter, "127.0.0.1", "text"), "Kiểm tra");
-            case "file-upload" -> form("post", "upload", field("Tên tệp", "filename", "report.jpg", "text") + "<textarea name='content' rows='4'></textarea>", "Tải lên");
-            case "auth-bypass" -> form("get", "admin", field("Access token", "token", "", "text"), "Mở trang quản trị");
-            default -> "<p>Template lab chưa được hỗ trợ.</p>";
+            case "sql-injection" -> form("post", "login", field(en ? "Username" : "Tên đăng nhập", parameter, account, "text") + field(en ? "Password" : "Mật khẩu", "password", "", "password"), en ? "Login" : "Đăng nhập");
+            case "xss" -> form("get", "search", field(en ? "Keyword" : "Từ khóa", parameter, "", "text"), en ? "Search" : "Tìm kiếm");
+            case "csrf" -> form("post", "transfer", field(en ? "Recipient" : "Người nhận", "to", "merchant", "text") + field(en ? "Amount" : "Số tiền", "amount", "10", "text"), en ? "Transfer" : "Chuyển khoản");
+            case "idor" -> en ? "<p>Try <a href='api/profile?" + escape(parameter) + "=1'>your profile</a>. Resource key: <code>" + escape(parameter) + "</code></p>" : "<p>Thử <a href='api/profile?" + escape(parameter) + "=1'>hồ sơ của bạn</a>. Resource key: <code>" + escape(parameter) + "</code></p>";
+            case "ssrf" -> form("get", "fetch", field(en ? "URL to fetch" : "URL cần lấy", parameter, "https://example.com", "text"), en ? "Send request" : "Gửi yêu cầu");
+            case "command-injection" -> form("get", "ping", field(en ? "Host or IP address" : "Host hoặc địa chỉ IP", parameter, "127.0.0.1", "text"), en ? "Check" : "Kiểm tra");
+            case "file-upload" -> form("post", "upload", field(en ? "Filename" : "Tên tệp", "filename", "report.jpg", "text") + "<textarea name='content' rows='4'></textarea>", en ? "Upload" : "Tải lên");
+            case "auth-bypass" -> form("get", "admin", field("Access token", "token", "", "text"), en ? "Open admin page" : "Mở trang quản trị");
+            default -> en ? "<p>This lab template is not yet supported.</p>" : "<p>Template lab chưa được hỗ trợ.</p>";
         };
     }
 
@@ -243,15 +245,18 @@ public class SimulatedLabRuntimeService {
     }
 
     private String pre(String value) {
-        return "<pre>" + escape(value) + "</pre><a class='retry' href='./'>Làm lại</a>";
+        return "<pre>" + escape(value) + "</pre><a class='retry' href='./'>" + (LocaleHolder.isEn() ? "Retry" : "Làm lại") + "</a>";
     }
 
     private String page(String title, String scenario, String content) {
+        boolean en = LocaleHolder.isEn();
+        String lang = en ? "en" : "vi";
+        String eyebrow = en ? "SECURITY LAB" : "BÀI THỰC HÀNH BẢO MẬT";
         return """
-            <!doctype html><html lang='vi'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width'>
+            <!doctype html><html lang='%s'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width'>
             <style>*{box-sizing:border-box}body{margin:0;background:#f5f7fb;color:#191d2b;font:15px/1.6 system-ui}.top{height:54px;background:#fff;border-bottom:1px solid #dfe4ec;padding:15px 28px;font-weight:750;color:#2447a8}.shell{max-width:820px;margin:42px auto;padding:0 22px}.panel{background:#fff;border:1px solid #dfe4ec;border-radius:8px;padding:30px;box-shadow:0 10px 30px #14234612}h1{font-size:28px;margin:6px 0}.scenario{color:#657084}form{display:flex;gap:12px;align-items:end;flex-wrap:wrap}label{display:flex;flex:1;min-width:220px;flex-direction:column;font-weight:700}input,textarea{border:1px solid #cbd3df;border-radius:6px;padding:11px}button{border:0;border-radius:6px;padding:11px 18px;background:#2447a8;color:#fff;font-weight:750}pre{white-space:pre-wrap;background:#101522;color:#dce7ff;border-radius:7px;padding:18px}.retry{display:inline-block;margin-top:12px}</style>
-            </head><body><div class='top'>SecHub / Isolated Training Lab</div><main class='shell'><section class='panel'><small>BÀI THỰC HÀNH BẢO MẬT</small><h1>%s</h1><p class='scenario'>%s</p>%s</section></main></body></html>
-            """.formatted(escape(title), escape(scenario), content);
+            </head><body><div class='top'>SecHub / Isolated Training Lab</div><main class='shell'><section class='panel'><small>%s</small><h1>%s</h1><p class='scenario'>%s</p>%s</section></main></body></html>
+            """.formatted(escape(lang), escape(eyebrow), escape(title), escape(scenario), content);
     }
 
     private String escape(String value) {

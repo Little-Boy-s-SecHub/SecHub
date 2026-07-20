@@ -3,6 +3,7 @@ package com.sechub.controller;
 import com.sechub.dto.ApiResponse;
 import com.sechub.dto.PracticeDeckDto;
 import com.sechub.service.PracticeService;
+import com.sechub.support.LocaleHolder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -30,7 +31,7 @@ public class PracticeController {
     public ResponseEntity<ApiResponse<PracticeDeckDto>> generateDailyLab(
             @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(ApiResponse.success(
-                "Đã tạo thử thách hằng ngày từ bài học của bạn",
+                LocaleHolder.isEn() ? "Daily challenge created from your lesson" : "Đã tạo thử thách hằng ngày từ bài học của bạn",
                 practiceService.generateDailyLab(userDetails.getUsername())));
     }
 }

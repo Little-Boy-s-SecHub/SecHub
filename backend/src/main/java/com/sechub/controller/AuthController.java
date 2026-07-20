@@ -2,6 +2,7 @@ package com.sechub.controller;
 
 import com.sechub.dto.*;
 import com.sechub.service.AuthService;
+import com.sechub.support.LocaleHolder;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,18 +23,18 @@ public class AuthController {
         AuthResponse response = authService.register(request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Đăng ký thành công", response));
+                .body(ApiResponse.success(LocaleHolder.isEn() ? "Registration successful" : "Đăng ký thành công", response));
     }
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody AuthRequest request) {
         AuthResponse response = authService.login(request);
-        return ResponseEntity.ok(ApiResponse.success("Đăng nhập thành công", response));
+        return ResponseEntity.ok(ApiResponse.success(LocaleHolder.isEn() ? "Login successful" : "Đăng nhập thành công", response));
     }
 
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(@RequestBody RefreshTokenRequest request) {
         AuthResponse response = authService.refreshToken(request.refreshToken());
-        return ResponseEntity.ok(ApiResponse.success("Làm mới token thành công", response));
+        return ResponseEntity.ok(ApiResponse.success(LocaleHolder.isEn() ? "Token refreshed successfully" : "Làm mới token thành công", response));
     }
 }

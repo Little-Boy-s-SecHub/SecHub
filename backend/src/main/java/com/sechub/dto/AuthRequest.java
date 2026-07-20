@@ -4,10 +4,10 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public record AuthRequest(
-    @NotBlank(message = "Tên đăng nhập không được để trống")
+    @NotBlank(message = "Username must not be empty")
     String username,
 
-    @NotBlank(message = "Mật khẩu không được để trống")
-    @Size(min = 6, message = "Mật khẩu phải có ít nhất 6 ký tự")
+    @NotBlank(message = "Password must not be empty")
+    @Size(min = 6, message = "Password must have at least 6 characters")
     String password
 ) {}

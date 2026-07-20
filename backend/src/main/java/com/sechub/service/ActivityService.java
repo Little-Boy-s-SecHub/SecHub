@@ -3,6 +3,7 @@ package com.sechub.service;
 import com.sechub.entity.User;
 import com.sechub.entity.UserActivity;
 import com.sechub.exception.ResourceNotFoundException;
+import com.sechub.support.LocaleHolder;
 import com.sechub.repository.UserActivityRepository;
 import com.sechub.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -28,7 +29,7 @@ public class ActivityService {
         if (userId == null) return;
         
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng", "id", userId));
+                .orElseThrow(() -> new ResourceNotFoundException(LocaleHolder.isEn() ? "User" : "Người dùng", "id", userId));
 
         LocalDate today = LocalDate.now();
         UserActivity activity = activityRepository.findByUserIdAndActivityDate(userId, today)

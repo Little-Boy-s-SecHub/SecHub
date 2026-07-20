@@ -6,6 +6,7 @@ import com.sechub.entity.User;
 import com.sechub.entity.UserProgress;
 import com.sechub.entity.LearningPath;
 import com.sechub.exception.ResourceNotFoundException;
+import com.sechub.support.LocaleHolder;
 import com.sechub.repository.LessonRepository;
 import com.sechub.repository.UserProgressRepository;
 import org.springframework.stereotype.Service;
@@ -46,9 +47,9 @@ public class ProgressService {
     public UserProgressDto markLessonComplete(UUID lessonId, String username) {
         User user = userService.findByUsername(username);
         Lesson lesson = lessonRepository.findById(lessonId)
-                .orElseThrow(() -> new ResourceNotFoundException("Bài học", "id", lessonId));
+                .orElseThrow(() -> new ResourceNotFoundException(LocaleHolder.isEn() ? "Lesson" : "Bài học", "id", lessonId));
         if (lesson.getLearningPath().getStatus() != LearningPath.PublicationStatus.PUBLISHED) {
-            throw new ResourceNotFoundException("Bài học", "id", lessonId);
+            throw new ResourceNotFoundException(LocaleHolder.isEn() ? "Lesson" : "Bài học", "id", lessonId);
         }
 
         UserProgress progress = progressRepository

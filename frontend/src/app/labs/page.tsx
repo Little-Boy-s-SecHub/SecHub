@@ -25,6 +25,7 @@ import { api, Lab, Vulnerability, LabAttempt, parseBackendDate } from '@/lib/api
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/context/LanguageContext';
 import PageBackLink from '@/components/PageBackLink';
+import { localizeLabTitle, localizeLabDescription } from '@/utils/localize';
 
 interface CustomSelectOption {
   value: string;
@@ -839,8 +840,8 @@ export default function LabsPage() {
                         </button>
                     </div>
                   )}
-                  <div className="lab-card-title">{lab.title}</div>
-                  <div className="lab-card-desc">{lab.description}</div>
+                  <div className="lab-card-title">{localizeLabTitle(lab.title, language)}</div>
+                  <div className="lab-card-desc">{localizeLabDescription(lab.description, lab.title, language)}</div>
                   <div className="lab-card-meta" style={{ marginTop: 'auto', paddingTop: 'var(--space-2)', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                     <span className="lab-card-meta-item" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                       <Clock size={12} /> {lab.estimatedMinutes}{language === 'vi' ? 'p' : 'm'}

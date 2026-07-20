@@ -7,7 +7,7 @@ import { Clock, BookOpen, ChevronRight, AlertCircle } from 'lucide-react';
 import { api, Lesson, LearningPath } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/context/LanguageContext';
-import { localizeLessonTitle } from '@/utils/localize';
+import { localizeLessonTitle, localizePathTitle, localizePathDescription } from '@/utils/localize';
 
 
 export default function LearningPathDetailPage({ params }: { params: Promise<{ pathId: string }> }) {
@@ -104,7 +104,7 @@ export default function LearningPathDetailPage({ params }: { params: Promise<{ p
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-4)', fontSize: '0.875rem' }}>
         <Link href="/learning" style={{ color: 'var(--text-body-subtle)' }}>{language === 'vi' ? 'Lộ trình học' : 'Learning Paths'}</Link>
         <span style={{ color: 'var(--text-body-subtle)' }}>/</span>
-        <span style={{ color: 'var(--text-heading)' }}>{path.title}</span>
+        <span style={{ color: 'var(--text-heading)' }}>{localizePathTitle(path.title, language)}</span>
       </div>
 
       {/* Header */}
@@ -118,9 +118,9 @@ export default function LearningPathDetailPage({ params }: { params: Promise<{ p
               </span>
             </div>
             <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: 'var(--space-1)' }}>
-              {path.title}
+              {localizePathTitle(path.title, language)}
             </h1>
-            <p style={{ color: 'var(--text-body-subtle)' }}>{path.description}</p>
+            <p style={{ color: 'var(--text-body-subtle)' }}>{localizePathDescription(path.description, language)}</p>
           </div>
           
           {isAuthenticated && (

@@ -274,6 +274,10 @@ async function request<T>(
   if (token && !isPublicGetPath(path, method)) {
     headers.set("Authorization", `Bearer ${token}`);
   }
+  if (typeof window !== "undefined") {
+    const lang = localStorage.getItem("sechub_language") || "en";
+    headers.set("Accept-Language", lang);
+  }
 
   const response = await fetch(url, {
     ...options,
@@ -286,7 +290,8 @@ async function request<T>(
   try {
     json = text ? JSON.parse(text) : {};
   } catch {
-    throw new Error("Không thể phân tích phản hồi từ máy chủ.");
+    const isVi = typeof window !== 'undefined' && localStorage.getItem('sechub_language') === 'vi';
+    throw new Error(isVi ? "Không thể phân tích phản hồi từ máy chủ." : "Unable to parse server response.");
   }
 
   if (!response.ok) {
@@ -296,7 +301,8 @@ async function request<T>(
         window.dispatchEvent(new Event("sechub_logout"));
       }
     }
-    const errorMsg = json.message || `Lỗi máy chủ (${response.status})`;
+    const isVi = typeof window !== 'undefined' && localStorage.getItem('sechub_language') === 'vi';
+    const errorMsg = json.message || (isVi ? `Lỗi máy chủ (${response.status})` : `Server error (${response.status})`);
     throw new Error(errorMsg);
   }
 

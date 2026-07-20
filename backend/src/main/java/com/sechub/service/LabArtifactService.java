@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sechub.dto.GeneratedLabSpec;
 import com.sechub.exception.BadRequestException;
+import com.sechub.support.LocaleHolder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -38,7 +39,7 @@ public class LabArtifactService {
         String targetId = String.valueOf(2 + Math.floorMod(artifactId.hashCode(), 8));
         Path directory = generatedLabsRoot.resolve(artifactId).normalize();
         if (!directory.startsWith(generatedLabsRoot)) {
-            throw new BadRequestException("Đường dẫn artifact lab không hợp lệ");
+            throw new BadRequestException(LocaleHolder.isEn() ? "Invalid lab artifact path" : "Đường dẫn artifact lab không hợp lệ");
         }
 
         try {
@@ -64,7 +65,7 @@ public class LabArtifactService {
             write(directory.resolve("README.md"), readme(spec, vulnerabilitySlug));
             return new LabArtifact(directory, "sechub/generated-lab-" + artifactId + ":latest", 8080);
         } catch (IOException e) {
-            throw new BadRequestException("Không thể tạo source cho lab: " + e.getMessage());
+            throw new BadRequestException((LocaleHolder.isEn() ? "Failed to create lab source: " : "Không thể tạo source cho lab: ") + e.getMessage());
         }
     }
 
@@ -72,7 +73,7 @@ public class LabArtifactService {
         if (artifactPath == null || artifactPath.isBlank()) return;
         Path directory = Path.of(artifactPath).toAbsolutePath().normalize();
         if (!directory.startsWith(generatedLabsRoot) || !Files.isRegularFile(directory.resolve("manifest.json"))) {
-            throw new BadRequestException("Artifact lab không thuộc thư mục runtime được quản lý");
+            throw new BadRequestException(LocaleHolder.isEn() ? "Lab artifact is not in the managed runtime directory" : "Artifact lab không thuộc thư mục runtime được quản lý");
         }
         try {
             ObjectNode manifest = (ObjectNode) objectMapper.readTree(directory.resolve("manifest.json").toFile());
@@ -94,7 +95,7 @@ public class LabArtifactService {
                     objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(manifest), StandardCharsets.UTF_8,
                     StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
         } catch (IOException e) {
-            throw new BadRequestException("Không thể cập nhật UI template của lab: " + e.getMessage());
+            throw new BadRequestException((LocaleHolder.isEn() ? "Failed to update lab UI template: " : "Không thể cập nhật UI template của lab: ") + e.getMessage());
         }
     }
 
@@ -102,7 +103,7 @@ public class LabArtifactService {
         if (artifactPath == null || artifactPath.isBlank()) return;
         Path directory = Path.of(artifactPath).toAbsolutePath().normalize();
         if (!directory.startsWith(generatedLabsRoot) || directory.equals(generatedLabsRoot)) {
-            throw new BadRequestException("Artifact lab không thuộc thư mục runtime được quản lý");
+            throw new BadRequestException(LocaleHolder.isEn() ? "Lab artifact is not in the managed runtime directory" : "Artifact lab không thuộc thư mục runtime được quản lý");
         }
         if (!Files.exists(directory)) return;
         try (var paths = Files.walk(directory)) {
@@ -110,7 +111,7 @@ public class LabArtifactService {
                 Files.deleteIfExists(path);
             }
         } catch (IOException e) {
-            throw new BadRequestException("Không thể xoá artifact của lab: " + e.getMessage());
+            throw new BadRequestException((LocaleHolder.isEn() ? "Failed to delete lab artifact: " : "Không thể xoá artifact của lab: ") + e.getMessage());
         }
     }
 

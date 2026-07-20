@@ -7,6 +7,7 @@ import com.sechub.entity.LabAttempt;
 import com.sechub.entity.Notification;
 import com.sechub.entity.User;
 import com.sechub.exception.ResourceNotFoundException;
+import com.sechub.support.LocaleHolder;
 import com.sechub.repository.NotificationRepository;
 import com.sechub.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -87,23 +88,23 @@ public class NotificationService {
                 attempt.getUser(),
                 Notification.Type.LAB_COMPLETED,
                 attempt.getId().toString(),
-                "Hoàn thành lab",
-                "Bạn vừa hoàn thành " + lab.getTitle() + " và nhận " + score + " XP.",
+                LocaleHolder.isEn() ? "Lab completed" : "Hoàn thành lab",
+                LocaleHolder.isEn() ? "You just completed " + lab.getTitle() + " and earned " + score + " XP." : "Bạn vừa hoàn thành " + lab.getTitle() + " và nhận " + score + " XP.",
                 "/labs/" + lab.getId() + "/play"
         );
     }
 
     @Transactional
     public void notifyLabPublished(Lab lab) {
-        String vulnerabilityName = lab.getVulnerability() == null ? "bảo mật web" : lab.getVulnerability().getName();
+        String vulnerabilityName = lab.getVulnerability() == null ? (LocaleHolder.isEn() ? "web security" : "bảo mật web") : lab.getVulnerability().getName();
         users.findByNotificationsEnabledTrue().stream()
                 .filter(user -> lab.getAuthor() == null || !lab.getAuthor().getId().equals(user.getId()))
                 .forEach(user -> createForUser(
                         user,
                         Notification.Type.LAB_PUBLISHED,
                         lab.getId().toString(),
-                        "Lab mới",
-                        "Có lab mới về " + vulnerabilityName + ": " + lab.getTitle(),
+                        LocaleHolder.isEn() ? "New lab" : "Lab mới",
+                        LocaleHolder.isEn() ? "New lab available on " + vulnerabilityName + ": " + lab.getTitle() : "Có lab mới về " + vulnerabilityName + ": " + lab.getTitle(),
                         "/labs/" + lab.getId()
                 ));
     }
@@ -165,6 +166,6 @@ public class NotificationService {
 
     private User findUser(String username) {
         return users.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng", "username", username));
+                .orElseThrow(() -> new ResourceNotFoundException(LocaleHolder.isEn() ? "User" : "Người dùng", "username", username));
     }
 }

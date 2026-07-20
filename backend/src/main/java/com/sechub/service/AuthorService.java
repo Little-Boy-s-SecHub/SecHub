@@ -3,6 +3,7 @@ package com.sechub.service;
 import com.sechub.dto.*;
 import com.sechub.entity.*;
 import com.sechub.exception.*;
+import com.sechub.support.LocaleHolder;
 import com.sechub.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,7 +29,7 @@ public class AuthorService {
 
     @Transactional
     public LearningPathDto createPath(String username, AuthorPathRequest request) {
-        if(request.title()==null||request.title().isBlank())throw new BadRequestException("Tên lộ trình không được để trống");
+        if(request.title()==null||request.title().isBlank())throw new BadRequestException(LocaleHolder.isEn()?"Path name must not be empty":"Tên lộ trình không được để trống");
         LearningPath path=LearningPath.builder().author(users.findByUsername(username)).title(request.title().trim())
                 .description(request.description()).difficulty(parseDifficulty(request.difficulty()))
                 .estimatedHours(request.estimatedHours()==null?1:Math.max(1,request.estimatedHours()))
@@ -56,14 +57,14 @@ public class AuthorService {
     }
 
     @Transactional
-    public void publishPath(String username,UUID id){LearningPath path=ownedPath(username,id);if(path.getLessons().isEmpty())throw new BadRequestException("Cần ít nhất một bài học trước khi xuất bản");path.setStatus(LearningPath.PublicationStatus.PUBLISHED);paths.save(path);}
+    public void publishPath(String username,UUID id){LearningPath path=ownedPath(username,id);if(path.getLessons().isEmpty())throw new BadRequestException(LocaleHolder.isEn()?"At least one lesson is required before publishing":"Cần ít nhất một bài học trước khi xuất bản");path.setStatus(LearningPath.PublicationStatus.PUBLISHED);paths.save(path);}
     @Transactional
     public void publishLab(String username,UUID id){Lab lab=ownedLab(username,id);boolean wasPublished=lab.getStatus()==LearningPath.PublicationStatus.PUBLISHED;lab.setStatus(LearningPath.PublicationStatus.PUBLISHED);Lab saved=labs.save(lab);if(!wasPublished)notifications.notifyLabPublished(saved);}
     @Transactional
-    public void deletePath(String username,UUID id){LearningPath path=ownedPath(username,id);if(path.getStatus()!=LearningPath.PublicationStatus.DRAFT)throw new BadRequestException("Chỉ có thể xoá lộ trình đang ở bản nháp");paths.delete(path);}
+    public void deletePath(String username,UUID id){LearningPath path=ownedPath(username,id);if(path.getStatus()!=LearningPath.PublicationStatus.DRAFT)throw new BadRequestException(LocaleHolder.isEn()?"Only draft learning paths can be deleted":"Chỉ có thể xoá lộ trình đang ở bản nháp");paths.delete(path);}
     @Transactional
-    public void deleteLab(String username,UUID id){Lab lab=ownedLab(username,id);if(lab.getStatus()!=LearningPath.PublicationStatus.DRAFT)throw new BadRequestException("Chỉ có thể xoá challenge đang ở bản nháp");labs.delete(lab);artifacts.deleteArtifact(lab.getArtifactPath());}
-    private LearningPath ownedPath(String username,UUID id){User u=users.findByUsername(username);LearningPath p=paths.findById(id).orElseThrow(()->new ResourceNotFoundException("Learning path","id",id));if(p.getAuthor()==null||(!p.getAuthor().getId().equals(u.getId())&&u.getRole()!=User.Role.ADMIN))throw new BadRequestException("Bạn không sở hữu nội dung này");return p;}
-    private Lab ownedLab(String username,UUID id){User u=users.findByUsername(username);Lab l=labs.findById(id).orElseThrow(()->new ResourceNotFoundException("Lab","id",id));if(l.getAuthor()==null||(!l.getAuthor().getId().equals(u.getId())&&u.getRole()!=User.Role.ADMIN))throw new BadRequestException("Bạn không sở hữu nội dung này");return l;}
-    private LearningPath.Difficulty parseDifficulty(String v){try{return LearningPath.Difficulty.valueOf(v==null?"BEGINNER":v.toUpperCase());}catch(Exception e){throw new BadRequestException("Độ khó không hợp lệ");}}
+    public void deleteLab(String username,UUID id){Lab lab=ownedLab(username,id);if(lab.getStatus()!=LearningPath.PublicationStatus.DRAFT)throw new BadRequestException(LocaleHolder.isEn()?"Only draft challenges can be deleted":"Chỉ có thể xoá challenge đang ở bản nháp");labs.delete(lab);artifacts.deleteArtifact(lab.getArtifactPath());}
+    private LearningPath ownedPath(String username,UUID id){User u=users.findByUsername(username);LearningPath p=paths.findById(id).orElseThrow(()->new ResourceNotFoundException("Learning path","id",id));if(p.getAuthor()==null||(!p.getAuthor().getId().equals(u.getId())&&u.getRole()!=User.Role.ADMIN))throw new BadRequestException(LocaleHolder.isEn()?"You don't own this content":"Bạn không sở hữu nội dung này");return p;}
+    private Lab ownedLab(String username,UUID id){User u=users.findByUsername(username);Lab l=labs.findById(id).orElseThrow(()->new ResourceNotFoundException("Lab","id",id));if(l.getAuthor()==null||(!l.getAuthor().getId().equals(u.getId())&&u.getRole()!=User.Role.ADMIN))throw new BadRequestException(LocaleHolder.isEn()?"You don't own this content":"Bạn không sở hữu nội dung này");return l;}
+    private LearningPath.Difficulty parseDifficulty(String v){try{return LearningPath.Difficulty.valueOf(v==null?"BEGINNER":v.toUpperCase());}catch(Exception e){throw new BadRequestException(LocaleHolder.isEn()?"Invalid difficulty":"Độ khó không hợp lệ");}}
 }

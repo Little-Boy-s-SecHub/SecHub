@@ -6,6 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import com.sechub.support.LocaleHolder;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -106,7 +108,8 @@ public class DockerService {
             return new ContainerInfo(containerId, hostPort);
         } catch (Exception e) {
             if (generatedLab) {
-                throw new IllegalStateException("Không thể build/chạy generated lab: " + e.getMessage(), e);
+                throw new IllegalStateException(
+                    (LocaleHolder.isEn() ? "Failed to build/run generated lab: " : "Không thể build/chạy generated lab: ") + e.getMessage(), e);
             }
             log.error("Failed to start Docker container for {}. Falling back to Simulation Mode.", imageName, e);
             return new ContainerInfo("sim-" + UUID.randomUUID(), hostPort);

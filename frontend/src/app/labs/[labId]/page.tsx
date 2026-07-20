@@ -20,6 +20,7 @@ import {
 import { api, Lab, LabAttempt, parseBackendDate } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '@/context/LanguageContext';
+import { localizeLabTitle, localizeLabDescription } from '@/utils/localize';
 
 export default function LabDetailPage({ params }: { params: Promise<{ labId: string }> }) {
   const { labId } = use(params);
@@ -34,7 +35,7 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
   const [, setRevealedHints] = useState(0);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
-  const labNotFound = apiError?.includes('Không tìm thấy Lab') || apiError?.includes('404');
+  const labNotFound = apiError?.includes('Không tìm thấy Lab') || apiError?.includes('not found') || apiError?.includes('404');
 
   useEffect(() => {
     async function loadLabData() {
@@ -158,7 +159,7 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
       <div className="breadcrumb">
         <Link href="/labs">{language === 'vi' ? 'Phòng Lab' : 'Labs'}</Link>
         <span className="breadcrumb-separator">/</span>
-        <span className="breadcrumb-current">{lab.title}</span>
+        <span className="breadcrumb-current">{localizeLabTitle(lab.title, language)}</span>
       </div>
 
       <div className="lab-detail-layout">
@@ -179,9 +180,9 @@ export default function LabDetailPage({ params }: { params: Promise<{ labId: str
               </span>
             </div>
             <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: 'var(--space-1)' }}>
-              {lab.title}
+              {localizeLabTitle(lab.title, language)}
             </h1>
-            <p style={{ color: 'var(--text-body)', lineHeight: 1.7 }}>{lab.description}</p>
+            <p style={{ color: 'var(--text-body)', lineHeight: 1.7 }}>{localizeLabDescription(lab.description, lab.title, language)}</p>
           </div>
 
           {/* Lab Environment */}

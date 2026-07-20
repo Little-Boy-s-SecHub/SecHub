@@ -7,6 +7,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.sechub.support.LocaleHolder;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.net.URI;
@@ -50,11 +51,11 @@ public class LabRuntimeProxyService {
     @Transactional(readOnly = true)
     public ResponseEntity<byte[]> proxy(String token, byte[] body, HttpServletRequest incoming) {
         LabAttempt attempt = attemptRepository.findByRuntimeToken(token)
-                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Runtime lab không tồn tại"));
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, LocaleHolder.isEn() ? "Lab runtime not found" : "Runtime lab không tồn tại"));
         if (attempt.getStatus() != LabAttempt.Status.RUNNING
                 || (attempt.getExpiresAt() != null && !attempt.getExpiresAt().isAfter(LocalDateTime.now()))
                 || !dockerService.isContainerRunning(attempt.getContainerId())) {
-            throw new ResponseStatusException(GONE, "Phiên lab đã kết thúc");
+            throw new ResponseStatusException(GONE, LocaleHolder.isEn() ? "Lab session has ended" : "Phiên lab đã kết thúc");
         }
 
         if (attempt.getContainerId() != null && attempt.getContainerId().startsWith("sim-")) {
@@ -100,7 +101,7 @@ public class LabRuntimeProxyService {
         } catch (ResponseStatusException e) {
             throw e;
         } catch (Exception e) {
-            throw new ResponseStatusException(GONE, "Ứng dụng lab tạm thời không phản hồi", e);
+            throw new ResponseStatusException(GONE, LocaleHolder.isEn() ? "Lab application is temporarily unresponsive" : "Ứng dụng lab tạm thời không phản hồi", e);
         }
     }
 }

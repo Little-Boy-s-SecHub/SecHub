@@ -3,6 +3,6 @@ package com.sechub.dto;
 import jakarta.validation.constraints.NotBlank;
 
 public record RefreshTokenRequest(
-    @NotBlank(message = "Refresh token không được để trống")
+    @NotBlank(message = "Refresh token must not be empty")
     String refreshToken
 ) {}

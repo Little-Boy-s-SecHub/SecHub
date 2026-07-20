@@ -2,6 +2,7 @@ package com.sechub.controller;
 
 import com.sechub.dto.ApiResponse;
 import com.sechub.dto.SyncLessonDto;
+import com.sechub.support.LocaleHolder;
 import com.sechub.service.LessonDataSourceService;
 import com.sechub.service.LessonSyncService;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,12 +40,12 @@ public class SyncController {
 
         try {
             lessonSyncService.syncLessons(lessons);
-            return ResponseEntity.ok(ApiResponse.success("Đồng bộ danh sách bài học thành công!"));
+            return ResponseEntity.ok(ApiResponse.success(LocaleHolder.isEn() ? "Lesson synchronization successful!" : "Đồng bộ danh sách bài học thành công!"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Lỗi đồng bộ dữ liệu: " + e.getMessage()));
+                    .body(ApiResponse.error((LocaleHolder.isEn() ? "Data synchronization error: " : "Lỗi đồng bộ dữ liệu: ") + e.getMessage()));
         }
     }
 
@@ -61,20 +62,22 @@ public class SyncController {
             List<SyncLessonDto> lessons = lessonDataSourceService.fetchLessons();
             lessonSyncService.syncLessons(lessons);
             return ResponseEntity.ok(ApiResponse.success(
-                    "Đồng bộ " + lessons.size() + " bài học từ GitHub thành công!"
+                    LocaleHolder.isEn()
+                            ? "Successfully synced " + lessons.size() + " lessons from GitHub!"
+                            : "Đồng bộ " + lessons.size() + " bài học từ GitHub thành công!"
             ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Lỗi đồng bộ dữ liệu từ GitHub: " + e.getMessage()));
+                    .body(ApiResponse.error((LocaleHolder.isEn() ? "GitHub data synchronization error: " : "Lỗi đồng bộ dữ liệu từ GitHub: ") + e.getMessage()));
         }
     }
 
     private ResponseEntity<ApiResponse<String>> validateSyncToken(String xSyncToken) {
         if (xSyncToken == null || !xSyncToken.equals(syncToken)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.error("Mã xác thực đồng bộ không hợp lệ."));
+                    .body(ApiResponse.error(LocaleHolder.isEn() ? "Invalid sync authentication code." : "Mã xác thực đồng bộ không hợp lệ."));
         }
         return null;
     }

@@ -3,6 +3,7 @@ package com.sechub.service;
 import com.sechub.dto.*;
 import com.sechub.entity.User;
 import com.sechub.exception.BadRequestException;
+import com.sechub.support.LocaleHolder;
 import com.sechub.repository.UserRepository;
 import com.sechub.security.JwtTokenProvider;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -33,10 +34,10 @@ public class AuthService {
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByUsername(request.username())) {
-            throw new BadRequestException("Tên đăng nhập đã tồn tại");
+            throw new BadRequestException(LocaleHolder.isEn() ? "Username already exists" : "Tên đăng nhập đã tồn tại");
         }
         if (userRepository.existsByEmail(request.email())) {
-            throw new BadRequestException("Email đã được sử dụng");
+            throw new BadRequestException(LocaleHolder.isEn() ? "Email already in use" : "Email đã được sử dụng");
         }
 
         User user = User.builder()
@@ -69,7 +70,7 @@ public class AuthService {
         String refreshToken = tokenProvider.generateRefreshToken(request.username());
 
         User user = userRepository.findByUsername(request.username())
-                .orElseThrow(() -> new BadRequestException("Người dùng không tồn tại"));
+                .orElseThrow(() -> new BadRequestException(LocaleHolder.isEn() ? "User not found" : "Người dùng không tồn tại"));
 
         return new AuthResponse(
                 token,
@@ -81,7 +82,7 @@ public class AuthService {
 
     public AuthResponse refreshToken(String refreshToken) {
         if (!tokenProvider.validateToken(refreshToken)) {
-            throw new BadRequestException("Refresh token không hợp lệ hoặc đã hết hạn");
+            throw new BadRequestException(LocaleHolder.isEn() ? "Refresh token is invalid or has expired" : "Refresh token không hợp lệ hoặc đã hết hạn");
         }
 
         String username = tokenProvider.getUsernameFromToken(refreshToken);
@@ -89,7 +90,7 @@ public class AuthService {
         String newRefreshToken = tokenProvider.generateRefreshToken(username);
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new BadRequestException("Người dùng không tồn tại"));
+                .orElseThrow(() -> new BadRequestException(LocaleHolder.isEn() ? "User not found" : "Người dùng không tồn tại"));
 
         return new AuthResponse(
                 newToken,

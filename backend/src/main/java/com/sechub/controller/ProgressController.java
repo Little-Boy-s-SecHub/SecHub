@@ -3,6 +3,7 @@ package com.sechub.controller;
 import com.sechub.dto.ApiResponse;
 import com.sechub.dto.UserProgressDto;
 import com.sechub.service.ProgressService;
+import com.sechub.support.LocaleHolder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -33,7 +34,7 @@ public class ProgressController {
             @PathVariable UUID lessonId,
             @AuthenticationPrincipal UserDetails userDetails) {
         UserProgressDto progress = progressService.markLessonComplete(lessonId, userDetails.getUsername());
-        return ResponseEntity.ok(ApiResponse.success("Đã hoàn thành bài học", progress));
+        return ResponseEntity.ok(ApiResponse.success(LocaleHolder.isEn() ? "Lesson completed" : "Đã hoàn thành bài học", progress));
     }
 
     @GetMapping("/paths/{pathId}")

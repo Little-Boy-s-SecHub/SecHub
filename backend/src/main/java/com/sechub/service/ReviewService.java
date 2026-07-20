@@ -9,6 +9,7 @@ import com.sechub.repository.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.sechub.support.LocaleHolder;
 
 import java.time.*;
 import java.util.*;
@@ -43,11 +44,20 @@ public class ReviewService {
                 cards.countByUserId(user.getId()), (int) cards.countByUserIdAndLastReviewedAtAfter(user.getId(), LocalDate.now().atStartOfDay()), due);
     }
 
+    private boolean isVi(String lang) {
+        return lang != null && lang.toLowerCase().startsWith("vi");
+    }
+
     @Transactional
     public FlashcardReviewResult review(UUID id, FlashcardReviewRequest request, String username) {
+        return review(id, request, username, "en");
+    }
+
+    @Transactional
+    public FlashcardReviewResult review(UUID id, FlashcardReviewRequest request, String username, String lang) {
         User user = users.findByUsername(username);
         Flashcard card = cards.findById(id).orElseThrow(() -> new ResourceNotFoundException("Flashcard", "id", id));
-        if (!card.getUser().getId().equals(user.getId())) throw new BadRequestException("Flashcard không thuộc tài khoản này");
+        if (!card.getUser().getId().equals(user.getId())) throw new BadRequestException(isVi(lang) ? "Flashcard không thuộc tài khoản này" : "Flashcard does not belong to this account");
         boolean correct = normalize(request.answer()).equals(normalize(card.getCorrectAnswer()));
         String rating = request.rating() == null ? "AGAIN" : request.rating().toUpperCase();
         int days = switch (rating) {
@@ -70,17 +80,23 @@ public class ReviewService {
 
     @Transactional
     public LabDto dailyLab(String username) {
+        return dailyLab(username, "en");
+    }
+
+    @Transactional
+    public LabDto dailyLab(String username, String lang) {
         User user = users.findByUsername(username);
+        boolean isVi = isVi(lang);
         UserProgress latest = progress.findByUserIdAndCompletedTrue(user.getId()).stream()
                 .max(Comparator.comparing(item -> Optional.ofNullable(item.getCompletedAt()).orElse(LocalDateTime.MIN)))
-                .orElseThrow(() -> new BadRequestException("Hãy hoàn thành ít nhất một bài học để mở Daily Lab"));
+                .orElseThrow(() -> new BadRequestException(isVi ? "Hãy hoàn thành ít nhất một bài học để mở Daily Lab" : "Please complete at least one lesson to unlock Daily Lab"));
         Vulnerability vulnerability = resolveVulnerability(latest.getLesson());
         String dailyTitle = "Daily " + LocalDate.now() + " - " + user.getUsername();
         return LabDto.fromEntity(labs.findFirstByTitle(dailyTitle).orElseGet(() -> {
             String scenario = "LESSON TITLE: " + latest.getLesson().getTitle() + "\n"
                     + "LEARNING PATH: Daily Review\nLESSON CONTENT: " + summarize(latest.getLesson().getContentMarkdown())
-                    + "\nREQUIREMENT: Tạo thử thách ôn tập 10-15 phút bám sát bài học; tiêu đề phải là " + dailyTitle;
-            Lab generated = openAiService.generateAndSaveLab(vulnerability.getSlug(), "BEGINNER", scenario, "en", user);
+                    + "\nREQUIREMENT: " + (isVi ? "Tạo thử thách ôn tập 10-15 phút bám sát bài học; tiêu đề phải là " : "Create a 10-15 minute review challenge closely matching the lesson; title must be ") + dailyTitle;
+            Lab generated = openAiService.generateAndSaveLab(vulnerability.getSlug(), "BEGINNER", scenario, isVi ? "vi" : "en", user);
             generated.setTitle(dailyTitle);
             return labs.save(generated);
         }));
@@ -100,8 +116,9 @@ public class ReviewService {
     }
 
     private Flashcard generatedCard(User user, Lesson lesson, Vulnerability vulnerability, PracticeCardDto generated) {
-        List<String> choices = new ArrayList<>(List.of(generated.answer(), "Kiểm tra giao diện mà không xem request",
-                "Thử payload trên hệ thống bên ngoài", "Bỏ qua kiểm tra phía server"));
+        boolean en = LocaleHolder.isEn();
+        List<String> choices = new ArrayList<>(List.of(generated.answer(), en ? "Test the UI without checking requests" : "Kiểm tra giao diện mà không xem request",
+                en ? "Try payloads on external systems" : "Thử payload trên hệ thống bên ngoài", en ? "Skip server-side checks" : "Bỏ qua kiểm tra phía server"));
         Collections.rotate(choices, Math.floorMod(generated.question().hashCode(), choices.size()));
         return card(user, lesson, vulnerability.getSlug(), generated.type(), generated.question(), null,
                 choices, generated.answer(), generated.explanation());
@@ -112,7 +129,7 @@ public class ReviewService {
         String unsafeCode = switch (slug) {
             case "sql-injection" -> "query = \"SELECT * FROM users WHERE id = \" + request.id";
             case "xss" -> "element.innerHTML = request.query.q;";
-            case "idor" -> "return repository.findById(request.id); // không kiểm tra owner";
+            case "idor" -> "return repository.findById(request.id); // " + (LocaleHolder.isEn() ? "no owner check" : "không kiểm tra owner");
             case "ssrf" -> "return httpClient.get(request.url);";
             case "command-injection" -> "exec(\"ping \" + request.host);";
             case "file-upload" -> "file.save(upload.originalFilename);";
@@ -121,21 +138,22 @@ public class ReviewService {
         };
         String payload = switch (slug) {
             case "sql-injection" -> "' OR 1=1 --"; case "xss" -> "<script>alert(1)</script>";
-            case "idor" -> "Thay id tài nguyên bằng ID của người dùng khác";
+            case "idor" -> LocaleHolder.isEn() ? "Replace the resource ID with another user's ID" : "Thay id tài nguyên bằng ID của người dùng khác";
             case "ssrf" -> "http://127.0.0.1/internal"; case "command-injection" -> "127.0.0.1; id";
-            case "file-upload" -> "Tệp có nội dung thực thi nhưng phần mở rộng được ngụy trang";
-            case "csrf" -> "Gửi POST thay đổi dữ liệu từ một origin khác"; default -> "Bỏ qua điều kiện xác thực không an toàn";
+            case "file-upload" -> LocaleHolder.isEn() ? "A file with executable content but a disguised extension" : "Tệp có nội dung thực thi nhưng phần mở rộng được ngụy trang";
+            case "csrf" -> LocaleHolder.isEn() ? "Send a data-changing POST from a different origin" : "Gửi POST thay đổi dữ liệu từ một origin khác"; default -> LocaleHolder.isEn() ? "Bypass insecure authentication conditions" : "Bỏ qua điều kiện xác thực không an toàn";
         };
+        boolean en = LocaleHolder.isEn();
         return List.of(
-            card(user, lesson, slug, "CODE_REVIEW", "Đoạn code này có nguy cơ lỗ hổng nào?", unsafeCode,
-                    List.of(vuln.getName(), "Race Condition", "Information Disclosure", "Không có lỗi"), vuln.getName(),
-                    "Dữ liệu người dùng được tin cậy mà thiếu kiểm tra hoặc ràng buộc bảo mật phù hợp."),
-            card(user, lesson, slug, "PAYLOAD", "Thao tác hoặc payload nào phù hợp nhất trong sandbox của bài này?", null,
-                    List.of(payload, "Chỉ tải lại trang", "Đổi User-Agent", "Xoá cookie giao diện"), payload,
-                    "Payload này tác động trực tiếp vào điểm yếu " + vuln.getName() + " đang được ôn tập."),
-            card(user, lesson, slug, "MULTIPLE_CHOICE", "Bước nào cần làm trước khi thử khai thác?", null,
-                    List.of("Xác định input và quan sát request", "Tấn công hệ thống bên ngoài", "Đoán flag", "Tắt logging"),
-                    "Xác định input và quan sát request", "Hiểu luồng dữ liệu và ranh giới tin cậy giúp chọn payload đúng và an toàn.")
+            card(user, lesson, slug, "CODE_REVIEW", en ? "What vulnerability risk does this code have?" : "Đoạn code này có nguy cơ lỗ hổng nào?", unsafeCode,
+                    List.of(vuln.getName(), "Race Condition", "Information Disclosure", en ? "No vulnerability" : "Không có lỗi"), vuln.getName(),
+                    en ? "User data is trusted without proper validation or security constraints." : "Dữ liệu người dùng được tin cậy mà thiếu kiểm tra hoặc ràng buộc bảo mật phù hợp."),
+            card(user, lesson, slug, "PAYLOAD", en ? "Which action or payload is most suitable in this lab's sandbox?" : "Thao tác hoặc payload nào phù hợp nhất trong sandbox của bài này?", null,
+                    List.of(payload, en ? "Just reload the page" : "Chỉ tải lại trang", en ? "Change User-Agent" : "Đổi User-Agent", en ? "Delete UI cookies" : "Xoá cookie giao diện"), payload,
+                    en ? "This payload directly targets the " + vuln.getName() + " weakness being reviewed." : "Payload này tác động trực tiếp vào điểm yếu " + vuln.getName() + " đang được ôn tập."),
+            card(user, lesson, slug, "MULTIPLE_CHOICE", en ? "What step should be done before attempting exploitation?" : "Bước nào cần làm trước khi thử khai thác?", null,
+                    List.of(en ? "Identify inputs and observe requests" : "Xác định input và quan sát request", en ? "Attack external systems" : "Tấn công hệ thống bên ngoài", en ? "Guess the flag" : "Đoán flag", en ? "Disable logging" : "Tắt logging"),
+                    en ? "Identify inputs and observe requests" : "Xác định input và quan sát request", en ? "Understanding data flow and trust boundaries helps select the right and safe payload." : "Hiểu luồng dữ liệu và ranh giới tin cậy giúp chọn payload đúng và an toàn.")
         );
     }
 
@@ -145,7 +163,7 @@ public class ReviewService {
             return Flashcard.builder().user(user).lesson(lesson).type(type).question(question).code(code)
                     .choicesJson(mapper.writeValueAsString(choices)).correctAnswer(answer).explanation(explanation)
                     .vulnerabilitySlug(slug).sourceModel(model).nextReviewAt(LocalDateTime.now()).build();
-        } catch (Exception e) { throw new BadRequestException("Không thể tạo flashcard: " + e.getMessage()); }
+        } catch (Exception e) { throw new BadRequestException(LocaleHolder.isEn() ? "Cannot create flashcard: " + e.getMessage() : "Không thể tạo flashcard: " + e.getMessage()); }
     }
 
     private Vulnerability resolveVulnerability(Lesson lesson) {
@@ -155,7 +173,7 @@ public class ReviewService {
                 text.contains("ssrf") ? "ssrf" : text.contains("upload") ? "file-upload" :
                 text.contains("command") ? "command-injection" : text.contains("csrf") || text.contains("clickjack") ? "csrf" :
                 text.contains("privilege") || text.contains("auth") ? "auth-bypass" : "idor";
-        return vulnerabilities.findBySlug(slug).orElseThrow(() -> new BadRequestException("Chưa có template ôn tập cho bài học"));
+        return vulnerabilities.findBySlug(slug).orElseThrow(() -> new BadRequestException(LocaleHolder.isEn() ? "No review template available for this lesson" : "Chưa có template ôn tập cho bài học"));
     }
     private String summarize(String value) { return value == null ? "" : value.replaceAll("\\s+", " ").substring(0, Math.min(650, value.replaceAll("\\s+", " ").length())); }
     private String normalize(String value) { return value == null ? "" : value.trim().toLowerCase(); }

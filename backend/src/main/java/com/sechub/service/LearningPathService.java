@@ -3,6 +3,7 @@ package com.sechub.service;
 import com.sechub.dto.LearningPathDto;
 import com.sechub.entity.LearningPath;
 import com.sechub.exception.ResourceNotFoundException;
+import com.sechub.support.LocaleHolder;
 import com.sechub.repository.LearningPathRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,9 +31,9 @@ public class LearningPathService {
     @Transactional(readOnly = true)
     public LearningPathDto getById(UUID id) {
         LearningPath lp = learningPathRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Lộ trình học", "id", id));
+                .orElseThrow(() -> new ResourceNotFoundException(LocaleHolder.isEn() ? "Learning path" : "Lộ trình học", "id", id));
         if (lp.getStatus() != LearningPath.PublicationStatus.PUBLISHED) {
-            throw new ResourceNotFoundException("Lộ trình học", "id", id);
+            throw new ResourceNotFoundException(LocaleHolder.isEn() ? "Learning path" : "Lộ trình học", "id", id);
         }
         return LearningPathDto.fromEntity(lp);
     }

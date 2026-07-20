@@ -7,6 +7,7 @@ import { api, Vulnerability } from '@/lib/api';
 import { useTranslation } from '@/context/LanguageContext';
 import VulnIcon from '@/components/VulnIcon';
 import PageBackLink from '@/components/PageBackLink';
+import { localizeVulnerabilityName, localizeVulnerabilityDescription } from '@/utils/localize';
 
 export default function VulnerabilitiesPage() {
   const { language } = useTranslation();
@@ -80,8 +81,8 @@ export default function VulnerabilitiesPage() {
                   <div className="vuln-card-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <VulnIcon name={vuln.icon} size={24} />
                   </div>
-                  <div className="vuln-card-title">{vuln.name}</div>
-                  <div className="vuln-card-desc">{vuln.description}</div>
+                  <div className="vuln-card-title">{localizeVulnerabilityName(vuln.name, vuln.slug, language)}</div>
+                  <div className="vuln-card-desc">{localizeVulnerabilityDescription(vuln.description, vuln.slug, language)}</div>
                   <div className="vuln-card-footer" style={{ marginTop: 'auto', paddingTop: 'var(--space-2)' }}>
                     <span className={`badge ${severityClass}`}>{severityLabel}</span>
                     <span className="vuln-card-labs">{vuln.labCount || 0} {language === 'vi' ? 'phòng lab' : 'labs'} →</span>

@@ -55,18 +55,22 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(exceptions -> exceptions
                 .authenticationEntryPoint((request, response, authException) -> {
+                    String lang = request.getHeader("Accept-Language");
+                    boolean en = lang != null && lang.toLowerCase().startsWith("en");
                     response.setStatus(HttpStatus.UNAUTHORIZED.value());
                     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                     response.setCharacterEncoding("UTF-8");
                     new ObjectMapper().writeValue(response.getOutputStream(),
-                        ApiResponse.error("Phiên đăng nhập đã hết hạn hoặc token không hợp lệ"));
+                        ApiResponse.error(en ? "Session expired or invalid token" : "Phiên đăng nhập đã hết hạn hoặc token không hợp lệ"));
                 })
                 .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    String lang = request.getHeader("Accept-Language");
+                    boolean en = lang != null && lang.toLowerCase().startsWith("en");
                     response.setStatus(HttpStatus.FORBIDDEN.value());
                     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                     response.setCharacterEncoding("UTF-8");
                     new ObjectMapper().writeValue(response.getOutputStream(),
-                        ApiResponse.error("Bạn không có quyền truy cập tài nguyên này"));
+                        ApiResponse.error(en ? "You do not have permission to access this resource" : "Bạn không có quyền truy cập tài nguyên này"));
                 })
             )
             .authorizeHttpRequests(auth -> auth

@@ -28,6 +28,7 @@ import { useTranslation } from '@/context/LanguageContext';
 import VulnIcon from '@/components/VulnIcon';
 import NewUserOnboarding from '@/components/NewUserOnboarding';
 import { useRouter } from 'next/navigation';
+import { localizeLessonTitle } from '@/utils/localize';
 
 function StatCard({ value, label, color }: { value: string; label: string; color: string }) {
   return (
@@ -358,7 +359,7 @@ export default function DashboardPage() {
                 </div>
               </section>
 
-              <section className="dashboard-return-grid" aria-label="Nhịp học của bạn">
+              <section className="dashboard-return-grid" aria-label={language === 'vi' ? 'Nhịp học của bạn' : 'Your learning rhythm'}>
                 {/* Left Column: Daily Tasks and Continued Learning */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <div className="dashboard-missions" style={{ width: '100%' }}>
@@ -445,7 +446,7 @@ export default function DashboardPage() {
                             {t('dashboard.continueReading')}
                           </span>
                           <strong style={{ fontSize: '13px', color: 'var(--text-heading)', display: 'block', margin: '2px 0 1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {lessonResume.title}
+                            {localizeLessonTitle(lessonResume.title, language)}
                           </strong>
                           <span style={{ fontSize: '11px', color: 'var(--text-body-subtle)' }}>
                             {t('dashboard.readProgress')}: {lessonResume.progress}%

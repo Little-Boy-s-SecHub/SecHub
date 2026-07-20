@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.sechub.support.LocaleHolder;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -119,20 +120,21 @@ public class OpenAiService {
     }
 
     private List<PracticeCardDto> localPracticeCards(List<Lesson> lessons) {
+        boolean en = LocaleHolder.isEn();
         return lessons.stream().flatMap(lesson -> {
             String vulnerability = lesson.getVulnerability() == null
-                    ? "lỗ hổng được trình bày trong bài"
+                    ? (en ? "the vulnerability covered in this lesson" : "lỗ hổng được trình bày trong bài")
                     : lesson.getVulnerability().getName();
             String lessonKey = lesson.getId().toString();
             return List.of(
                     new PracticeCardDto(lessonKey + "-concept", "CONCEPT",
-                            "Dấu hiệu quan trọng nhất cần kiểm tra trong bài này là gì?",
-                            "Luồng dữ liệu đầu vào và kiểm tra quyền ở phía server",
-                            "Hãy theo dõi dữ liệu từ request tới điểm xử lý nhạy cảm thay vì chỉ quan sát giao diện.", lesson.getTitle()),
+                            en ? "What is the most important indicator to check in this lesson?" : "Dấu hiệu quan trọng nhất cần kiểm tra trong bài này là gì?",
+                            en ? "Input data flow and server-side authorization checks" : "Luồng dữ liệu đầu vào và kiểm tra quyền ở phía server",
+                            en ? "Trace data from the request to the sensitive processing point instead of just observing the UI." : "Hãy theo dõi dữ liệu từ request tới điểm xử lý nhạy cảm thay vì chỉ quan sát giao diện.", lesson.getTitle()),
                     new PracticeCardDto(lessonKey + "-code", "CODE_REVIEW",
-                            "Khi đọc code liên quan tới " + vulnerability + ", bước kiểm tra đầu tiên là gì?",
-                            "Xác định input do người dùng kiểm soát và validation/authorization tương ứng",
-                            "Đây là cách nhanh nhất để nhận diện ranh giới tin cậy bị phá vỡ.", lesson.getTitle())
+                            en ? "When reviewing code related to " + vulnerability + ", what is the first check?" : "Khi đọc code liên quan tới " + vulnerability + ", bước kiểm tra đầu tiên là gì?",
+                            en ? "Identify user-controlled inputs and corresponding validation/authorization" : "Xác định input do người dùng kiểm soát và validation/authorization tương ứng",
+                            en ? "This is the fastest way to identify broken trust boundaries." : "Đây là cách nhanh nhất để nhận diện ranh giới tin cậy bị phá vỡ.", lesson.getTitle())
             ).stream();
         }).limit(8).toList();
     }
@@ -167,7 +169,7 @@ public class OpenAiService {
                     .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body), StandardCharsets.UTF_8)).build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new BadRequestException("Codex không thể tạo flashcard (HTTP " + response.statusCode() + ")");
+                throw new BadRequestException(LocaleHolder.isEn() ? "Codex failed to generate flashcards (HTTP " + response.statusCode() + ")" : "Codex không thể tạo flashcard (HTTP " + response.statusCode() + ")");
             }
             JsonNode cardsNode = objectMapper.readTree(extractOutputText(objectMapper.readTree(response.body()))).path("cards");
             return objectMapper.readerForListOf(PracticeCardDto.class).readValue(cardsNode);
@@ -175,7 +177,7 @@ public class OpenAiService {
             throw e;
         } catch (Exception e) {
             log.error("Failed to generate practice cards", e);
-            throw new BadRequestException("Không thể tạo flashcard bằng Codex: " + e.getMessage());
+            throw new BadRequestException(LocaleHolder.isEn() ? "Failed to generate flashcards via Codex: " + e.getMessage() : "Không thể tạo flashcard bằng Codex: " + e.getMessage());
         }
     }
 
@@ -230,7 +232,7 @@ public class OpenAiService {
                     HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
                 log.warn("OpenAI Responses API returned status {}", response.statusCode());
-                throw new BadRequestException("OpenAI không thể tạo đặc tả lab (HTTP " + response.statusCode() + ")");
+                throw new BadRequestException(LocaleHolder.isEn() ? "OpenAI failed to generate lab spec (HTTP " + response.statusCode() + ")" : "OpenAI không thể tạo đặc tả lab (HTTP " + response.statusCode() + ")");
             }
             String outputText = extractOutputText(objectMapper.readTree(response.body()));
             return validateSpec(objectMapper.readValue(outputText, GeneratedLabSpec.class));
@@ -238,7 +240,7 @@ public class OpenAiService {
             throw e;
         } catch (Exception e) {
             log.error("Failed to generate lab spec", e);
-            throw new BadRequestException("Không thể tạo đặc tả lab từ OpenAI: " + e.getMessage());
+            throw new BadRequestException(LocaleHolder.isEn() ? "Failed to generate lab spec from OpenAI: " + e.getMessage() : "Không thể tạo đặc tả lab từ OpenAI: " + e.getMessage());
         }
     }
 
@@ -250,7 +252,7 @@ public class OpenAiService {
                 }
             }
         }
-        throw new BadRequestException("OpenAI không trả về LabSpec hợp lệ");
+        throw new BadRequestException(LocaleHolder.isEn() ? "OpenAI did not return a valid LabSpec" : "OpenAI không trả về LabSpec hợp lệ");
     }
 
     private GeneratedLabSpec localSpec(Vulnerability vulnerability, LearningPath.Difficulty difficulty,
@@ -265,12 +267,17 @@ public class OpenAiService {
             case INTERMEDIATE -> 200;
             case ADVANCED -> 300;
         };
+        boolean en = LocaleHolder.isEn();
         return new GeneratedLabSpec(
                 lessonAwareTitle(vulnerability, scenario),
-                "Kịch bản thực hành được tạo từ nội dung bài học về " + vulnerability.getName()
+                en ? "Practice scenario generated from lesson content about " + vulnerability.getName()
+                        + ". The goal is to apply what you've learned to find the SecHub flag."
+                    : "Kịch bản thực hành được tạo từ nội dung bài học về " + vulnerability.getName()
                         + ". Mục tiêu là áp dụng đúng kiến thức vừa học để tìm flag SecHub.",
                 localPracticeScenario(vulnerability, scenario, requestedSlug),
-                List.of("Xác định input mà server tin tưởng.", "Thử thay đổi request trực tiếp thay vì chỉ dùng giao diện.",
+                en ? List.of("Identify inputs the server trusts.", "Try modifying requests directly instead of just using the UI.",
+                        "Exploit only within the lab container and find the SecHub{...} string.")
+                   : List.of("Xác định input mà server tin tưởng.", "Thử thay đổi request trực tiếp thay vì chỉ dùng giao diện.",
                         "Khai thác chỉ trong container lab và tìm chuỗi SecHub{...}."),
                 minutes, points);
     }
@@ -279,18 +286,20 @@ public class OpenAiService {
         String lessonTitle = extractContextValue(context, "LESSON TITLE:");
         String subject = lessonTitle == null ? vulnerability.getName() : lessonTitle;
         String runtimeType = LabTemplateCatalog.runtimeTypeFor(requestedSlug, context);
+        boolean en = LocaleHolder.isEn();
         String task = switch (runtimeType) {
-            case "sql-injection" -> "Phân tích truy vấn từ input, kiểm tra cách server ghép câu lệnh SQL và truy xuất bản ghi chứa flag.";
-            case "xss" -> "Xác định dữ liệu được phản chiếu vào HTML, tạo payload script trong sandbox và tìm flag trong phản hồi.";
-            case "csrf" -> "Phân tích hành động thay đổi dữ liệu, kiểm tra cơ chế xác nhận nguồn request và thực hiện yêu cầu hợp lệ để lấy flag.";
-            case "idor" -> "Quan sát định danh tài nguyên trong request, kiểm tra quyền sở hữu và truy cập bản ghi không thuộc tài khoản hiện tại để tìm flag.";
-            case "ssrf" -> "Phân tích chức năng gọi URL phía server, giới hạn mục tiêu trong mạng sandbox và truy cập dịch vụ nội bộ chứa flag.";
-            case "command-injection" -> "Xác định input được chuyển tới lệnh hệ điều hành, kiểm tra cách nối lệnh trong sandbox và đọc flag.";
-            case "file-upload" -> "Phân tích quy tắc kiểm tra tệp tải lên, thử cách vượt qua kiểm tra trong sandbox và tìm flag.";
-            case "auth-bypass" -> "Phân tích luồng xác thực và kiểm tra phân quyền, vượt qua điều kiện không an toàn để truy cập flag.";
-            default -> "Phân tích request của ứng dụng cô lập, khai thác đúng loại lỗ hổng đang học và tìm flag.";
+            case "sql-injection" -> en ? "Analyze queries from input, inspect how the server constructs SQL statements, and retrieve the record containing the flag." : "Phân tích truy vấn từ input, kiểm tra cách server ghép câu lệnh SQL và truy xuất bản ghi chứa flag.";
+            case "xss" -> en ? "Identify data reflected into HTML, craft a script payload in the sandbox, and find the flag in the response." : "Xác định dữ liệu được phản chiếu vào HTML, tạo payload script trong sandbox và tìm flag trong phản hồi.";
+            case "csrf" -> en ? "Analyze data-changing actions, inspect the request origin verification mechanism, and perform a valid request to get the flag." : "Phân tích hành động thay đổi dữ liệu, kiểm tra cơ chế xác nhận nguồn request và thực hiện yêu cầu hợp lệ để lấy flag.";
+            case "idor" -> en ? "Observe resource identifiers in requests, check ownership and access records not belonging to the current account to find the flag." : "Quan sát định danh tài nguyên trong request, kiểm tra quyền sở hữu và truy cập bản ghi không thuộc tài khoản hiện tại để tìm flag.";
+            case "ssrf" -> en ? "Analyze server-side URL fetching, restrict targets to the sandbox network, and access the internal service containing the flag." : "Phân tích chức năng gọi URL phía server, giới hạn mục tiêu trong mạng sandbox và truy cập dịch vụ nội bộ chứa flag.";
+            case "command-injection" -> en ? "Identify input passed to OS commands, inspect command chaining in the sandbox, and read the flag." : "Xác định input được chuyển tới lệnh hệ điều hành, kiểm tra cách nối lệnh trong sandbox và đọc flag.";
+            case "file-upload" -> en ? "Analyze file upload validation rules, try bypassing checks in the sandbox, and find the flag." : "Phân tích quy tắc kiểm tra tệp tải lên, thử cách vượt qua kiểm tra trong sandbox và tìm flag.";
+            case "auth-bypass" -> en ? "Analyze authentication flow and authorization checks, bypass insecure conditions to access the flag." : "Phân tích luồng xác thực và kiểm tra phân quyền, vượt qua điều kiện không an toàn để truy cập flag.";
+            default -> en ? "Analyze requests in the isolated app, exploit the vulnerability type being studied, and find the flag." : "Phân tích request của ứng dụng cô lập, khai thác đúng loại lỗ hổng đang học và tìm flag.";
         };
-        return "Áp dụng kiến thức từ bài \"" + subject + "\" trong một ứng dụng web cô lập. " + task;
+        return en ? "Apply knowledge from lesson \"" + subject + "\" in an isolated web application. " + task
+                 : "Áp dụng kiến thức từ bài \"" + subject + "\" trong một ứng dụng web cô lập. " + task;
     }
 
     private String extractContextValue(String context, String label) {
@@ -310,7 +319,7 @@ public class OpenAiService {
                 if (line.startsWith("LESSON TITLE:")) {
                     String title = line.substring("LESSON TITLE:".length()).trim();
                     if (!title.isBlank()) {
-                        String result = title + " - Lab thực hành";
+                        String result = title + (LocaleHolder.isEn() ? " - Practice Lab" : " - Lab thực hành");
                         return result.substring(0, Math.min(100, result.length()));
                     }
                 }
@@ -321,7 +330,7 @@ public class OpenAiService {
 
     private GeneratedLabSpec validateSpec(GeneratedLabSpec spec) {
         if (spec.title() == null || spec.title().isBlank() || spec.hints() == null || spec.hints().isEmpty()) {
-            throw new BadRequestException("LabSpec do model tạo thiếu trường bắt buộc");
+            throw new BadRequestException(LocaleHolder.isEn() ? "LabSpec generated by model is missing required fields" : "LabSpec do model tạo thiếu trường bắt buộc");
         }
         return new GeneratedLabSpec(
                 spec.title().substring(0, Math.min(100, spec.title().length())),
@@ -343,7 +352,7 @@ public class OpenAiService {
         try {
             return LearningPath.Difficulty.valueOf(value == null ? "BEGINNER" : value.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new BadRequestException("Độ khó không hợp lệ: " + value);
+            throw new BadRequestException(LocaleHolder.isEn() ? "Invalid difficulty: " + value : "Độ khó không hợp lệ: " + value);
         }
     }
 
@@ -371,7 +380,7 @@ public class OpenAiService {
 
     private String normalizeScenario(String scenario) {
         return scenario == null || scenario.isBlank()
-                ? "Một ứng dụng nội bộ có lỗi cấu hình; người học cần phân tích request để lấy flag."
+                ? (LocaleHolder.isEn() ? "An internal application with misconfiguration; the learner must analyze requests to get the flag." : "Một ứng dụng nội bộ có lỗi cấu hình; người học cần phân tích request để lấy flag.")
                 : scenario.trim().substring(0, Math.min(1000, scenario.trim().length()));
     }
 
@@ -389,7 +398,7 @@ public class OpenAiService {
         try {
             return objectMapper.writeValueAsString(hints);
         } catch (Exception e) {
-            throw new BadRequestException("Không thể lưu hints của lab");
+            throw new BadRequestException(LocaleHolder.isEn() ? "Failed to save lab hints" : "Không thể lưu hints của lab");
         }
     }
 }

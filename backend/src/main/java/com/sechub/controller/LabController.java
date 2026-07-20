@@ -2,6 +2,7 @@ package com.sechub.controller;
 
 import com.sechub.dto.*;
 import com.sechub.service.LabService;
+import com.sechub.support.LocaleHolder;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -36,7 +37,7 @@ public class LabController {
     public ResponseEntity<ApiResponse<Void>> deleteGeneratedLab(@PathVariable UUID id,
             @AuthenticationPrincipal UserDetails userDetails) {
         labService.deleteGeneratedLab(id, userDetails.getUsername());
-        return ResponseEntity.ok(ApiResponse.success("Đã xoá bài lab AI", null));
+        return ResponseEntity.ok(ApiResponse.success(LocaleHolder.isEn() ? "AI lab deleted" : "Đã xoá bài lab AI", null));
     }
 
     @PostMapping("/{id}/start")
@@ -44,7 +45,7 @@ public class LabController {
             @PathVariable UUID id,
             @AuthenticationPrincipal UserDetails userDetails) {
         LabAttemptDto attempt = labService.startLab(id, userDetails.getUsername());
-        return ResponseEntity.ok(ApiResponse.success("Bắt đầu phiên thực hành", attempt));
+        return ResponseEntity.ok(ApiResponse.success(LocaleHolder.isEn() ? "Lab session started" : "Bắt đầu phiên thực hành", attempt));
     }
 
     @PostMapping("/attempts/{attemptId}/stop")
@@ -52,7 +53,7 @@ public class LabController {
             @PathVariable UUID attemptId,
             @AuthenticationPrincipal UserDetails userDetails) {
         LabAttemptDto attempt = labService.stopLab(attemptId, userDetails.getUsername());
-        return ResponseEntity.ok(ApiResponse.success("Đã dừng phiên thực hành", attempt));
+        return ResponseEntity.ok(ApiResponse.success(LocaleHolder.isEn() ? "Lab session stopped" : "Đã dừng phiên thực hành", attempt));
     }
 
     @PostMapping("/attempts/{attemptId}/submit")
@@ -61,7 +62,7 @@ public class LabController {
             @Valid @RequestBody FlagSubmissionRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
         LabAttemptDto attempt = labService.submitFlag(attemptId, request.flag(), userDetails.getUsername());
-        return ResponseEntity.ok(ApiResponse.success("Chúc mừng! Flag chính xác!", attempt));
+        return ResponseEntity.ok(ApiResponse.success(LocaleHolder.isEn() ? "Congratulations! Correct flag!" : "Chúc mừng! Flag chính xác!", attempt));
     }
 
     @PostMapping("/attempts/{attemptId}/hint")
@@ -69,7 +70,7 @@ public class LabController {
             @PathVariable UUID attemptId,
             @AuthenticationPrincipal UserDetails userDetails) {
         LabAttemptDto attempt = labService.useHint(attemptId, userDetails.getUsername());
-        return ResponseEntity.ok(ApiResponse.success("Đã sử dụng gợi ý", attempt));
+        return ResponseEntity.ok(ApiResponse.success(LocaleHolder.isEn() ? "Hint used" : "Đã sử dụng gợi ý", attempt));
     }
 
     @GetMapping("/attempts/{attemptId}/mentor")
@@ -84,7 +85,7 @@ public class LabController {
             @PathVariable UUID attemptId,
             @AuthenticationPrincipal UserDetails userDetails) {
         LabAttemptDto attempt = labService.extendLab(attemptId, userDetails.getUsername());
-        return ResponseEntity.ok(ApiResponse.success("Đã gia hạn thêm 30 phút", attempt));
+        return ResponseEntity.ok(ApiResponse.success(LocaleHolder.isEn() ? "Extended by 30 minutes" : "Đã gia hạn thêm 30 phút", attempt));
     }
 
     @GetMapping("/attempts/{attemptId}/feedback")

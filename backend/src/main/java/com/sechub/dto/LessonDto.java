@@ -1,6 +1,7 @@
 package com.sechub.dto;
 
 import com.sechub.entity.Lesson;
+import com.sechub.support.LocaleHolder;
 
 import java.util.UUID;
 
@@ -29,7 +30,7 @@ public record LessonDto(
             lesson.getVulnerability() != null ? lesson.getVulnerability().getSlug() : null,
             lesson.getTopicSlug(),
             lesson.getLearningObjective() == null || lesson.getLearningObjective().isBlank()
-                    ? "Hiểu và nhận diện " + lesson.getTitle() : lesson.getLearningObjective(),
+                    ? (LocaleHolder.isEn() ? "Understand and identify " : "Hiểu và nhận diện ") + lesson.getTitle() : lesson.getLearningObjective(),
             lesson.getEstimatedMinutes() == null ? 12 : lesson.getEstimatedMinutes()
         );
     }

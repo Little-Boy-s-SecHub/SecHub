@@ -1022,7 +1022,7 @@ export default function LabGameView({
         ctx.fillStyle = 'rgba(0,0,0,0.4)';
         ctx.fillRect(obs.x + 3, obs.y + 3, obs.width, obs.height);
 
-        if (obs.label.startsWith('Tủ Rack')) {
+        if (obs.label.startsWith('Tủ Rack') || obs.label.startsWith('Server Rack')) {
           // ── DETAILED SERVER RACK (tall, metallic) ──
           // Outer casing
           ctx.fillStyle = '#1e293b';
