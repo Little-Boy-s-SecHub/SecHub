@@ -14,23 +14,23 @@
     "test:coverage:100": "cross-env COVERAGE_MIN=100 vitest run --coverage"
   },
   "dependencies": {
-    "lucide-react": "^1.21.0",
-    "marked": "^18.0.5",
-    "next": "16.2.9",
-    "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "lucide-react": "^1.28.0",
+    "marked": "^18.0.9",
+    "next": "16.3.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.1",
+    "@testing-library/user-event": "^14.6.3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitest/coverage-v8": "^4.1.10",
     "cross-env": "^10.1.0",
     "eslint": "^9",
-    "eslint-config-next": "16.2.9",
+    "eslint-config-next": "16.3.0",
     "jsdom": "^29.1.1",
     "typescript": "^5",
     "vitest": "^4.1.10"
